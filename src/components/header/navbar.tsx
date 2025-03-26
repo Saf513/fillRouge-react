@@ -102,7 +102,15 @@ export default function NavBar() {
             {isAuthenticated ? (
               <>
                 <Link
-                  to="/profile"
+                  to={
+                    user?.role === 'student'
+                      ? '/student-dashboard'
+                      : user?.role === 'teacher'
+                      ? '/teacher-dashboard'
+                      : user?.role === 'admin'
+                      ? '/admin-dashboard'
+                      : '/unauthorized'
+                  }
                   className="flex items-center gap-2 text-[#262626] font-medium"
                 >
                   <User className="h-4 w-4" />
@@ -158,7 +166,13 @@ export default function NavBar() {
                 {isAuthenticated ? (
                   <>
                     <Link
-                      to="/dashboard"
+                      to={user?.role === 'student' 
+                        ? '/student-dashboard' 
+                        : user?.role === 'teacher'
+                        ? '/teacher-dashboard'
+                        : user?.role === 'admin'
+                        ? '/admin-dashboard'
+                        : '/unauthorized'}
                       className="flex items-center gap-2 text-[#262626] font-medium"
                     >
                       <User className="h-4 w-4" />

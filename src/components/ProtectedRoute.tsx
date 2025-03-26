@@ -24,23 +24,5 @@ const { isAuthenticated, user } = useAuth();
   return <Component />;
 };
 
-// src/components/DashboardRouter.tsx
 
-export default function DashboardRouter() {
-  const { isAuthenticated, user } = useAuth();
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" />;
-  }
-
-  switch (user?.role) {
-    case "student":
-      return <Navigate to="/student-dashboard" />;
-    case "teacher":
-      return <Navigate to="/teacher-dashboard" />;
-    case "admin":
-      return <Navigate to="/admin-dashboard" />;
-    default:
-      return <Navigate to="/unauthorized" />;
-  }
-}

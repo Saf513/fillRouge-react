@@ -56,8 +56,10 @@ const Login = () => {
       console.error("Login error:", error);
       console.error("Error response:", error.response?.data);
       
-      if (error.response?.status === 403 && 
-          error.response?.data?.message.includes('pending approval')) {
+      if (error.code === 'ERR_NETWORK') {
+        alert("Unable to connect to the server. Please check your network connection or try again later.");
+      } else if (error.response?.status === 403 && 
+                 error.response?.data?.message.includes('pending approval')) {
         // Message spécifique pour compte en attente d'approbation
         alert("Votre compte est en attente d'approbation par un administrateur. " +
               "Veuillez patienter ou contacter l'administrateur.");
