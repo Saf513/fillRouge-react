@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react"
 import {
   Search,
@@ -657,7 +656,7 @@ export default function CoursesExplorer() {
                               : "hover:bg-gray-100"
                           }`}
                         >
-                          <span>{category.name}</span>
+                          <span>{category.title}</span>
                           <ChevronRight className="h-4 w-4" />
                         </button>
 
@@ -711,7 +710,7 @@ export default function CoursesExplorer() {
                       : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
                   }`}
                 >
-                  {category.name}
+                  {category.title}
                 </button>
               ))}
             </div>
