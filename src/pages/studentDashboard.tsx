@@ -1,14 +1,10 @@
-"use client"
-
 import type React from "react"
-
 import { useState, useEffect, useRef } from "react"
 import {
   BookOpen,
   ChevronDown,
   ChevronRight,
   Clock,
-  FileText,
   Filter,
   Heart,
   HelpCircle,
@@ -37,6 +33,13 @@ import {
   CreditCard,
 } from "lucide-react"
 
+import StudentProfile from "./student/profile/studentProfile"
+import StudentSettings from "./student/settings/studentSettings"
+import { useAuth } from '../hooks/useAuth'
+import { Course, Certificate, Notification } from "../types/dashboard"
+import useStudentDashboardData from '../hooks/useDashboardStudentData'
+import useCategories from '../hooks/useCategories'
+
 export default function StudentDashboard() {
   const [activeTab, setActiveTab] = useState("my-learning")
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -55,6 +58,23 @@ export default function StudentDashboard() {
   const [showArchived, setShowArchived] = useState(false)
   const notificationsRef = useRef<HTMLDivElement>(null)
   const profileMenuRef = useRef<HTMLDivElement>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const { user } = useAuth()
+  const [courses, setCourses] = useState<Course[]>([])
+  const [certificates, setCertificates] = useState<Certificate[]>([])
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [userProfile, setUserProfile] = useState<{
+    name: string;
+    email: string;
+    avatar: string;
+  }>({
+    name: "",
+    email: "",
+    avatar: ""
+  })
+  const { data: dashboardData, loading: apiLoading } = useStudentDashboardData()
+  const { categories, loading: categoriesLoading, error: categoriesError } = useCategories()
 
   // Handle window resize
   useEffect(() => {
@@ -156,259 +176,121 @@ export default function StudentDashboard() {
     setShowArchived(!showArchived)
   }
 
-  // Sample student data
-  const studentData = {
-    name: "Alex Johnson",
-    email: "alex.johnson@example.com",
-    avatar: "/placeholder.svg?height=200&width=200",
-    joinDate: "January 2022",
-    lastActive: "Today at 10:30 AM",
+  // Fetch dashboard data
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true)
+        console.log("fetchDashboardData")
+        // Utiliser les données réelles de l'API si disponibles
+        if (dashboardData) {
+          // Mettre à jour les états avec les données de l'API
+          setCourses(dashboardData.courses || [])
+          setCertificates(dashboardData.certificates || [])
+          setNotifications(dashboardData.notifications || [])
+          setUserProfile(dashboardData.userProfile || {})
+          setLoading(false)
+        } else {
+          // Fallback sur les données de démonstration si l'API n'a pas encore répondu
+          setTimeout(() => {
+            // Données de démonstration
+            setCourses([
+              {
+                id: 1,
+                title: "Introduction to React",
+                instructor: "John Doe",
+                progress: 75,
+                image: "/placeholder.svg",
+                lastViewed: "2023-05-15",
+                rating: 4.5,
+                reviews: 120,
+                totalLessons: 24,
+                completedLessons: 18,
+                category: "Web Development",
+                level: "Beginner",
+                description: "Learn the basics of React",
+                bookmarked: true,
+                isArchived: false,
+                estimatedTimeLeft: "2 weeks",
+                lastSection: "State Management",
+                lastLesson: "useState Hook"
+              },
+              // Ajoutez d'autres cours si nécessaire
+            ])
+            
+            setCertificates([
+              {
+                id: 1,
+                title: "React Fundamentals",
+                issuer: "OpenCode Academy",
+                date: "2023-04-10",
+                image: "/placeholder.svg",
+                course: "Introduction to React",
+                skills: ["React", "JavaScript", "HTML", "CSS"]
+              },
+              // Ajoutez d'autres certificats si nécessaire
+            ])
+            
+            setNotifications([
+              {
+                id: 1,
+                title: "New course available",
+                course: "Advanced React Patterns",
+                time: "2 hours ago",
+                icon: "BookOpen",
+                read: false
+              },
+              // Ajoutez d'autres notifications si nécessaire
+            ])
+            
+            setUserProfile({
+              name: "John Doe",
+              email: "john.doe@example.com",
+              avatar: "/placeholder.svg"
+            })
+            
+            setLoading(false)
+          }, 1000)
+        }
+      } catch (error) {
+        setError("Failed to load dashboard data")
+        setLoading(false)
+      }
+    }
+
+    fetchDashboardData()
+  }, [dashboardData])
+
+  if (loading) {
+    return <div>Chargement...</div>
   }
 
-  // Sample courses data
-  const courses = [
-    {
-      id: 1,
-      title: "Complete Web Development Bootcamp",
-      instructor: "Dr. Angela Yu",
-      progress: 65,
-      image: "/placeholder.svg?height=160&width=320",
-      lastViewed: "2 hours ago",
-      rating: 4.8,
-      reviews: 142,
-      totalLessons: 226,
-      completedLessons: 147,
-      category: "Web Development",
-      level: "Beginner to Advanced",
-      description:
-        "Become a full-stack web developer with just one course. HTML, CSS, Javascript, Node, React, MongoDB, and more!",
-      bookmarked: true,
-      isArchived: false,
-      estimatedTimeLeft: "12h 30m",
-      lastSection: "Section 8: Advanced CSS",
-      lastLesson: "Flexbox Layout",
-    },
-    {
-      id: 2,
-      title: "Advanced JavaScript Concepts",
-      instructor: "Andrei Neagoie",
-      progress: 42,
-      image: "/placeholder.svg?height=160&width=320",
-      lastViewed: "Yesterday",
-      rating: 4.9,
-      reviews: 95,
-      totalLessons: 184,
-      completedLessons: 77,
-      category: "Programming",
-      level: "Advanced",
-      description: "Learn advanced JavaScript concepts including prototype inheritance, closures, currying, and more.",
-      bookmarked: false,
-      isArchived: false,
-      estimatedTimeLeft: "18h 45m",
-      lastSection: "Section 5: Closures and Prototypal Inheritance",
-      lastLesson: "Understanding the Prototype Chain",
-    },
-    {
-      id: 3,
-      title: "The Complete Digital Marketing Course",
-      instructor: "Rob Percival, Daragh Walsh",
-      progress: 28,
-      image: "/placeholder.svg?height=160&width=320",
-      lastViewed: "3 days ago",
-      rating: 4.7,
-      reviews: 118,
-      totalLessons: 148,
-      completedLessons: 41,
-      category: "Marketing",
-      level: "Beginner",
-      description: "Learn SEO, Google Ads, Facebook Marketing, and more to grow your business or career.",
-      bookmarked: true,
-      isArchived: false,
-      estimatedTimeLeft: "22h 15m",
-      lastSection: "Section 4: Search Engine Optimization",
-      lastLesson: "Keyword Research Strategies",
-    },
-    {
-      id: 4,
-      title: "UI/UX Design Masterclass",
-      instructor: "Daniel Walter Scott",
-      progress: 85,
-      image: "/placeholder.svg?height=160&width=320",
-      lastViewed: "1 week ago",
-      rating: 4.8,
-      reviews: 156,
-      totalLessons: 112,
-      completedLessons: 95,
-      category: "Design",
-      level: "Intermediate",
-      description: "Learn UI/UX design from the ground up. Figma, user research, wireframing, and more!",
-      bookmarked: false,
-      isArchived: false,
-      estimatedTimeLeft: "4h 20m",
-      lastSection: "Section 10: High-Fidelity Prototypes",
-      lastLesson: "Creating Interactive Prototypes in Figma",
-    },
-    {
-      id: 5,
-      title: "Python for Data Science and Machine Learning",
-      instructor: "Jose Portilla",
-      progress: 15,
-      image: "/placeholder.svg?height=160&width=320",
-      lastViewed: "2 weeks ago",
-      rating: 4.7,
-      reviews: 201,
-      totalLessons: 165,
-      completedLessons: 25,
-      category: "Data Science",
-      level: "Intermediate to Advanced",
-      description: "Learn how to use NumPy, Pandas, Seaborn, Matplotlib, Scikit-Learn, and more!",
-      bookmarked: true,
-      isArchived: false,
-      estimatedTimeLeft: "28h 10m",
-      lastSection: "Section 3: NumPy Arrays",
-      lastLesson: "Array Indexing and Selection",
-    },
-    {
-      id: 6,
-      title: "iOS 17 & Swift 5: Complete iOS App Development Bootcamp",
-      instructor: "Dr. Angela Yu",
-      progress: 100,
-      image: "/placeholder.svg?height=160&width=320",
-      lastViewed: "Completed",
-      rating: 4.9,
-      reviews: 134,
-      totalLessons: 178,
-      completedLessons: 178,
-      category: "Mobile Development",
-      level: "Beginner to Advanced",
-      description: "From beginner to iOS developer with just one course! Fully updated for iOS 17 and Swift 5.",
-      bookmarked: false,
-      isArchived: false,
-      completed: true,
-      completionDate: "October 15, 2023",
-      estimatedTimeLeft: "0h 0m",
-      lastSection: "Section 15: Publishing Your App",
-      lastLesson: "Submitting to the App Store",
-    },
-    {
-      id: 7,
-      title: "The Complete SQL Bootcamp",
-      instructor: "Jose Portilla",
-      progress: 52,
-      image: "/placeholder.svg?height=160&width=320",
-      lastViewed: "5 days ago",
-      rating: 4.8,
-      reviews: 112,
-      totalLessons: 85,
-      completedLessons: 44,
-      category: "Database",
-      level: "Beginner to Intermediate",
-      description: "Learn SQL for data analysis and database management with PostgreSQL.",
-      bookmarked: false,
-      isArchived: true,
-      estimatedTimeLeft: "8h 15m",
-      lastSection: "Section 6: Advanced SQL Commands",
-      lastLesson: "Window Functions",
-    },
+  if (error) {
+    return <div>Erreur: {error}</div>
+  }
+
+  if (!dashboardData) {
+    return <div>Aucune donnée disponible</div>
+  }
+
+  // Sample student data
+  
+  // Utiliser les catégories de l'API
+  const apiCategories = categories.map(category => ({
+    id: category.id,
+    name: category.title
+  }))
+
+  // Ajouter l'option "Toutes les catégories"
+  const allCategories = [
+    { id: "all", name: "Toutes les catégories" },
+    ...apiCategories
   ]
 
-  // Sample notifications
-  const notifications = [
-    {
-      id: 1,
-      title: "New lesson available",
-      course: "Complete Web Development Bootcamp",
-      time: "10 minutes ago",
-      icon: BookOpen,
-      read: false,
-    },
-    {
-      id: 2,
-      title: "Assignment due soon",
-      course: "Advanced JavaScript Concepts",
-      time: "1 hour ago",
-      icon: FileText,
-      read: false,
-    },
-    {
-      id: 3,
-      title: "Your certificate is ready",
-      course: "iOS 17 & Swift 5: Complete iOS App Development Bootcamp",
-      time: "Yesterday",
-      icon: Award,
-      read: true,
-    },
-    {
-      id: 4,
-      title: "Instructor replied to your question",
-      course: "UI/UX Design Masterclass",
-      time: "2 days ago",
-      icon: MessageSquare,
-      read: true,
-    },
-  ]
-
-  // Sample wishlist courses
-  const wishlistCourses = [
-    {
-      id: 101,
-      title: "AWS Certified Solutions Architect",
-      instructor: "Stephane Maarek",
-      image: "/placeholder.svg?height=160&width=320",
-      rating: 4.8,
-      reviews: 178,
-      price: 94.99,
-      salePrice: 15.99,
-      category: "Cloud Computing",
-    },
-    {
-      id: 102,
-      title: "2023 Complete Front-End Web Development Course",
-      instructor: "Colt Steele",
-      image: "/placeholder.svg?height=160&width=320",
-      rating: 4.9,
-      reviews: 143,
-      price: 89.99,
-      salePrice: 12.99,
-      category: "Web Development",
-    },
-    {
-      id: 103,
-      title: "Character Art School: Complete Character Drawing",
-      instructor: "Scott Harris",
-      image: "/placeholder.svg?height=160&width=320",
-      rating: 4.7,
-      reviews: 121,
-      price: 69.99,
-      salePrice: 14.99,
-      category: "Art & Design",
-    },
-  ]
-
-  // Sample certificates
-  const certificates = [
-    {
-      id: 1,
-      title: "iOS 17 & Swift 5 Developer Certification",
-      issuer: "Dr. Angela Yu",
-      date: "October 15, 2023",
-      image: "/placeholder.svg?height=160&width=320",
-      course: "iOS 17 & Swift 5: Complete iOS App Development Bootcamp",
-      skills: ["Swift", "iOS Development", "UIKit", "SwiftUI", "Core Data"],
-    },
-  ]
-
-  // Sample categories for filtering
-  const categories = [
-    { id: "all", name: "All Categories" },
-    { id: "web-development", name: "Web Development" },
-    { id: "programming", name: "Programming" },
-    { id: "marketing", name: "Marketing" },
-    { id: "design", name: "Design" },
-    { id: "data-science", name: "Data Science" },
-    { id: "mobile-development", name: "Mobile Development" },
-    { id: "database", name: "Database" },
-  ]
+  // Afficher un message d'erreur si le chargement des catégories a échoué
+  if (categoriesError) {
+    console.error("Erreur lors du chargement des catégories:", categoriesError)
+  }
 
   // Filter and sort courses
   const filteredCourses = courses
@@ -459,7 +341,7 @@ export default function StudentDashboard() {
           ? 1
           : b.lastViewed === "Completed"
             ? -1
-            : a.lastViewed.localeCompare(b.lastViewed)
+            : (a.lastViewed && b.lastViewed) ? a.lastViewed.localeCompare(b.lastViewed) : 0
       } else if (sortOption === "title-asc") {
         // Sort by title (A-Z)
         return a.title.localeCompare(b.title)
@@ -489,7 +371,7 @@ export default function StudentDashboard() {
       >
         <div className="flex h-16 items-center justify-between border-b border-gray-200 px-4">
           <div className="flex items-center">
-            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-[#a435f0]">
+            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-[#FF9500]">
               <BookOpen className="h-5 w-5 text-white" />
             </div>
             {sidebarOpen && <span className="ml-3 text-lg font-bold">Udemy</span>}
@@ -510,7 +392,7 @@ export default function StudentDashboard() {
                 <button
                   onClick={() => handleTabChange("my-learning")}
                   className={`flex w-full items-center rounded-md px-3 py-2 ${
-                    activeTab === "my-learning" ? "bg-[#f7f9fa] text-[#a435f0]" : "text-gray-700 hover:bg-gray-100"
+                    activeTab === "my-learning" ? "bg-[#f7f9fa] text-[#FF9500]" : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
                   <BookOpen className="h-5 w-5" />
@@ -521,7 +403,7 @@ export default function StudentDashboard() {
                 <button
                   onClick={() => handleTabChange("wishlist")}
                   className={`flex w-full items-center rounded-md px-3 py-2 ${
-                    activeTab === "wishlist" ? "bg-[#f7f9fa] text-[#a435f0]" : "text-gray-700 hover:bg-gray-100"
+                    activeTab === "wishlist" ? "bg-[#f7f9fa] text-[#FF9500]" : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
                   <Heart className="h-5 w-5" />
@@ -532,7 +414,7 @@ export default function StudentDashboard() {
                 <button
                   onClick={() => handleTabChange("archived")}
                   className={`flex w-full items-center rounded-md px-3 py-2 ${
-                    activeTab === "archived" ? "bg-[#f7f9fa] text-[#a435f0]" : "text-gray-700 hover:bg-gray-100"
+                    activeTab === "archived" ? "bg-[#f7f9fa] text-[#FF9500]" : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
                   <Bookmark className="h-5 w-5" />
@@ -551,7 +433,7 @@ export default function StudentDashboard() {
                 <button
                   onClick={() => handleTabChange("certificates")}
                   className={`flex w-full items-center rounded-md px-3 py-2 ${
-                    activeTab === "certificates" ? "bg-[#f7f9fa] text-[#a435f0]" : "text-gray-700 hover:bg-gray-100"
+                    activeTab === "certificates" ? "bg-[#f7f9fa] text-[#FF9500]" : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
                   <Award className="h-5 w-5" />
@@ -562,7 +444,7 @@ export default function StudentDashboard() {
                 <button
                   onClick={() => handleTabChange("tools")}
                   className={`flex w-full items-center rounded-md px-3 py-2 ${
-                    activeTab === "tools" ? "bg-[#f7f9fa] text-[#a435f0]" : "text-gray-700 hover:bg-gray-100"
+                    activeTab === "tools" ? "bg-[#f7f9fa] text-[#FF9500]" : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
                   <Settings className="h-5 w-5" />
@@ -573,7 +455,7 @@ export default function StudentDashboard() {
                 <button
                   onClick={() => handleTabChange("notifications")}
                   className={`flex w-full items-center rounded-md px-3 py-2 ${
-                    activeTab === "notifications" ? "bg-[#f7f9fa] text-[#a435f0]" : "text-gray-700 hover:bg-gray-100"
+                    activeTab === "notifications" ? "bg-[#f7f9fa] text-[#FF9500]" : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
                   <Bell className="h-5 w-5" />
@@ -590,35 +472,35 @@ export default function StudentDashboard() {
             <ul className="space-y-1">
               <li>
                 <button
-                  onClick={() => handleTabChange("account")}
+                  onClick={() => handleTabChange("profile")}
                   className={`flex w-full items-center rounded-md px-3 py-2 ${
-                    activeTab === "account" ? "bg-[#f7f9fa] text-[#a435f0]" : "text-gray-700 hover:bg-gray-100"
+                    activeTab === "profile" ? "bg-[#f7f9fa] text-[#FF9500]" : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
                   <User className="h-5 w-5" />
-                  {sidebarOpen && <span className="ml-3">Account Settings</span>}
+                  {sidebarOpen && <span className="ml-3">Mon Profil</span>}
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => handleTabChange("settings")}
+                  className={`flex w-full items-center rounded-md px-3 py-2 ${
+                    activeTab === "settings" ? "bg-[#f7f9fa] text-[#FF9500]" : "text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  <Settings className="h-5 w-5" />
+                  {sidebarOpen && <span className="ml-3">Paramètres</span>}
                 </button>
               </li>
               <li>
                 <button
                   onClick={() => handleTabChange("payment-methods")}
                   className={`flex w-full items-center rounded-md px-3 py-2 ${
-                    activeTab === "payment-methods" ? "bg-[#f7f9fa] text-[#a435f0]" : "text-gray-700 hover:bg-gray-100"
+                    activeTab === "payment-methods" ? "bg-[#f7f9fa] text-[#FF9500]" : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
                   <CreditCard className="h-5 w-5" />
-                  {sidebarOpen && <span className="ml-3">Payment Methods</span>}
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => handleTabChange("purchase-history")}
-                  className={`flex w-full items-center rounded-md px-3 py-2 ${
-                    activeTab === "purchase-history" ? "bg-[#f7f9fa] text-[#a435f0]" : "text-gray-700 hover:bg-gray-100"
-                  }`}
-                >
-                  <DollarSign className="h-5 w-5" />
-                  {sidebarOpen && <span className="ml-3">Purchase History</span>}
+                  {sidebarOpen && <span className="ml-3">Moyens de paiement</span>}
                 </button>
               </li>
             </ul>
@@ -630,7 +512,7 @@ export default function StudentDashboard() {
                 <button
                   onClick={() => handleTabChange("help")}
                   className={`flex w-full items-center rounded-md px-3 py-2 ${
-                    activeTab === "help" ? "bg-[#f7f9fa] text-[#a435f0]" : "text-gray-700 hover:bg-gray-100"
+                    activeTab === "help" ? "bg-[#f7f9fa] text-[#FF9500]" : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
                   <HelpCircle className="h-5 w-5" />
@@ -642,11 +524,11 @@ export default function StudentDashboard() {
 
           {sidebarOpen && (
             <div className="mt-6 rounded-lg bg-[#f7f9fa] p-4">
-              <h4 className="font-medium text-[#a435f0]">Become an Instructor</h4>
+              <h4 className="font-medium text-[#FF9500]">Become an Instructor</h4>
               <p className="mt-1 text-xs text-gray-600">
                 Share your knowledge and earn income by creating online courses
               </p>
-              <button className="mt-3 w-full rounded-md border border-[#a435f0] bg-white px-3 py-2 text-sm font-medium text-[#a435f0] hover:bg-[#f7f9fa]">
+              <button className="mt-3 w-full rounded-md border border-[#FF9500] bg-white px-3 py-2 text-sm font-medium text-[#FF9500] hover:bg-[#f7f9fa]">
                 Start Teaching
               </button>
             </div>
@@ -684,7 +566,7 @@ export default function StudentDashboard() {
                 placeholder="Search for anything"
                 value={searchTerm}
                 onChange={handleSearch}
-                className="h-10 w-64 rounded-md border border-gray-300 bg-[#f7f9fa] pl-10 pr-4 text-sm focus:border-[#a435f0] focus:outline-none focus:ring-1 focus:ring-[#a435f0] lg:w-80"
+                className="h-10 w-64 rounded-md border border-gray-300 bg-[#f7f9fa] pl-10 pr-4 text-sm focus:border-[#FF9500] focus:outline-none focus:ring-1 focus:ring-[#FF9500] lg:w-80"
               />
             </div>
           </div>
@@ -700,7 +582,7 @@ export default function StudentDashboard() {
                 className="relative rounded-full p-2 text-gray-500 hover:bg-gray-100"
               >
                 {notifications.some((n) => !n.read) && (
-                  <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-[#a435f0]"></span>
+                  <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-[#FF9500]"></span>
                 )}
                 <Bell className="h-5 w-5" />
               </button>
@@ -712,13 +594,13 @@ export default function StudentDashboard() {
                 >
                   <div className="mb-4 flex items-center justify-between">
                     <h3 className="font-medium">Notifications</h3>
-                    <button className="text-xs text-[#a435f0]">Mark all as read</button>
+                    <button className="text-xs text-[#FF9500]">Mark all as read</button>
                   </div>
                   <div className="space-y-4 max-h-[60vh] overflow-y-auto">
                     {notifications.map((notification) => (
                       <div key={notification.id} className={`flex gap-3 ${notification.read ? "opacity-75" : ""}`}>
                         <div className="h-10 w-10 flex-shrink-0 rounded-full bg-[#f7f9fa]">
-                          <notification.icon className="h-full w-full p-2 text-[#a435f0]" />
+                          <notification.icon className="h-full w-full p-2 text-[#FF9500]" />
                         </div>
                         <div>
                           <p className="text-sm">
@@ -728,7 +610,7 @@ export default function StudentDashboard() {
                           <p className="text-xs text-gray-500">{notification.time}</p>
                         </div>
                         {!notification.read && (
-                          <div className="ml-auto h-2 w-2 flex-shrink-0 rounded-full bg-[#a435f0]"></div>
+                          <div className="ml-auto h-2 w-2 flex-shrink-0 rounded-full bg-[#FF9500]"></div>
                         )}
                       </div>
                     ))}
@@ -745,7 +627,7 @@ export default function StudentDashboard() {
                 onClick={toggleProfileMenu}
                 className="flex items-center rounded-full text-gray-700 hover:bg-gray-100"
               >
-                <img src={studentData.avatar || "/placeholder.svg"} alt="Profile" className="h-10 w-10 rounded-full" />
+                <img src={userProfile.avatar || "/placeholder.svg"} alt="Profile" className="h-10 w-10 rounded-full" />
               </button>
 
               {showProfileMenu && (
@@ -754,8 +636,8 @@ export default function StudentDashboard() {
                   className="absolute right-0 mt-2 w-56 rounded-md border border-gray-200 bg-white p-2 shadow-lg"
                 >
                   <div className="mb-2 border-b border-gray-200 pb-2">
-                    <div className="px-3 py-2 text-sm font-medium">{studentData.name}</div>
-                    <div className="px-3 py-1 text-xs text-gray-500">{studentData.email}</div>
+                    <div className="px-3 py-2 text-sm font-medium">{userProfile.name}</div>
+                    <div className="px-3 py-1 text-xs text-gray-500">{userProfile.email}</div>
                   </div>
                   <ul>
                     <li>
@@ -822,7 +704,7 @@ export default function StudentDashboard() {
                     onClick={() => handleViewChange("all")}
                     className={`rounded-md px-4 py-2 text-sm font-medium ${
                       selectedView === "all"
-                        ? "bg-[#a435f0] text-white"
+                        ? "bg-[#FF9500] text-white"
                         : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
                     }`}
                   >
@@ -832,7 +714,7 @@ export default function StudentDashboard() {
                     onClick={() => handleViewChange("in-progress")}
                     className={`rounded-md px-4 py-2 text-sm font-medium ${
                       selectedView === "in-progress"
-                        ? "bg-[#a435f0] text-white"
+                        ? "bg-[#FF9500] text-white"
                         : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
                     }`}
                   >
@@ -842,7 +724,7 @@ export default function StudentDashboard() {
                     onClick={() => handleViewChange("completed")}
                     className={`rounded-md px-4 py-2 text-sm font-medium ${
                       selectedView === "completed"
-                        ? "bg-[#a435f0] text-white"
+                        ? "bg-[#FF9500] text-white"
                         : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
                     }`}
                   >
@@ -852,7 +734,7 @@ export default function StudentDashboard() {
                     onClick={() => handleViewChange("not-started")}
                     className={`rounded-md px-4 py-2 text-sm font-medium ${
                       selectedView === "not-started"
-                        ? "bg-[#a435f0] text-white"
+                        ? "bg-[#FF9500] text-white"
                         : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
                     }`}
                   >
@@ -867,13 +749,13 @@ export default function StudentDashboard() {
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-medium text-gray-500">Your Progress</h3>
                     <div className="rounded-full bg-[#f7f9fa] p-2">
-                      <TrendingUp className="h-5 w-5 text-[#a435f0]" />
+                      <TrendingUp className="h-5 w-5 text-[#FF9500]" />
                     </div>
                   </div>
                   <p className="mt-4 text-3xl font-bold">62%</p>
                   <div className="mt-2 text-sm text-gray-600">Overall course completion</div>
                   <div className="mt-3 h-2.5 w-full rounded-full bg-gray-100">
-                    <div className="h-2.5 w-[62%] rounded-full bg-[#a435f0]"></div>
+                    <div className="h-2.5 w-[62%] rounded-full bg-[#FF9500]"></div>
                   </div>
                 </div>
 
@@ -881,7 +763,7 @@ export default function StudentDashboard() {
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-medium text-gray-500">Active Courses</h3>
                     <div className="rounded-full bg-[#f7f9fa] p-2">
-                      <BookOpen className="h-5 w-5 text-[#a435f0]" />
+                      <BookOpen className="h-5 w-5 text-[#FF9500]" />
                     </div>
                   </div>
                   <p className="mt-4 text-3xl font-bold">5</p>
@@ -896,7 +778,7 @@ export default function StudentDashboard() {
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-medium text-gray-500">Hours Spent</h3>
                     <div className="rounded-full bg-[#f7f9fa] p-2">
-                      <Clock className="h-5 w-5 text-[#a435f0]" />
+                      <Clock className="h-5 w-5 text-[#FF9500]" />
                     </div>
                   </div>
                   <p className="mt-4 text-3xl font-bold">42.5</p>
@@ -911,12 +793,12 @@ export default function StudentDashboard() {
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-medium text-gray-500">Certificates Earned</h3>
                     <div className="rounded-full bg-[#f7f9fa] p-2">
-                      <Award className="h-5 w-5 text-[#a435f0]" />
+                      <Award className="h-5 w-5 text-[#FF9500]" />
                     </div>
                   </div>
                   <p className="mt-4 text-3xl font-bold">1</p>
                   <div
-                    className="mt-2 text-sm text-[#a435f0] font-medium cursor-pointer"
+                    className="mt-2 text-sm text-[#FF9500] font-medium cursor-pointer"
                     onClick={() => handleTabChange("certificates")}
                   >
                     View certificate
@@ -933,7 +815,7 @@ export default function StudentDashboard() {
                     placeholder="Search your courses..."
                     value={searchTerm}
                     onChange={handleSearch}
-                    className="h-10 w-full rounded-md border border-gray-300 bg-white pl-10 pr-4 text-sm focus:border-[#a435f0] focus:outline-none focus:ring-1 focus:ring-[#a435f0]"
+                    className="h-10 w-full rounded-md border border-gray-300 bg-white pl-10 pr-4 text-sm focus:border-[#FF9500] focus:outline-none focus:ring-1 focus:ring-[#FF9500]"
                   />
                 </div>
                 <button
@@ -944,7 +826,7 @@ export default function StudentDashboard() {
                   Filter
                 </button>
                 <select
-                  className="h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[#a435f0] focus:outline-none focus:ring-1 focus:ring-[#a435f0]"
+                  className="h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[#FF9500] focus:outline-none focus:ring-1 focus:ring-[#FF9500]"
                   value={sortOption}
                   onChange={handleSortChange}
                 >
@@ -961,7 +843,7 @@ export default function StudentDashboard() {
                 <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
                   <div className="mb-4 flex items-center justify-between">
                     <h3 className="font-medium">Filters</h3>
-                    <button onClick={toggleFilters} className="text-xs text-[#a435f0]">
+                    <button onClick={toggleFilters} className="text-xs text-[#FF9500]">
                       Clear all
                     </button>
                   </div>
@@ -969,14 +851,14 @@ export default function StudentDashboard() {
                     <div>
                       <h4 className="mb-2 text-sm font-medium">Categories</h4>
                       <div className="space-y-2">
-                        {categories.map((category) => (
+                        {allCategories.map((category) => (
                           <label key={category.id} className="flex items-center">
                             <input
                               type="radio"
                               name="category"
                               checked={categoryFilter === category.id}
                               onChange={() => handleCategoryFilterChange(category.id)}
-                              className="h-4 w-4 rounded border-gray-300 text-[#a435f0]"
+                              className="h-4 w-4 rounded border-gray-300 text-[#FF9500]"
                             />
                             <span className="ml-2 text-sm">{category.name}</span>
                           </label>
@@ -992,7 +874,7 @@ export default function StudentDashboard() {
                             name="progress"
                             checked={progressFilter === "all"}
                             onChange={() => handleProgressFilterChange("all")}
-                            className="h-4 w-4 rounded border-gray-300 text-[#a435f0]"
+                            className="h-4 w-4 rounded border-gray-300 text-[#FF9500]"
                           />
                           <span className="ml-2 text-sm">All</span>
                         </label>
@@ -1002,7 +884,7 @@ export default function StudentDashboard() {
                             name="progress"
                             checked={progressFilter === "not-started"}
                             onChange={() => handleProgressFilterChange("not-started")}
-                            className="h-4 w-4 rounded border-gray-300 text-[#a435f0]"
+                            className="h-4 w-4 rounded border-gray-300 text-[#FF9500]"
                           />
                           <span className="ml-2 text-sm">Not started (0%)</span>
                         </label>
@@ -1012,7 +894,7 @@ export default function StudentDashboard() {
                             name="progress"
                             checked={progressFilter === "in-progress"}
                             onChange={() => handleProgressFilterChange("in-progress")}
-                            className="h-4 w-4 rounded border-gray-300 text-[#a435f0]"
+                            className="h-4 w-4 rounded border-gray-300 text-[#FF9500]"
                           />
                           <span className="ml-2 text-sm">In progress (1-99%)</span>
                         </label>
@@ -1022,7 +904,7 @@ export default function StudentDashboard() {
                             name="progress"
                             checked={progressFilter === "completed"}
                             onChange={() => handleProgressFilterChange("completed")}
-                            className="h-4 w-4 rounded border-gray-300 text-[#a435f0]"
+                            className="h-4 w-4 rounded border-gray-300 text-[#FF9500]"
                           />
                           <span className="ml-2 text-sm">Completed (100%)</span>
                         </label>
@@ -1036,7 +918,7 @@ export default function StudentDashboard() {
                             type="checkbox"
                             checked={showArchived}
                             onChange={toggleArchivedCourses}
-                            className="h-4 w-4 rounded border-gray-300 text-[#a435f0]"
+                            className="h-4 w-4 rounded border-gray-300 text-[#FF9500]"
                           />
                           <span className="ml-2 text-sm">Show archived courses</span>
                         </label>
@@ -1046,7 +928,7 @@ export default function StudentDashboard() {
                   <div className="mt-4 flex justify-end">
                     <button
                       onClick={toggleFilters}
-                      className="rounded-md bg-[#a435f0] px-4 py-2 text-sm font-medium text-white hover:bg-[#8710d8]"
+                      className="rounded-md bg-[#FF9500] px-4 py-2 text-sm font-medium text-white hover:bg-[#8710d8]"
                     >
                       Apply Filters
                     </button>
@@ -1081,7 +963,7 @@ export default function StudentDashboard() {
                             className="h-full w-full object-cover"
                           />
                           <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity hover:opacity-100">
-                            <button className="flex h-12 w-12 items-center justify-center rounded-full bg-white/80 text-[#a435f0] backdrop-blur-sm transition-all hover:bg-white">
+                            <button className="flex h-12 w-12 items-center justify-center rounded-full bg-white/80 text-[#FF9500] backdrop-blur-sm transition-all hover:bg-white">
                               <Play className="h-5 w-5" />
                             </button>
                           </div>
@@ -1100,7 +982,7 @@ export default function StudentDashboard() {
                           <div className="mb-2 flex items-start justify-between">
                             <div>
                               <h3
-                                className="text-lg font-bold line-clamp-1 cursor-pointer hover:text-[#a435f0]"
+                                className="text-lg font-bold line-clamp-1 cursor-pointer hover:text-[#FF9500]"
                                 onClick={() => handleCourseClick(index)}
                               >
                                 {course.title}
@@ -1116,7 +998,7 @@ export default function StudentDashboard() {
                                 }}
                               >
                                 {course.bookmarked ? (
-                                  <Bookmark className="h-5 w-5 fill-[#a435f0] text-[#a435f0]" />
+                                  <Bookmark className="h-5 w-5 fill-[#FF9500] text-[#FF9500]" />
                                 ) : (
                                   <Bookmark className="h-5 w-5" />
                                 )}
@@ -1137,7 +1019,7 @@ export default function StudentDashboard() {
                             </div>
                             <div className="mt-1 h-2 w-full rounded-full bg-gray-100">
                               <div
-                                className={`h-2 rounded-full ${course.progress === 100 ? "bg-green-500" : "bg-[#a435f0]"}`}
+                                className={`h-2 rounded-full ${course.progress === 100 ? "bg-green-500" : "bg-[#FF9500]"}`}
                                 style={{ width: `${course.progress}%` }}
                               ></div>
                             </div>
@@ -1157,7 +1039,7 @@ export default function StudentDashboard() {
                                 className={`rounded-md px-4 py-2 text-sm font-medium ${
                                   course.progress === 100
                                     ? "border border-gray-200 bg-white text-gray-700 hover:bg-gray-100"
-                                    : "bg-[#a435f0] text-white hover:bg-[#8710d8]"
+                                    : "bg-[#FF9500] text-white hover:bg-[#8710d8]"
                                 }`}
                                 onClick={() => handleCourseClick(index)}
                               >
@@ -1185,7 +1067,7 @@ export default function StudentDashboard() {
               <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
                 <div className="mb-6 flex items-center justify-between">
                   <h2 className="text-lg font-bold">Recommended Based on Your Learning</h2>
-                  <button className="text-sm text-[#a435f0]">View All</button>
+                  <button className="text-sm text-[#FF9500]">View All</button>
                 </div>
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                   <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
@@ -1205,7 +1087,7 @@ export default function StudentDashboard() {
                     </div>
                     <div className="p-4">
                       <div className="mb-2 flex items-center justify-between">
-                        <span className="rounded-full bg-[#f7f9fa] px-2 py-1 text-xs text-[#a435f0]">
+                        <span className="rounded-full bg-[#f7f9fa] px-2 py-1 text-xs text-[#FF9500]">
                           Mobile Development
                         </span>
                         <div className="flex items-center">
@@ -1222,7 +1104,7 @@ export default function StudentDashboard() {
                           <span className="text-lg font-bold">$16.99</span>
                           <span className="ml-2 text-sm line-through text-gray-500">$94.99</span>
                         </div>
-                        <button className="rounded-md bg-[#a435f0] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#8710d8]">
+                        <button className="rounded-md bg-[#FF9500] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#8710d8]">
                           Add to Cart
                         </button>
                       </div>
@@ -1287,7 +1169,7 @@ export default function StudentDashboard() {
                               ))}
                             </div>
                           </div>
-                          <button className="w-full rounded-md border border-[#a435f0] bg-white py-2 text-center text-sm font-medium text-[#a435f0] hover:bg-[#f7f9fa]">
+                          <button className="w-full rounded-md border border-[#FF9500] bg-white py-2 text-center text-sm font-medium text-[#FF9500] hover:bg-[#f7f9fa]">
                             View Certificate
                           </button>
                         </div>
@@ -1303,7 +1185,7 @@ export default function StudentDashboard() {
                 <div className="grid gap-6 md:grid-cols-3">
                   <div className="rounded-lg border border-gray-200 bg-[#f7f9fa] p-4">
                     <div className="mb-3 rounded-full bg-[#f7f9fa] p-2 w-fit">
-                      <Award className="h-6 w-6 text-[#a435f0]" />
+                      <Award className="h-6 w-6 text-[#FF9500]" />
                     </div>
                     <h3 className="text-md font-medium mb-2">Showcase Your Skills</h3>
                     <p className="text-sm text-gray-600">
@@ -1313,7 +1195,7 @@ export default function StudentDashboard() {
                   </div>
                   <div className="rounded-lg border border-gray-200 bg-[#f7f9fa] p-4">
                     <div className="mb-3 rounded-full bg-[#f7f9fa] p-2 w-fit">
-                      <TrendingUp className="h-6 w-6 text-[#a435f0]" />
+                      <TrendingUp className="h-6 w-6 text-[#FF9500]" />
                     </div>
                     <h3 className="text-md font-medium mb-2">Career Advancement</h3>
                     <p className="text-sm text-gray-600">
@@ -1322,7 +1204,7 @@ export default function StudentDashboard() {
                   </div>
                   <div className="rounded-lg border border-gray-200 bg-[#f7f9fa] p-4">
                     <div className="mb-3 rounded-full bg-[#f7f9fa] p-2 w-fit">
-                      <Lightbulb className="h-6 w-6 text-[#a435f0]" />
+                      <Lightbulb className="h-6 w-6 text-[#FF9500]" />
                     </div>
                     <h3 className="text-md font-medium mb-2">Validate Your Knowledge</h3>
                     <p className="text-sm text-gray-600">
@@ -1358,7 +1240,7 @@ export default function StudentDashboard() {
                           className="h-full w-full object-cover"
                         />
                         <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                          <button className="flex h-16 w-16 items-center justify-center rounded-full bg-white/80 text-[#a435f0] backdrop-blur-sm transition-all hover:bg-white">
+                          <button className="flex h-16 w-16 items-center justify-center rounded-full bg-white/80 text-[#FF9500] backdrop-blur-sm transition-all hover:bg-white">
                             <Play className="h-8 w-8" />
                           </button>
                         </div>
@@ -1397,7 +1279,7 @@ export default function StudentDashboard() {
                           </div>
                           <div className="mt-1 h-2 w-full rounded-full bg-white">
                             <div
-                              className={`h-2 rounded-full ${courses[selectedCourse].progress === 100 ? "bg-green-500" : "bg-[#a435f0]"}`}
+                              className={`h-2 rounded-full ${courses[selectedCourse].progress === 100 ? "bg-green-500" : "bg-[#FF9500]"}`}
                               style={{ width: `${courses[selectedCourse].progress}%` }}
                             ></div>
                           </div>
@@ -1422,7 +1304,7 @@ export default function StudentDashboard() {
                           </div>
                         </div>
 
-                        <button className="mt-4 w-full rounded-md bg-[#a435f0] py-2.5 text-center text-sm font-medium text-white hover:bg-[#8710d8]">
+                        <button className="mt-4 w-full rounded-md bg-[#FF9500] py-2.5 text-center text-sm font-medium text-white hover:bg-[#8710d8]">
                           Continue Learning
                         </button>
 
@@ -1554,16 +1436,42 @@ export default function StudentDashboard() {
             </div>
           )}
 
+          {/* Profile Tab */}
+          {activeTab === "profile" && (
+            <div className="space-y-6">
+              <div>
+                <h1 className="text-2xl font-bold md:text-3xl">Mon Profil</h1>
+                <p className="text-gray-600">Gérez vos informations personnelles et vos préférences</p>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+                <StudentProfile />
+              </div>
+            </div>
+          )}
+
+          {/* Settings Tab */}
+          {activeTab === "settings" && (
+            <div className="space-y-6">
+              <div>
+                <h1 className="text-2xl font-bold md:text-3xl">Paramètres</h1>
+                <p className="text-gray-600">Configurez vos préférences de compte et de notification</p>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+                <StudentSettings />
+              </div>
+            </div>
+          )}
+
           {/* Other tabs would use the tabbed interface pattern */}
-          {activeTab !== "my-learning" && activeTab !== "certificates" && (
+          {activeTab !== "my-learning" && activeTab !== "certificates" && activeTab !== "profile" && activeTab !== "settings" && (
             <div className="flex h-64 flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 bg-white p-6">
               <div className="rounded-full bg-[#f7f9fa] p-3">
-                <Lightbulb className="h-6 w-6 text-[#a435f0]" />
+                <Lightbulb className="h-6 w-6 text-[#FF9500]" />
               </div>
-              <h3 className="mt-4 text-lg font-medium">Coming Soon</h3>
+              <h3 className="mt-4 text-lg font-medium">Bientôt disponible</h3>
               <p className="mt-2 text-center text-sm text-gray-500">
-                The {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} section is under development and will be
-                available soon.
+                La section {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} est en cours de développement et sera
+                disponible bientôt.
               </p>
             </div>
           )}
@@ -1572,7 +1480,7 @@ export default function StudentDashboard() {
           <div className="mt-8 rounded-lg border border-gray-200 bg-[#f7f9fa] p-6">
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="text-center md:text-left">
-                <h3 className="text-xl font-bold text-[#a435f0]">Learn on the go!</h3>
+                <h3 className="text-xl font-bold text-[#FF9500]">Learn on the go!</h3>
                 <p className="mt-2 text-gray-600">
                   Download our mobile app for iOS and Android to learn anytime, anywhere.
                 </p>
@@ -1599,16 +1507,16 @@ export default function StudentDashboard() {
           <div className="flex flex-col md:flex-row justify-between items-center gap-2">
             <div>© 2023 Udemy, Inc. All rights reserved.</div>
             <div className="flex gap-4">
-              <a href="#" className="hover:text-[#a435f0]">
+              <a href="#" className="hover:text-[#FF9500]">
                 Terms
               </a>
-              <a href="#" className="hover:text-[#a435f0]">
+              <a href="#" className="hover:text-[#FF9500]">
                 Privacy
               </a>
-              <a href="#" className="hover:text-[#a435f0]">
+              <a href="#" className="hover:text-[#FF9500]">
                 Help
               </a>
-              <a href="#" className="hover:text-[#a435f0]">
+              <a href="#" className="hover:text-[#FF9500]">
                 Accessibility
               </a>
             </div>
