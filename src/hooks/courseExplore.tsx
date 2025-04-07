@@ -42,8 +42,15 @@ type Course = {
 
 type Category = {
   id: string
-  name: string
-  subcategories: { id: string; name: string }[]
+  title: string
+  description: string
+  image_url: string
+  subcategories: { 
+    id: string; 
+    title: string; 
+    description: string; 
+    image_url: string; 
+  }[]
 }
 
 export default function CoursesExplorer() {
@@ -75,86 +82,102 @@ export default function CoursesExplorer() {
   const categories: Category[] = [
     {
       id: "development",
-      name: "Development",
+      title: "Development",
+      description: "Learn about software development and programming",
+      image_url: "/placeholder.svg?height=400&width=600",
       subcategories: [
-        { id: "web-development", name: "Web Development" },
-        { id: "mobile-development", name: "Mobile Development" },
-        { id: "game-development", name: "Game Development" },
-        { id: "database-design", name: "Database Design" },
-        { id: "programming-languages", name: "Programming Languages" },
+        { id: "web-development", title: "Web Development", description: "Learn web development technologies", image_url: "/placeholder.svg?height=400&width=600" },
+        { id: "mobile-development", title: "Mobile Development", description: "Learn mobile app development", image_url: "/placeholder.svg?height=400&width=600" },
+        { id: "game-development", title: "Game Development", description: "Learn game development", image_url: "/placeholder.svg?height=400&width=600" },
+        { id: "database-design", title: "Database Design", description: "Learn about designing databases", image_url: "/placeholder.svg?height=400&width=600" },
+        { id: "programming-languages", title: "Programming Languages", description: "Learn different programming languages", image_url: "/placeholder.svg?height=400&width=600" },
       ],
     },
     {
       id: "business",
-      name: "Business",
+      title: "Business",
+      description: "Learn about business management and entrepreneurship",
+      image_url: "/placeholder.svg?height=400&width=600",
       subcategories: [
-        { id: "entrepreneurship", name: "Entrepreneurship" },
-        { id: "marketing", name: "Marketing" },
-        { id: "finance", name: "Finance" },
-        { id: "sales", name: "Sales" },
-        { id: "strategy", name: "Strategy" },
+        { id: "entrepreneurship", title: "Entrepreneurship", description: "Learn about starting and running a business", image_url: "/placeholder.svg?height=400&width=600" },
+        { id: "marketing", title: "Marketing", description: "Learn marketing strategies and techniques", image_url: "/placeholder.svg?height=400&width=600" },
+        { id: "finance", title: "Finance", description: "Learn about financial management and investments", image_url: "/placeholder.svg?height=400&width=600" },
+        { id: "sales", title: "Sales", description: "Learn sales techniques and strategies", image_url: "/placeholder.svg?height=400&width=600" },
+        { id: "strategy", title: "Strategy", description: "Learn about business strategy and planning", image_url: "/placeholder.svg?height=400&width=600" },
       ],
     },
     {
       id: "design",
-      name: "Design",
+      title: "Design",
+      description: "Learn about graphic design and user experience design",
+      image_url: "/placeholder.svg?height=400&width=600",
       subcategories: [
-        { id: "web-design", name: "Web Design" },
-        { id: "graphic-design", name: "Graphic Design" },
-        { id: "ui-ux", name: "UI/UX Design" },
-        { id: "3d-animation", name: "3D & Animation" },
-        { id: "fashion-design", name: "Fashion Design" },
+        { id: "web-design", title: "Web Design", description: "Learn web design techniques and tools", image_url: "/placeholder.svg?height=400&width=600" },
+        { id: "graphic-design", title: "Graphic Design", description: "Learn graphic design principles and techniques", image_url: "/placeholder.svg?height=400&width=600" },
+        { id: "ui-ux", title: "UI/UX Design", description: "Learn about user interface and user experience design", image_url: "/placeholder.svg?height=400&width=600" },
+        { id: "3d-animation", title: "3D & Animation", description: "Learn about 3D modeling and animation", image_url: "/placeholder.svg?height=400&width=600" },
+        { id: "fashion-design", title: "Fashion Design", description: "Learn about fashion design and styling", image_url: "/placeholder.svg?height=400&width=600" },
       ],
     },
     {
       id: "marketing",
-      name: "Marketing",
+      title: "Marketing",
+      description: "Learn about digital marketing and advertising",
+      image_url: "/placeholder.svg?height=400&width=600",
       subcategories: [
-        { id: "digital-marketing", name: "Digital Marketing" },
-        { id: "social-media", name: "Social Media Marketing" },
-        { id: "content-marketing", name: "Content Marketing" },
-        { id: "seo", name: "SEO" },
-        { id: "branding", name: "Branding" },
+        { id: "digital-marketing", title: "Digital Marketing", description: "Learn about digital marketing strategies", image_url: "/placeholder.svg?height=400&width=600" },
+        { id: "social-media", title: "Social Media Marketing", description: "Learn about social media marketing", image_url: "/placeholder.svg?height=400&width=600" },
+        { id: "content-marketing", title: "Content Marketing", description: "Learn about content marketing strategies", image_url: "/placeholder.svg?height=400&width=600" },
+        { id: "seo", title: "SEO", description: "Learn about search engine optimization", image_url: "/placeholder.svg?height=400&width=600" },
+        { id: "branding", title: "Branding", description: "Learn about branding and marketing strategy", image_url: "/placeholder.svg?height=400&width=600" },
       ],
     },
     {
       id: "photography",
-      name: "Photography",
+      title: "Photography",
+      description: "Learn about photography and image editing",
+      image_url: "/placeholder.svg?height=400&width=600",
       subcategories: [
-        { id: "digital-photography", name: "Digital Photography" },
-        { id: "portrait-photography", name: "Portrait Photography" },
-        { id: "commercial-photography", name: "Commercial Photography" },
-        { id: "video-design", name: "Video Design" },
+        { id: "digital-photography", title: "Digital Photography", description: "Learn about digital photography techniques", image_url: "/placeholder.svg?height=400&width=600" },
+        { id: "portrait-photography", title: "Portrait Photography", description: "Learn about portrait photography", image_url: "/placeholder.svg?height=400&width=600" },
+        { id: "commercial-photography", title: "Commercial Photography", description: "Learn about commercial photography", image_url: "/placeholder.svg?height=400&width=600" },
+        { id: "video-design", title: "Video Design", description: "Learn about video design and editing", image_url: "/placeholder.svg?height=400&width=600" },
       ],
     },
     {
       id: "music",
-      name: "Music",
+      title: "Music",
+      description: "Learn about music production and theory",
+      image_url: "/placeholder.svg?height=400&width=600",
       subcategories: [
-        { id: "instruments", name: "Instruments" },
-        { id: "music-production", name: "Music Production" },
-        { id: "music-theory", name: "Music Theory" },
-        { id: "vocal", name: "Vocal" },
+        { id: "instruments", title: "Instruments", description: "Learn about different musical instruments", image_url: "/placeholder.svg?height=400&width=600" },
+        { id: "music-production", title: "Music Production", description: "Learn about music production techniques", image_url: "/placeholder.svg?height=400&width=600" },
+        { id: "music-theory", title: "Music Theory", description: "Learn about music theory and composition", image_url: "/placeholder.svg?height=400&width=600" },
+        { id: "vocal", title: "Vocal", description: "Learn about vocal techniques and performance", image_url: "/placeholder.svg?height=400&width=600" },
       ],
     },
     {
       id: "health",
-      name: "Health & Fitness",
+      title: "Health & Fitness",
+      description: "Learn about health and fitness",
+      image_url: "/placeholder.svg?height=400&width=600",
       subcategories: [
-        { id: "fitness", name: "Fitness" },
-        { id: "nutrition", name: "Nutrition" },
-        { id: "yoga", name: "Yoga" },
-        { id: "mental-health", name: "Mental Health" },
+        { id: "fitness", title: "Fitness", description: "Learn about fitness and exercise", image_url: "/placeholder.svg?height=400&width=600" },
+        { id: "nutrition", title: "Nutrition", description: "Learn about nutrition and healthy eating", image_url: "/placeholder.svg?height=400&width=600" },
+        { id: "yoga", title: "Yoga", description: "Learn about yoga and its benefits", image_url: "/placeholder.svg?height=400&width=600" },
+        { id: "mental-health", title: "Mental Health", description: "Learn about mental health and wellness", image_url: "/placeholder.svg?height=400&width=600" },
       ],
     },
     {
       id: "academics",
-      name: "Academics",
+      title: "Academics",
+      description: "Learn about academic subjects and test preparation",
+      image_url: "/placeholder.svg?height=400&width=600",
       subcategories: [
-        { id: "math", name: "Math" },
-        { id: "science", name: "Science" },
-        { id: "language", name: "Language" },
-        { id: "test-prep", name: "Test Prep" },
+        { id: "math", title: "Math", description: "Learn about mathematics and its applications", image_url: "/placeholder.svg?height=400&width=600" },
+        { id: "science", title: "Science", description: "Learn about science and its branches", image_url: "/placeholder.svg?height=400&width=600" },
+        { id: "language", title: "Language", description: "Learn about different languages and their cultures", image_url: "/placeholder.svg?height=400&width=600" },
+        { id: "test-prep", title: "Test Prep", description: "Learn about test preparation and strategies", image_url: "/placeholder.svg?height=400&width=600" },
       ],
     },
   ]
@@ -557,7 +580,7 @@ export default function CoursesExplorer() {
     const category = categories.find((c) => c.id === selectedCategory)
     if (!category) return "All Subcategories"
     const subcategory = category.subcategories.find((s) => s.id === selectedSubcategory)
-    return subcategory ? subcategory.name : "All Subcategories"
+    return subcategory ? subcategory.title : "All Subcategories"
   }
 
   // Render star rating
@@ -672,7 +695,7 @@ export default function CoursesExplorer() {
                                     : "hover:bg-gray-100"
                                 }`}
                               >
-                                {subcategory.name}
+                                {subcategory.title}
                               </button>
                             ))}
                           </div>
@@ -785,7 +808,7 @@ export default function CoursesExplorer() {
                           : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
                       }`}
                     >
-                      {subcategory.name}
+                      {subcategory.title}
                     </button>
                   ))}
               </div>
