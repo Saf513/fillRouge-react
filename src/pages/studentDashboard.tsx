@@ -854,7 +854,7 @@ export default function StudentDashboard() {
                               onChange={() => handleCategoryFilterChange(category.id)}
                               className="h-4 w-4 rounded border-gray-300 text-[#FF9500]"
                             />
-                            <span className="ml-2 text-sm">{category.name}</span>
+                            <span className="ml-2 text-sm">{category.title}</span>
                           </label>
                         ))}
                       </div>
