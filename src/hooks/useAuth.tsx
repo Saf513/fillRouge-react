@@ -40,7 +40,9 @@ export const useAuth = create<AuthState>()(
       logout: async () => {
         try {
           const { token } = get();
+          console.log("Token:", token);
           if (token) {
+            // Utiliser l'endpoint correct avec /api
             await axiosClient.post("/api/logout", { token });
           }
           // Remove the token from axios headers
@@ -54,6 +56,14 @@ export const useAuth = create<AuthState>()(
           window.localStorage.removeItem("auth-storage");
         } catch (error) {
           console.error("Logout failed:", error);
+          // Même en cas d'erreur, on nettoie l'état local
+          delete axiosClient.defaults.headers.common["Authorization"];
+          set({
+            isAuthenticated: false,
+            user: null,
+            token: null,
+          });
+          window.localStorage.removeItem("auth-storage");
           throw error;
         }
       },

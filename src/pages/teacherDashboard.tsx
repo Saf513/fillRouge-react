@@ -30,6 +30,8 @@ import {
   Code,
   Layout,
 } from "lucide-react"
+import TeacherProfile from "./teacher/profile/teacherProfile"
+import TeacherSettings from "./teacher/settings/teacherSettings"
 
 export default function TeacherDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard")
@@ -909,8 +911,14 @@ export default function TeacherDashboard() {
             </div>
           )}
 
+          {/* Profile Tab */}
+          {activeTab === "profile" && <TeacherProfile />}
+
+          {/* Settings Tab */}
+          {activeTab === "settings" && <TeacherSettings />}
+
           {/* Other tabs would go here */}
-          {activeTab !== "dashboard" && activeTab !== "courses" && (
+          {activeTab !== "dashboard" && activeTab !== "courses" && activeTab !== "profile" && activeTab !== "settings" && (
             <div className="flex h-64 flex-col items-center justify-center rounded-lg border border-dashed border-[#f1f1f3] bg-white p-6">
               <div className="rounded-full bg-[#fff4e5] p-3">
                 <LayoutDashboard className="h-6 w-6 text-[#ff9500]" />

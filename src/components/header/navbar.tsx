@@ -67,7 +67,7 @@ export default function NavBar() {
               <Link to="/" className="text-[#262626] font-medium">
                 Home
               </Link>
-              <Link to="/courses" className="text-[#262626] font-medium">
+              <Link to="/course-explore" className="text-[#262626] font-medium">
                 Courses
               </Link>
               <Link

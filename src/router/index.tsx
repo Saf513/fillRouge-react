@@ -8,6 +8,9 @@ import TeacherDashboard from '../pages/teacherDashboard'
 import { ProtectedRoute } from '../components/ProtectedRoute'
 import StudentDashboard from '../pages/studentDashboard'
 import AdminDashboard from '../pages/adminDashboard'
+import StudentProfilePage from '../pages/profile/studentProfile'
+import CoursesExplorer from '../pages/course/courseExplore'
+import CourseDetails from '../pages/course/courseDetails'
 
 export  const  router = createBrowserRouter([
     {
@@ -25,7 +28,12 @@ export  const  router = createBrowserRouter([
             {
                 path:'/forgot-password', element : <ForgetPassword/>
             },
-           
+            {
+                path:'/course-explore', element : <CoursesExplorer/>
+            },
+            {
+                path:'/course/:id', element : <CourseDetails/>
+            },
         
         ]},
         {
@@ -39,6 +47,10 @@ export  const  router = createBrowserRouter([
           {
             path: '/admin-dashboard',
             element: <ProtectedRoute component={AdminDashboard} allowedRoles={['admin']} />
+          },
+          {
+            path : '/student-dashboard/profile' ,
+            element : <StudentProfilePage/>
           }
     
 ])

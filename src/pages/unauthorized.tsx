@@ -1,5 +1,5 @@
 import type React from "react"
-import Link from "next/link"
+import { Link } from "react-router-dom"
 import { Shield, AlertTriangle, ArrowLeft, Home, LogIn } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -52,7 +52,7 @@ const UnauthorizedPage: React.FC<UnauthorizedPageProps> = ({
             </Button>
           )}
           {showHomeButton && (
-            <Link href="/" className="w-full sm:w-auto">
+            <Link to="/" className="w-full sm:w-auto">
               <Button variant="outline" className="w-full flex items-center gap-2">
                 <Home className="h-4 w-4" />
                 Accueil
@@ -60,7 +60,7 @@ const UnauthorizedPage: React.FC<UnauthorizedPageProps> = ({
             </Link>
           )}
           {showLoginButton && (
-            <Link href="/login" className="w-full sm:w-auto">
+            <Link to="/login" className="w-full sm:w-auto">
               <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground flex items-center gap-2">
                 <LogIn className="h-4 w-4" />
                 Se connecter
