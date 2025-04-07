@@ -38,7 +38,6 @@ import StudentSettings from "./student/settings/studentSettings"
 import { useAuth } from '../hooks/useAuth'
 import { Course, Certificate, Notification } from "../types/dashboard"
 import useStudentDashboardData from '../hooks/useDashboardStudentData'
-import useCategories from '../hooks/useCategories'
 
 export default function StudentDashboard() {
   const [activeTab, setActiveTab] = useState("my-learning")
@@ -74,7 +73,6 @@ export default function StudentDashboard() {
     avatar: ""
   })
   const { data: dashboardData, loading: apiLoading } = useStudentDashboardData()
-  const { categories, loading: categoriesLoading, error: categoriesError } = useCategories()
 
   // Handle window resize
   useEffect(() => {
@@ -275,22 +273,18 @@ export default function StudentDashboard() {
 
   // Sample student data
   
-  // Utiliser les catégories de l'API
-  const apiCategories = categories.map(category => ({
-    id: category.id,
-    name: category.title
-  }))
 
-  // Ajouter l'option "Toutes les catégories"
-  const allCategories = [
-    { id: "all", name: "Toutes les catégories" },
-    ...apiCategories
+  // Sample categories for filtering
+  const categories = [
+    { id: "all", name: "All Categories" },
+    { id: "web-development", name: "Web Development" },
+    { id: "programming", name: "Programming" },
+    { id: "marketing", name: "Marketing" },
+    { id: "design", name: "Design" },
+    { id: "data-science", name: "Data Science" },
+    { id: "mobile-development", name: "Mobile Development" },
+    { id: "database", name: "Database" },
   ]
-
-  // Afficher un message d'erreur si le chargement des catégories a échoué
-  if (categoriesError) {
-    console.error("Erreur lors du chargement des catégories:", categoriesError)
-  }
 
   // Filter and sort courses
   const filteredCourses = courses
@@ -851,7 +845,7 @@ export default function StudentDashboard() {
                     <div>
                       <h4 className="mb-2 text-sm font-medium">Categories</h4>
                       <div className="space-y-2">
-                        {allCategories.map((category) => (
+                        {categories.map((category) => (
                           <label key={category.id} className="flex items-center">
                             <input
                               type="radio"
