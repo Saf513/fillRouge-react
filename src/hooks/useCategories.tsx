@@ -39,6 +39,6 @@ export default function useCategories() {
     }
     fetchCategories();
   }, []);
-
+console.log("categories", categories);
   return { categories, loading, error };
 }

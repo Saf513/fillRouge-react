@@ -548,7 +548,7 @@ export default function CoursesExplorer() {
   const getActiveCategoryName = () => {
     if (!selectedCategory) return "All Categories"
     const category = categories.find((c) => c.id === selectedCategory)
-    return category ? category.name : "All Categories"
+    return category ? category.title : "All Categories"
   }
 
   // Get active subcategory name

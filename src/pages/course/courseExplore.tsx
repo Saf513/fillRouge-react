@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
+import useCategories from "../../hooks/useCategories"
+
 import {
   Search,
   Filter,
@@ -12,7 +14,7 @@ import {
   BookOpen,
   Heart,
   BarChart3,
-  ChevronRight,
+  ChevronRight,             
   ChevronLeft,
   X,
   Play,
@@ -44,11 +46,11 @@ type Course = {
   description: string
 }
 
-type Category = {
-  id: string
-  name: string
-  subcategories: { id: string; name: string }[]
-}
+// type Category = {
+//   id: string
+//   name: string
+//   subcategories: { id: string; name: string }[]
+// }
 
 export default function CoursesExplorer() {
   const navigate = useNavigate()
@@ -77,92 +79,101 @@ export default function CoursesExplorer() {
   }, [])
 
   // Sample categories data
-  const categories: Category[] = [
-    {
-      id: "development",
-      name: "Development",
-      subcategories: [
-        { id: "web-development", name: "Web Development" },
-        { id: "mobile-development", name: "Mobile Development" },
-        { id: "game-development", name: "Game Development" },
-        { id: "database-design", name: "Database Design" },
-        { id: "programming-languages", name: "Programming Languages" },
-      ],
-    },
-    {
-      id: "business",
-      name: "Business",
-      subcategories: [
-        { id: "entrepreneurship", name: "Entrepreneurship" },
-        { id: "marketing", name: "Marketing" },
-        { id: "finance", name: "Finance" },
-        { id: "sales", name: "Sales" },
-        { id: "strategy", name: "Strategy" },
-      ],
-    },
-    {
-      id: "design",
-      name: "Design",
-      subcategories: [
-        { id: "web-design", name: "Web Design" },
-        { id: "graphic-design", name: "Graphic Design" },
-        { id: "ui-ux", name: "UI/UX Design" },
-        { id: "3d-animation", name: "3D & Animation" },
-        { id: "fashion-design", name: "Fashion Design" },
-      ],
-    },
-    {
-      id: "marketing",
-      name: "Marketing",
-      subcategories: [
-        { id: "digital-marketing", name: "Digital Marketing" },
-        { id: "social-media", name: "Social Media Marketing" },
-        { id: "content-marketing", name: "Content Marketing" },
-        { id: "seo", name: "SEO" },
-        { id: "branding", name: "Branding" },
-      ],
-    },
-    {
-      id: "photography",
-      name: "Photography",
-      subcategories: [
-        { id: "digital-photography", name: "Digital Photography" },
-        { id: "portrait-photography", name: "Portrait Photography" },
-        { id: "commercial-photography", name: "Commercial Photography" },
-        { id: "video-design", name: "Video Design" },
-      ],
-    },
-    {
-      id: "music",
-      name: "Music",
-      subcategories: [
-        { id: "instruments", name: "Instruments" },
-        { id: "music-production", name: "Music Production" },
-        { id: "music-theory", name: "Music Theory" },
-        { id: "vocal", name: "Vocal" },
-      ],
-    },
-    {
-      id: "health",
-      name: "Health & Fitness",
-      subcategories: [
-        { id: "fitness", name: "Fitness" },
-        { id: "nutrition", name: "Nutrition" },
-        { id: "yoga", name: "Yoga" },
-        { id: "mental-health", name: "Mental Health" },
-      ],
-    },
-    {
-      id: "academics",
-      name: "Academics",
-      subcategories: [
-        { id: "math", name: "Math" },
-        { id: "science", name: "Science" },
-        { id: "language", name: "Language" },
-        { id: "test-prep", name: "Test Prep" },
-      ],
-    },
-  ]
+//   const categories: Category[] = [
+//     {
+//       id: "development",
+//       name: "Development",
+//       subcategories: [
+//         { id: "web-development", name: "Web Development" },
+//         { id: "mobile-development", name: "Mobile Development" },
+//         { id: "game-development", name: "Game Development" },
+//         { id: "database-design", name: "Database Design" },
+//         { id: "programming-languages", name: "Programming Languages" },
+//       ],
+//     },
+//     {
+//       id: "business",
+//       name: "Business",
+//       subcategories: [
+//         { id: "entrepreneurship", name: "Entrepreneurship" },
+//         { id: "marketing", name: "Marketing" },
+//         { id: "finance", name: "Finance" },
+//         { id: "sales", name: "Sales" },
+//         { id: "strategy", name: "Strategy" },
+//       ],
+//     },
+//     {
+//       id: "design",
+//       name: "Design",
+//       subcategories: [
+//         { id: "web-design", name: "Web Design" },
+//         { id: "graphic-design", name: "Graphic Design" },
+//         { id: "ui-ux", name: "UI/UX Design" },
+//         { id: "3d-animation", name: "3D & Animation" },
+//         { id: "fashion-design", name: "Fashion Design" },
+//       ],
+//     },
+//     {
+//       id: "marketing",
+//       name: "Marketing",
+//       subcategories: [
+//         { id: "digital-marketing", name: "Digital Marketing" },
+//         { id: "social-media", name: "Social Media Marketing" },
+//         { id: "content-marketing", name: "Content Marketing" },
+//         { id: "seo", name: "SEO" },
+//         { id: "branding", name: "Branding" },
+//       ],
+//     },
+//     {
+//       id: "photography",
+//       name: "Photography",
+//       subcategories: [
+//         { id: "digital-photography", name: "Digital Photography" },
+//         { id: "portrait-photography", name: "Portrait Photography" },
+//         { id: "commercial-photography", name: "Commercial Photography" },
+//         { id: "video-design", name: "Video Design" },
+//       ],
+//     },
+//     {
+//       id: "music",
+//       name: "Music",
+//       subcategories: [
+//         { id: "instruments", name: "Instruments" },
+//         { id: "music-production", name: "Music Production" },
+//         { id: "music-theory", name: "Music Theory" },
+//         { id: "vocal", name: "Vocal" },
+//       ],
+//     },
+//     {
+//       id: "health",
+//       name: "Health & Fitness",
+//       subcategories: [
+//         { id: "fitness", name: "Fitness" },
+//         { id: "nutrition", name: "Nutrition" },
+//         { id: "yoga", name: "Yoga" },
+//         { id: "mental-health", name: "Mental Health" },
+//       ],
+//     },
+//     {
+//       id: "academics",
+//       name: "Academics",
+//       subcategories: [
+//         { id: "math", name: "Math" },
+//         { id: "science", name: "Science" },
+//         { id: "language", name: "Language" },
+//         { id: "test-prep", name: "Test Prep" },
+//       ],
+//     },
+//   ]
+  const { categories, loading: categoriesLoading, error: categoriesError } = useCategories();
+
+  if (categoriesLoading) {
+    return <div>Chargement des catégories...</div>;
+  }
+
+  if (categoriesError) {
+    return <div>Erreur: {categoriesError}</div>;
+  }
 
   // Sample courses data
   const allCourses: Course[] = [
@@ -553,7 +564,7 @@ export default function CoursesExplorer() {
   const getActiveCategoryName = () => {
     if (!selectedCategory) return "All Categories"
     const category = categories.find((c) => c.id === selectedCategory)
-    return category ? category.name : "All Categories"
+    return category ? category.title : "All Categories"
   }
 
   // Get active subcategory name
@@ -562,7 +573,7 @@ export default function CoursesExplorer() {
     const category = categories.find((c) => c.id === selectedCategory)
     if (!category) return "All Subcategories"
     const subcategory = category.subcategories.find((s) => s.id === selectedSubcategory)
-    return subcategory ? subcategory.name : "All Subcategories"
+    return subcategory ? subcategory.title : "All Subcategories"
   }
 
   // Render star rating
@@ -661,7 +672,7 @@ export default function CoursesExplorer() {
                               : "hover:bg-gray-100"
                           }`}
                         >
-                          <span>{category.name}</span>
+                          <span>{category.title}</span>
                           <ChevronRight className="h-4 w-4" />
                         </button>
 
@@ -677,7 +688,7 @@ export default function CoursesExplorer() {
                                     : "hover:bg-gray-100"
                                 }`}
                               >
-                                {subcategory.name}
+                                {subcategory.title}
                               </button>
                             ))}
                           </div>
@@ -715,7 +726,7 @@ export default function CoursesExplorer() {
                       : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
                   }`}
                 >
-                  {category.name}
+                  {category.title}
                 </button>
               ))}
             </div>
@@ -790,7 +801,7 @@ export default function CoursesExplorer() {
                           : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
                       }`}
                     >
-                      {subcategory.name}
+                      {subcategory.title}
                     </button>
                   ))}
               </div>
