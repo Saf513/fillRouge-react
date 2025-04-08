@@ -40,7 +40,7 @@ type Course = {
   description: string
 }
 
-type Category = {
+export type Category = {
   id: string
   title: string
   description: string
