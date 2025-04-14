@@ -774,31 +774,31 @@ export default function UserSettings({
                   <h2 className="mb-6 text-xl font-bold">Payment Methods</h2>
                   <div className="space-y-4">
                     {paymentMethods.map((method) => (
-                      <div key={method.id} className="rounded-md border border-[#f1f1f3] p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <div className="mr-3 h-10 w-16 rounded border border-[#f1f1f3] bg-[#f7f7f8] p-2">
-                              <CreditCard className="h-full w-full text-[#4c4c4d]" />
+                        <div key={method.id} className="rounded-md border border-[#f1f1f3] p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <div className="mr-3 h-10 w-16 rounded border border-[#f1f1f3] bg-[#f7f7f8] p-2">
+                                <CreditCard className="h-full w-full text-[#4c4c4d]" />
+                              </div>
+                              <div>
+                                <h3 className="font-medium">
+                                  {method.type} ending in {method.last4}
+                                </h3>
+                                <p className="text-sm text-[#4c4c4d]">Expires {method.expiryDate}</p>
+                              </div>
                             </div>
-                            <div>
-                              <h3 className="font-medium">
-                                {method.type} ending in {method.last4}
-                              </h3>
-                              <p className="text-sm text-[#4c4c4d]">Expires {method.expiryDate}</p>
+                            <div className="flex items-center gap-2">
+                              {method.isDefault && (
+                                <span className="rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-600">
+                                  Default
+                                </span>
+                              )}
+                              <button className="rounded-md border border-[#f1f1f3] px-3 py-1.5 text-xs font-medium text-[#4c4c4d] hover:bg-[#f1f1f3]">
+                                Edit
+                              </button>
                             </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {method.isDefault && (
-                              <span className="rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-600">
-                                Default
-                              </span>
-                            )}
-                            <button className="rounded-md border border-[#f1f1f3] px-3 py-1.5 text-xs font-medium text-[#4c4c4d] hover:bg-[#f1f1f3]">
-                              Edit
-                            </button>
                           </div>
                         </div>
-                      </div>
                     ))}
                     <button className="rounded-md border border-[#f1f1f3] bg-white px-4 py-2 text-sm font-medium text-[#4c4c4d] hover:bg-[#f1f1f3]">
                       Add Payment Method
