@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from "react"
-import { useNavigate } from "react-router-dom"
-import useCategories from '@/hooks/useCategories'
-import useCourses from '@/hooks/useCourses'
-import { Course } from '@/types/course'
-import { motion, AnimatePresence } from "framer-motion"
+import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import useCategories from "@/hooks/useCategories";
+import useCourses from "@/hooks/useCourses";
+import { Course } from "@/types/course";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
   Filter,
@@ -14,172 +14,241 @@ import {
   BookOpen,
   Heart,
   BarChart3,
-  ChevronRight,             
+  ChevronRight,
   ChevronLeft,
   X,
   Play,
   ShoppingCart,
-} from "lucide-react"
+} from "lucide-react";
 
 export default function CoursesExplorer() {
-  const navigate = useNavigate()
-  const [searchTerm, setSearchTerm] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
-  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null)
-  const [showFilters, setShowFilters] = useState(false)
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 200])
-  const [selectedLevels, setSelectedLevels] = useState<string[]>([])
-  const [selectedLanguages, setSelectedLanguages] = useState<string[]>([])
-  const [selectedRating, setSelectedRating] = useState<number | null>(null)
-  const [sortOption, setSortOption] = useState("popular")
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
-  const [isScrolled, setIsScrolled] = useState(false)
-  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false)
-  const [hoveredCourse, setHoveredCourse] = useState<string | null>(null)
+  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(
+    null
+  );
+  const [showFilters, setShowFilters] = useState(false);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 200]);
+  const [selectedLevels, setSelectedLevels] = useState<string[]>([]);
+  const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
+  const [selectedRating, setSelectedRating] = useState<number | null>(null);
+  const [sortOption, setSortOption] = useState("popular");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [hoveredCourse, setHoveredCourse] = useState<string | null>(null);
 
   // Handle scroll for sticky header
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 100)
-    }
-    window.addEventListener("scroll", handleScroll)
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
+      setIsScrolled(window.scrollY > 100);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
-  const { categories, loading: categoriesLoading, error: categoriesError } = useCategories()
-  const { courses, loading: coursesLoading, error: coursesError, total, currentPage, perPage, setCurrentPage } = useCourses()
+  const {
+    categories,
+    loading: categoriesLoading,
+    error: categoriesError,
+  } = useCategories();
+  const {
+    courses,
+    loading: coursesLoading,
+    error: coursesError,
+    total,
+    currentPage,
+    perPage,
+    setCurrentPage,
+  } = useCourses();
 
   // Filter courses based on search, category, and other filters
   const filteredCourses = useCallback(() => {
-    if (!courses) return []
-    
-    return courses.filter((course: Course) => {
-      // Filtre du terme de recherche
-      const searchMatch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (course?.subtitle && course.subtitle.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        course.description.toLowerCase().includes(searchTerm.toLowerCase())
+    if (!courses) return [];
 
-      // Filtre de catégorie
-      const categoryMatch = !selectedCategory ||( course?.category_id &&course.category_id.toString() === selectedCategory)
+    return courses
+      .filter((course: Course) => {
+        // Filtre du terme de recherche
+        const searchMatch =
+          course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (course?.subtitle &&
+            course.subtitle.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          course.description.toLowerCase().includes(searchTerm.toLowerCase());
 
-      // Subcategory filter
-      const subcategoryMatch = !selectedSubcategory || course?.subcategory_id === selectedSubcategory
+        // Filtre de catégorie
+        const categoryMatch =
+          !selectedCategory ||
+          (course?.category_id &&
+            course.category_id.toString() === selectedCategory);
 
-      // Price range filter
-      const price = course.discount ? course.price * (1 - course.discount / 100) : course.price
-      const priceMatch = price >= priceRange[0] && price <= priceRange[1]
+        // Subcategory filter
+        const subcategoryMatch =
+          !selectedSubcategory ||
+          course?.categories.some((category) =>
+            category.subcategories?.some(
+              (subcategory) => subcategory.id === selectedSubcategory
+            )
+          );
+        // Filtre de prix
+        const price = course.discount
+          ? (Number(course.price) || 0) * (1 - (Number(course.discount) || 0) / 100)
+          : Number(course.price) || 0;
+        const priceMatch = price >= priceRange[0] && price <= priceRange[1];
 
-      // Level filter
-      const levelMatch = selectedLevels.length === 0 || selectedLevels.includes(course.level)
+        // Filtre de niveau
+        const levelMatch =
+          selectedLevels.length === 0 || selectedLevels.includes(course.level);
 
-      // Language filter
-      const languageMatch = selectedLanguages.length === 0 || selectedLanguages.includes(course.language)
+        // Language filter
+        const languageMatch =
+          selectedLanguages.length === 0 ||
+          selectedLanguages.includes(course.language);
 
-      // Rating filter
-      const ratingMatch = !selectedRating || course.average_rating >= selectedRating
+        // Filtre de notation
+        const ratingMatch =
+          !selectedRating || parseFloat(course.average_rating) >= selectedRating;
 
-      return searchMatch && categoryMatch && subcategoryMatch && levelMatch && languageMatch && ratingMatch && priceMatch
-    }).sort((a: Course, b: Course) => {
-      // Sort based on selected option
-      switch (sortOption) {
-        case "popular":
-          return (b.studentsCount || 0) - (a.studentsCount || 0)
-        case "highest-rated":
-          return b.average_rating - a.average_rating
-        case "newest":
-          return new Date(b.created_at || "").getTime() - new Date(a.created_at || "").getTime()
-        case "price-low":
-          return (a.discount ? a.price * (1 - a.discount / 100) : a.price) - (b.discount ? b.price * (1 - b.discount / 100) : b.price)
-        case "price-high":
-          return (b.discount ? b.price * (1 - b.discount / 100) : b.price) - (a.discount ? a.price * (1 - a.discount / 100) : a.price)
-        default:
-          return 0
-      }
-    })
-  }, [courses, searchTerm, selectedCategory, selectedSubcategory, priceRange, selectedLevels, selectedLanguages, selectedRating, sortOption])
+        return (
+          searchMatch &&
+          categoryMatch &&
+          subcategoryMatch &&
+          levelMatch &&
+          languageMatch &&
+          ratingMatch &&
+          priceMatch
+        );
+      })
+      .sort((a: Course, b: Course) => {
+        // Sort based on selected option
+        switch (sortOption) {
+          case "popular":
+            return b.total_students - a.total_students;
+          case "highest-rated":
+            return parseFloat(b.average_rating) - parseFloat(a.average_rating);
+          case "newest":
+            return (
+              new Date(b.created_at || "").getTime() -
+              new Date(a.created_at || "").getTime()
+            );
+          case "price-low":
+            return (
+              parseFloat(a.price) * (1 - parseFloat(a.discount) / 100) -
+              parseFloat(b.price) * (1 - parseFloat(b.discount) / 100)
+            );
+          case "price-high":
+            return (
+              parseFloat(b.price) * (1 - parseFloat(b.discount) / 100) -
+              parseFloat(a.price) * (1 - parseFloat(a.discount) / 100)
+            );
+          default:
+            return 0;
+        }
+      });
+  }, [
+    courses,
+    searchTerm,
+    selectedCategory,
+    selectedSubcategory,
+    priceRange,
+    selectedLevels,
+    selectedLanguages,
+    selectedRating,
+    sortOption,
+  ]);
 
   if (categoriesLoading || coursesLoading) {
-    return <div>Chargement des données...</div>
+    return <div>Chargement des données...</div>;
   }
 
   if (categoriesError) {
-    return <div>Erreur: {categoriesError}</div>
+    return <div>Erreur: {categoriesError}</div>;
   }
 
   if (coursesError) {
-    return <div>Erreur: {coursesError}</div>
+    return <div>Erreur: {coursesError}</div>;
   }
 
   // Handle category selection
   const handleCategorySelect = (categoryId: string) => {
     if (selectedCategory === categoryId) {
-      setSelectedCategory(null)
-      setSelectedSubcategory(null)
+      setSelectedCategory(null);
+      setSelectedSubcategory(null);
     } else {
-      setSelectedCategory(categoryId)
-      setSelectedSubcategory(null)
+      setSelectedCategory(categoryId);
+      setSelectedSubcategory(null);
     }
-    setShowCategoryDropdown(false)
-  }
+    setShowCategoryDropdown(false);
+  };
 
   // Handle subcategory selection
   const handleSubcategorySelect = (subcategoryId: string) => {
-    setSelectedSubcategory(subcategoryId === selectedSubcategory ? null : subcategoryId)
-  }
+    setSelectedSubcategory(
+      subcategoryId === selectedSubcategory ? null : subcategoryId
+    );
+  };
 
   // Handle level selection
   const handleLevelSelect = (level: string) => {
-    setSelectedLevels((prev) => (prev.includes(level) ? prev.filter((l) => l !== level) : [...prev, level]))
-  }
+    setSelectedLevels((prev) =>
+      prev.includes(level) ? prev.filter((l) => l !== level) : [...prev, level]
+    );
+  };
 
   // Handle language selection
   const handleLanguageSelect = (language: string) => {
-    setSelectedLanguages((prev) => (prev.includes(language) ? prev.filter((l) => l !== language) : [...prev, language]))
-  }
+    setSelectedLanguages((prev) =>
+      prev.includes(language)
+        ? prev.filter((l) => l !== language)
+        : [...prev, language]
+    );
+  };
 
   // Handle rating selection
   const handleRatingSelect = (rating: number) => {
-    setSelectedRating(rating === selectedRating ? null : rating)
-  }
+    setSelectedRating(rating === selectedRating ? null : rating);
+  };
 
   // Handle price range change
   const handlePriceRangeChange = (value: [number, number]) => {
-    setPriceRange(value)
-  }
+    setPriceRange(value);
+  };
 
   // Reset all filters
   const resetFilters = () => {
-    setSelectedCategory(null)
-    setSelectedSubcategory(null)
-    setSelectedLevels([])
-    setSelectedLanguages([])
-    setSelectedRating(null)
-    setPriceRange([0, 200])
-    setSortOption("popular")
-  }
+    setSelectedCategory(null);
+    setSelectedSubcategory(null);
+    setSelectedLevels([]);
+    setSelectedLanguages([]);
+    setSelectedRating(null);
+    setPriceRange([0, 200]);
+    setSortOption("popular");
+  };
 
   // Get active category name
   const getActiveCategoryName = useCallback(() => {
-    if (!selectedCategory) return "All Categories"
-    const category = categories.find((c) => c.id === selectedCategory)
-    return category ? category.title : "All Categories"
-  }, [categories, selectedCategory])
+    if (!selectedCategory) return "All Categories";
+    const category = categories.find((c) => c.id === selectedCategory);
+    return category ? category.title : "All Categories";
+  }, [categories, selectedCategory]);
 
   // Get active subcategory name
   const getActiveSubcategoryName = useCallback(() => {
-    if (!selectedSubcategory) return "All Subcategories"
-    const category = categories.find((c) => c.id === selectedCategory)
-    if (!category || !category.subcategories) return "All Subcategories"
-    const subcategory = category.subcategories.find((s) => s.id === selectedSubcategory)
-    return subcategory ? subcategory.title : "All Subcategories"
-  }, [categories, selectedCategory, selectedSubcategory])
+    if (!selectedSubcategory) return "All Subcategories";
+    const category = categories.find((c) => c.id === selectedCategory);
+    if (!category || !category.subcategories) return "All Subcategories";
+    const subcategory = category.subcategories.find(
+      (s) => s.id === selectedSubcategory
+    );
+    return subcategory ? subcategory.title : "All Subcategories";
+  }, [categories, selectedCategory, selectedSubcategory]);
 
   // Get subcategories for a given category
   const getSubcategories = useCallback(() => {
-    if (!selectedCategory) return []
-    const category = categories.find((c) => c.id === selectedCategory)
-    return category && category.subcategories ? category.subcategories : []
-  }, [categories, selectedCategory])
+    if (!selectedCategory) return [];
+    const category = categories.find((c) => c.id === selectedCategory);
+    return category && category.subcategories ? category.subcategories : [];
+  }, [categories, selectedCategory]);
 
   // Render star rating
   const renderStarRating = (rating: number) => {
@@ -189,14 +258,18 @@ export default function CoursesExplorer() {
           {[1, 2, 3, 4, 5].map((star) => (
             <Star
               key={star}
-              className={`h-4 w-4 ${star <= Math.round(rating) ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`}
+              className={`h-4 w-4 ${
+                star <= Math.round(rating)
+                  ? "text-yellow-400 fill-yellow-400"
+                  : "text-gray-300"
+              }`}
             />
           ))}
         </div>
         <span className="text-sm font-medium">{Number(rating).toFixed(1)}</span>
       </div>
-    )
-  }
+    );
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -204,9 +277,12 @@ export default function CoursesExplorer() {
       <div className="relative bg-gradient-to-r from-[#a435f0] to-[#8710d8] text-white">
         <div className="container mx-auto px-4 py-16 md:py-24">
           <div className="max-w-3xl">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">Expand Your Knowledge</h1>
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">
+              Expand Your Knowledge
+            </h1>
             <p className="text-xl md:text-2xl mb-8">
-              Discover thousands of courses taught by industry experts and take your skills to the next level.
+              Discover thousands of courses taught by industry experts and take
+              your skills to the next level.
             </p>
             <div className="relative max-w-2xl">
               <input
@@ -226,7 +302,11 @@ export default function CoursesExplorer() {
 
         {/* Wave shape divider */}
         <div className="absolute bottom-0 left-0 right-0 h-16 overflow-hidden">
-          <svg viewBox="0 0 1440 100" className="absolute bottom-0 w-full h-full" preserveAspectRatio="none">
+          <svg
+            viewBox="0 0 1440 100"
+            className="absolute bottom-0 w-full h-full"
+            preserveAspectRatio="none"
+          >
             <path
               fill="#ffffff"
               fillOpacity="1"
@@ -238,7 +318,9 @@ export default function CoursesExplorer() {
 
       {/* Sticky Category Navigation */}
       <div
-        className={`sticky top-0 z-30 bg-white border-b border-gray-200 transition-shadow ${isScrolled ? "shadow-md" : ""}`}
+        className={`sticky top-0 z-30 bg-white border-b border-gray-200 transition-shadow ${
+          isScrolled ? "shadow-md" : ""
+        }`}
       >
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between py-3">
@@ -257,12 +339,14 @@ export default function CoursesExplorer() {
                   <div className="p-2">
                     <button
                       onClick={() => {
-                        setSelectedCategory(null)
-                        setSelectedSubcategory(null)
-                        setShowCategoryDropdown(false)
+                        setSelectedCategory(null);
+                        setSelectedSubcategory(null);
+                        setShowCategoryDropdown(false);
                       }}
                       className={`w-full text-left px-3 py-2 rounded-md ${
-                        !selectedCategory ? "bg-[#f7f9fa] text-[#a435f0] font-medium" : "hover:bg-gray-100"
+                        !selectedCategory
+                          ? "bg-[#f7f9fa] text-[#a435f0] font-medium"
+                          : "hover:bg-gray-100"
                       }`}
                     >
                       All Categories
@@ -283,19 +367,22 @@ export default function CoursesExplorer() {
 
                         {selectedCategory === category.id && (
                           <div className="ml-4 border-l border-gray-200 pl-2 mt-1 mb-2">
-                            {category.subcategories && category.subcategories.map((subcategory) => (
-                              <button
-                                key={subcategory.id}
-                                onClick={() => handleSubcategorySelect(subcategory.id)}
-                                className={`w-full text-left px-3 py-1.5 rounded-md ${
-                                  selectedSubcategory === subcategory.id
-                                    ? "bg-[#f7f9fa] text-[#a435f0] font-medium"
-                                    : "hover:bg-gray-100"
-                                }`}
-                              >
-                                {subcategory.title}
-                              </button>
-                            ))}
+                            {category.subcategories &&
+                              category.subcategories.map((subcategory) => (
+                                <button
+                                  key={subcategory.id}
+                                  onClick={() =>
+                                    handleSubcategorySelect(subcategory.id)
+                                  }
+                                  className={`w-full text-left px-3 py-1.5 rounded-md ${
+                                    selectedSubcategory === subcategory.id
+                                      ? "bg-[#f7f9fa] text-[#a435f0] font-medium"
+                                      : "hover:bg-gray-100"
+                                  }`}
+                                >
+                                  {subcategory.title}
+                                </button>
+                              ))}
                           </div>
                         )}
                       </div>
@@ -309,8 +396,8 @@ export default function CoursesExplorer() {
             <div className="hidden md:flex items-center space-x-1 overflow-x-auto scrollbar-hide">
               <button
                 onClick={() => {
-                  setSelectedCategory(null)
-                  setSelectedSubcategory(null)
+                  setSelectedCategory(null);
+                  setSelectedSubcategory(null);
                 }}
                 className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                   !selectedCategory
@@ -361,13 +448,17 @@ export default function CoursesExplorer() {
               <div className="hidden sm:flex items-center space-x-2">
                 <button
                   onClick={() => setViewMode("grid")}
-                  className={`p-2 rounded-lg ${viewMode === "grid" ? "bg-gray-100" : "hover:bg-gray-100"}`}
+                  className={`p-2 rounded-lg ${
+                    viewMode === "grid" ? "bg-gray-100" : "hover:bg-gray-100"
+                  }`}
                 >
                   <BarChart3 className="h-5 w-5 text-gray-700" />
                 </button>
                 <button
                   onClick={() => setViewMode("list")}
-                  className={`p-2 rounded-lg ${viewMode === "list" ? "bg-gray-100" : "hover:bg-gray-100"}`}
+                  className={`p-2 rounded-lg ${
+                    viewMode === "list" ? "bg-gray-100" : "hover:bg-gray-100"
+                  }`}
                 >
                   <div className="flex flex-col space-y-1">
                     <div className="h-1 w-5 bg-gray-700 rounded-full"></div>
@@ -395,18 +486,18 @@ export default function CoursesExplorer() {
                 </button>
 
                 {getSubcategories().map((subcategory) => (
-                    <button
-                      key={subcategory.id}
-                      onClick={() => handleSubcategorySelect(subcategory.id)}
-                      className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                        selectedSubcategory === subcategory.id
-                          ? "bg-[#a435f0] text-white"
-                          : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
-                      }`}
-                    >
-                      {subcategory.title}
-                    </button>
-                  ))}
+                  <button
+                    key={subcategory.id}
+                    onClick={() => handleSubcategorySelect(subcategory.id)}
+                    className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                      selectedSubcategory === subcategory.id
+                        ? "bg-[#a435f0] text-white"
+                        : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
+                    }`}
+                  >
+                    {subcategory.title}
+                  </button>
+                ))}
               </div>
             </div>
           )}
@@ -422,7 +513,10 @@ export default function CoursesExplorer() {
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sticky top-24">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-bold">Filters</h3>
-                  <button onClick={resetFilters} className="text-sm text-[#a435f0] hover:underline">
+                  <button
+                    onClick={resetFilters}
+                    className="text-sm text-[#a435f0] hover:underline"
+                  >
                     Reset All
                   </button>
                 </div>
@@ -431,8 +525,12 @@ export default function CoursesExplorer() {
                 <div className="mb-6">
                   <h4 className="font-medium mb-3">Price Range</h4>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-600">${priceRange[0]}</span>
-                    <span className="text-sm text-gray-600">${priceRange[1]}</span>
+                    <span className="text-sm text-gray-600">
+                      ${priceRange[0]}
+                    </span>
+                    <span className="text-sm text-gray-600">
+                      ${priceRange[1]}
+                    </span>
                   </div>
                   <input
                     type="range"
@@ -440,7 +538,12 @@ export default function CoursesExplorer() {
                     max="200"
                     step="5"
                     value={priceRange[1]}
-                    onChange={(e) => handlePriceRangeChange([priceRange[0], Number.parseInt(e.target.value)])}
+                    onChange={(e) =>
+                      handlePriceRangeChange([
+                        priceRange[0],
+                        Number.parseInt(e.target.value),
+                      ])
+                    }
                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#a435f0]"
                   />
                 </div>
@@ -449,17 +552,19 @@ export default function CoursesExplorer() {
                 <div className="mb-6">
                   <h4 className="font-medium mb-3">Level</h4>
                   <div className="space-y-2">
-                    {["Beginner", "Intermediate", "Advanced", "All Levels"].map((level) => (
-                      <label key={level} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={selectedLevels.includes(level)}
-                          onChange={() => handleLevelSelect(level)}
-                          className="rounded border-gray-300 text-[#a435f0] focus:ring-[#a435f0] h-4 w-4"
-                        />
-                        <span className="ml-2 text-sm">{level}</span>
-                      </label>
-                    ))}
+                    {["Beginner", "Intermediate", "Advanced", "All Levels"].map(
+                      (level) => (
+                        <label key={level} className="flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={selectedLevels.includes(level)}
+                            onChange={() => handleLevelSelect(level)}
+                            className="rounded border-gray-300 text-[#a435f0] focus:ring-[#a435f0] h-4 w-4"
+                          />
+                          <span className="ml-2 text-sm">{level}</span>
+                        </label>
+                      )
+                    )}
                   </div>
                 </div>
 
@@ -467,17 +572,19 @@ export default function CoursesExplorer() {
                 <div className="mb-6">
                   <h4 className="font-medium mb-3">Language</h4>
                   <div className="space-y-2">
-                    {["English", "French", "Spanish", "German", "Japanese"].map((language) => (
-                      <label key={language} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={selectedLanguages.includes(language)}
-                          onChange={() => handleLanguageSelect(language)}
-                          className="rounded border-gray-300 text-[#a435f0] focus:ring-[#a435f0] h-4 w-4"
-                        />
-                        <span className="ml-2 text-sm">{language}</span>
-                      </label>
-                    ))}
+                    {["English", "French", "Spanish", "German", "Japanese"].map(
+                      (language) => (
+                        <label key={language} className="flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={selectedLanguages.includes(language)}
+                            onChange={() => handleLanguageSelect(language)}
+                            className="rounded border-gray-300 text-[#a435f0] focus:ring-[#a435f0] h-4 w-4"
+                          />
+                          <span className="ml-2 text-sm">{language}</span>
+                        </label>
+                      )
+                    )}
                   </div>
                 </div>
 
@@ -496,7 +603,9 @@ export default function CoursesExplorer() {
                         />
                         <span className="ml-2 flex items-center">
                           {renderStarRating(rating)}
-                          <span className="ml-1 text-sm text-gray-600">& up</span>
+                          <span className="ml-1 text-sm text-gray-600">
+                            & up
+                          </span>
                         </span>
                       </label>
                     ))}
@@ -519,7 +628,11 @@ export default function CoursesExplorer() {
             <div className="mb-6">
               <h2 className="text-2xl font-bold mb-2">
                 {selectedCategory
-                  ? `${getActiveCategoryName()} ${selectedSubcategory ? `- ${getActiveSubcategoryName()}` : ""} Courses`
+                  ? `${getActiveCategoryName()} ${
+                      selectedSubcategory
+                        ? `- ${getActiveSubcategoryName()}`
+                        : ""
+                    } Courses`
                   : "All Courses"}
               </h2>
               <p className="text-gray-600">
@@ -536,7 +649,8 @@ export default function CoursesExplorer() {
                 </div>
                 <h3 className="text-xl font-bold mb-2">No courses found</h3>
                 <p className="text-gray-600 mb-4">
-                  Try adjusting your search or filter to find what you're looking for.
+                  Try adjusting your search or filter to find what you're
+                  looking for.
                 </p>
                 <button
                   onClick={resetFilters}
@@ -565,7 +679,11 @@ export default function CoursesExplorer() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <div className={`relative ${viewMode === "list" ? "md:w-64 flex-shrink-0" : ""}`}>
+                    <div
+                      className={`relative ${
+                        viewMode === "list" ? "md:w-64 flex-shrink-0" : ""
+                      }`}
+                    >
                       <img
                         src={course.image_url || "/placeholder.svg"}
                         alt={course.title}
@@ -592,17 +710,24 @@ export default function CoursesExplorer() {
 
                     <div className="p-4 flex flex-col flex-grow">
                       <div className="flex items-start justify-between mb-2">
-                        <h3 className="font-bold text-lg line-clamp-2">{course.title}</h3>
+                        <h3 className="font-bold text-lg line-clamp-2">
+                          {course.title}
+                        </h3>
                         <button className="flex-shrink-0 ml-2 text-gray-400 hover:text-[#a435f0]">
                           <Heart className="h-5 w-5" />
                         </button>
                       </div>
 
-                      <p className="text-sm text-gray-600 mb-2">{course.instructor.first_name} {course.instructor.last_name}</p>
+                      <p className="text-sm text-gray-600 mb-2">
+                        {course.instructor.first_name}{" "}
+                        {course.instructor.last_name}
+                      </p>
 
                       <div className="flex items-center mb-2">
                         {renderStarRating(course.average_rating)}
-                        <span className="text-xs text-gray-500 ml-1">({course.reviewCount?.toLocaleString()})</span>
+                        <span className="text-xs text-gray-500 ml-1">
+                          ({course.reviewCount?.toLocaleString()})
+                        </span>
                       </div>
 
                       <div className="flex items-center text-xs text-gray-600 space-x-3 mb-3">
@@ -612,7 +737,9 @@ export default function CoursesExplorer() {
                         </div>
                         <div className="flex items-center">
                           <Users className="h-3 w-3 mr-1" />
-                          <span>{course.studentsCount?.toLocaleString()} students</span>
+                          <span>
+                            {course.studentsCount?.toLocaleString()} students
+                          </span>
                         </div>
                         <div className="flex items-center">
                           <BookOpen className="h-3 w-3 mr-1" />
@@ -621,20 +748,30 @@ export default function CoursesExplorer() {
                       </div>
 
                       {viewMode === "list" && (
-                        <p className="text-sm text-gray-600 mb-4 line-clamp-2">{course.description}</p>
+                        <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                          {course.description}
+                        </p>
                       )}
 
                       <div className="mt-auto flex items-center justify-between">
                         <div className="flex items-center">
                           {course.discount ? (
                             <>
-                              <span className="text-lg font-bold">${(course.price * (1 - course.discount / 100)).toFixed(2)}</span>
+                              <span className="text-lg font-bold">
+                                $
+                                {(
+                                  course.price *
+                                  (1 - course.discount / 100)
+                                ).toFixed(2)}
+                              </span>
                               <span className="text-sm text-gray-500 line-through ml-2">
                                 ${Number(course.price).toFixed(2)}
                               </span>
                             </>
                           ) : (
-                            <span className="text-lg font-bold">${Number(course.price).toFixed(2)}</span>
+                            <span className="text-lg font-bold">
+                              ${Number(course.price).toFixed(2)}
+                            </span>
                           )}
                         </div>
 
@@ -642,7 +779,7 @@ export default function CoursesExplorer() {
                           <button className="p-1.5 bg-[#a435f0] text-white text-sm font-medium rounded-lg hover:bg-[#8710d8] transition-colors">
                             <ShoppingCart className="h-4 w-4" />
                           </button>
-                          <button 
+                          <button
                             onClick={() => navigate(`/course/${course.id}`)}
                             className="p-1.5 bg-[#a435f0] text-white text-sm font-medium rounded-lg hover:bg-[#8710d8] transition-colors"
                           >
@@ -660,14 +797,17 @@ export default function CoursesExplorer() {
             {filteredCourses().length > 0 && (
               <div className="mt-8 flex justify-center">
                 <nav className="flex items-center space-x-1">
-                  <button 
+                  <button
                     className="px-3 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100"
                     onClick={() => setCurrentPage(currentPage - 1)}
                     disabled={currentPage === 1}
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </button>
-                  {Array.from({ length: Math.ceil(total / perPage) }, (_, i) => i + 1).map((page) => (
+                  {Array.from(
+                    { length: Math.ceil(total / perPage) },
+                    (_, i) => i + 1
+                  ).map((page) => (
                     <button
                       key={page}
                       className={`px-4 py-2 rounded-md ${
@@ -678,9 +818,9 @@ export default function CoursesExplorer() {
                       onClick={() => setCurrentPage(page)}
                     >
                       {page}
-                  </button>
+                    </button>
                   ))}
-                  <button 
+                  <button
                     className="px-3 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100"
                     onClick={() => setCurrentPage(currentPage + 1)}
                     disabled={currentPage === Math.ceil(total / perPage)}
@@ -726,8 +866,12 @@ export default function CoursesExplorer() {
                 <div className="mb-6">
                   <h4 className="font-medium mb-3">Price Range</h4>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-600">${priceRange[0]}</span>
-                    <span className="text-sm text-gray-600">${priceRange[1]}</span>
+                    <span className="text-sm text-gray-600">
+                      ${priceRange[0]}
+                    </span>
+                    <span className="text-sm text-gray-600">
+                      ${priceRange[1]}
+                    </span>
                   </div>
                   <input
                     type="range"
@@ -735,7 +879,12 @@ export default function CoursesExplorer() {
                     max="200"
                     step="5"
                     value={priceRange[1]}
-                    onChange={(e) => handlePriceRangeChange([priceRange[0], Number.parseInt(e.target.value)])}
+                    onChange={(e) =>
+                      handlePriceRangeChange([
+                        priceRange[0],
+                        Number.parseInt(e.target.value),
+                      ])
+                    }
                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#a435f0]"
                   />
                 </div>
@@ -744,17 +893,19 @@ export default function CoursesExplorer() {
                 <div className="mb-6">
                   <h4 className="font-medium mb-3">Level</h4>
                   <div className="space-y-2">
-                    {["Beginner", "Intermediate", "Advanced", "All Levels"].map((level) => (
-                      <label key={level} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={selectedLevels.includes(level)}
-                          onChange={() => handleLevelSelect(level)}
-                          className="rounded border-gray-300 text-[#a435f0] focus:ring-[#a435f0] h-4 w-4"
-                        />
-                        <span className="ml-2 text-sm">{level}</span>
-                      </label>
-                    ))}
+                    {["Beginner", "Intermediate", "Advanced", "All Levels"].map(
+                      (level) => (
+                        <label key={level} className="flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={selectedLevels.includes(level)}
+                            onChange={() => handleLevelSelect(level)}
+                            className="rounded border-gray-300 text-[#a435f0] focus:ring-[#a435f0] h-4 w-4"
+                          />
+                          <span className="ml-2 text-sm">{level}</span>
+                        </label>
+                      )
+                    )}
                   </div>
                 </div>
 
@@ -762,17 +913,19 @@ export default function CoursesExplorer() {
                 <div className="mb-6">
                   <h4 className="font-medium mb-3">Language</h4>
                   <div className="space-y-2">
-                    {["English", "French", "Spanish", "German", "Japanese"].map((language) => (
-                      <label key={language} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={selectedLanguages.includes(language)}
-                          onChange={() => handleLanguageSelect(language)}
-                          className="rounded border-gray-300 text-[#a435f0] focus:ring-[#a435f0] h-4 w-4"
-                        />
-                        <span className="ml-2 text-sm">{language}</span>
-                      </label>
-                    ))}
+                    {["English", "French", "Spanish", "German", "Japanese"].map(
+                      (language) => (
+                        <label key={language} className="flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={selectedLanguages.includes(language)}
+                            onChange={() => handleLanguageSelect(language)}
+                            className="rounded border-gray-300 text-[#a435f0] focus:ring-[#a435f0] h-4 w-4"
+                          />
+                          <span className="ml-2 text-sm">{language}</span>
+                        </label>
+                      )
+                    )}
                   </div>
                 </div>
 
@@ -791,7 +944,9 @@ export default function CoursesExplorer() {
                         />
                         <span className="ml-2 flex items-center">
                           {renderStarRating(rating)}
-                          <span className="ml-1 text-sm text-gray-600">& up</span>
+                          <span className="ml-1 text-sm text-gray-600">
+                            & up
+                          </span>
                         </span>
                       </label>
                     ))}
@@ -818,6 +973,5 @@ export default function CoursesExplorer() {
         )}
       </AnimatePresence>
     </div>
-  )
+  );
 }
-
