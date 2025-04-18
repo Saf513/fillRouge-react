@@ -1,4 +1,4 @@
-import { axiosClient } from '../api/axios';
+import  axiosClient  from '../api/axios';
 import { DashboardData } from '../types/dashboard';
 
 export const dashboardService = {

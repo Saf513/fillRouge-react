@@ -32,6 +32,9 @@ import {
 } from "lucide-react"
 import TeacherProfile from "./teacher/profile/teacherProfile"
 import TeacherSettings from "./teacher/settings/teacherSettings"
+import CourseCreationForm from "../components/forms/createCourse"
+import { useAuth } from "../hooks/useAuth"
+import { useNavigate } from "react-router-dom"
 
 export default function TeacherDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard")
@@ -42,6 +45,17 @@ export default function TeacherDashboard() {
   const [showNewCourseModal, setShowNewCourseModal] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [windowWidth, setWindowWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 0)
+  const { logout } = useAuth()
+  const navigate = useNavigate()
+
+  const handleLogout = async () => {
+    try {
+      await logout()
+      navigate('/login')
+    } catch (error) {
+      console.error("Erreur lors de la déconnexion:", error)
+    }
+  }
 
   // Handle window resize
   useEffect(() => {
@@ -49,7 +63,7 @@ export default function TeacherDashboard() {
       setWindowWidth(window.innerWidth)
       if (window.innerWidth < 1024) {
         setSidebarOpen(false)
-      } else {
+    } else {
         setSidebarOpen(true)
       }
     }
@@ -101,7 +115,7 @@ export default function TeacherDashboard() {
     }
   }
 
-  return (
+        return (
     <div className="flex min-h-screen bg-[#f7f7f8] font-sans text-[#262626]">
       {/* Mobile Menu Overlay */}
       {showMobileMenu && <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={toggleMobileMenu}></div>}
@@ -116,7 +130,7 @@ export default function TeacherDashboard() {
           <div className="flex items-center">
             <div className="flex h-10 w-10 items-center justify-center rounded-md bg-[#ff9500]">
               <BookOpen className="h-5 w-5 text-white" />
-            </div>
+              </div>
             {sidebarOpen && <span className="ml-3 text-lg font-bold">EduTeach</span>}
           </div>
           <button onClick={toggleSidebar} className="rounded-md p-1 text-[#4c4c4d] hover:bg-[#f1f1f3] hidden lg:block">
@@ -125,7 +139,7 @@ export default function TeacherDashboard() {
           <button onClick={toggleMobileMenu} className="rounded-md p-1 text-[#4c4c4d] hover:bg-[#f1f1f3] lg:hidden">
             <X className="h-5 w-5" />
           </button>
-        </div>
+              </div>
 
         <nav className="flex-1 overflow-y-auto p-4">
           <ul className="space-y-1">
@@ -244,15 +258,18 @@ export default function TeacherDashboard() {
                 </button>
               </li>
             </ul>
-          </div>
+                </div>
         </nav>
 
         <div className="border-t border-[#f1f1f3] p-4">
-          <button className="flex w-full items-center rounded-md px-3 py-2 text-[#4c4c4d] hover:bg-[#f1f1f3]">
+          <button 
+            onClick={handleLogout} 
+            className="flex w-full items-center rounded-md px-3 py-2 text-[#4c4c4d] hover:bg-[#f1f1f3]"
+          >
             <LogOut className="h-5 w-5" />
-            {sidebarOpen && <span className="ml-3">Log Out</span>}
+            {sidebarOpen && <span className="ml-3">Se déconnecter</span>}
           </button>
-        </div>
+                </div>
       </aside>
 
       {/* Main Content */}
@@ -271,8 +288,8 @@ export default function TeacherDashboard() {
             </button>
             <div className="ml-4 lg:hidden">
               <h1 className="text-lg font-bold">{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h1>
-            </div>
-          </div>
+                </div>
+              </div>
 
           <div className="relative flex items-center gap-2 sm:gap-4">
             <div className="relative hidden md:block">
@@ -281,8 +298,8 @@ export default function TeacherDashboard() {
                 type="text"
                 placeholder="Search..."
                 className="h-10 w-40 rounded-md border border-[#f1f1f3] bg-[#f7f7f8] pl-10 pr-4 text-sm focus:border-[#ff9500] focus:outline-none focus:ring-1 focus:ring-[#ff9500] lg:w-60"
-              />
-            </div>
+                  />
+                </div>
 
             <button
               onClick={() => setShowNewCourseModal(true)}
@@ -313,51 +330,51 @@ export default function TeacherDashboard() {
                   <div className="mb-4 flex items-center justify-between">
                     <h3 className="font-medium">Notifications</h3>
                     <button className="text-xs text-[#ff9500]">Mark all as read</button>
-                  </div>
+              </div>
                   <div className="space-y-4 max-h-[60vh] overflow-y-auto">
                     <div className="flex gap-3">
                       <div className="h-10 w-10 flex-shrink-0 rounded-full bg-[#fff4e5]">
                         <User className="h-full w-full p-2 text-[#ff9500]" />
-                      </div>
-                      <div>
+                                  </div>
+                                    <div>
                         <p className="text-sm">
                           <span className="font-medium">Sarah Johnson</span> asked a question in{" "}
                           <span className="font-medium">UI/UX Design Fundamentals</span>
                         </p>
                         <p className="text-xs text-[#4c4c4d]">10 minutes ago</p>
-                      </div>
-                    </div>
+                                    </div>
+                                  </div>
                     <div className="flex gap-3">
                       <div className="h-10 w-10 flex-shrink-0 rounded-full bg-[#fff4e5]">
                         <Star className="h-full w-full p-2 text-[#ff9500]" />
-                      </div>
+                                </div>
                       <div>
                         <p className="text-sm">
                           <span className="font-medium">Michael Brown</span> left a 5-star review on{" "}
                           <span className="font-medium">Advanced JavaScript</span>
                         </p>
                         <p className="text-xs text-[#4c4c4d]">1 hour ago</p>
-                      </div>
-                    </div>
+                                </div>
+                              </div>
                     <div className="flex gap-3">
                       <div className="h-10 w-10 flex-shrink-0 rounded-full bg-[#fff4e5]">
                         <Users className="h-full w-full p-2 text-[#ff9500]" />
-                      </div>
+                                                  </div>
                       <div>
                         <p className="text-sm">
                           <span className="font-medium">5 new students</span> enrolled in{" "}
                           <span className="font-medium">Web Design Fundamentals</span>
                         </p>
                         <p className="text-xs text-[#4c4c4d]">3 hours ago</p>
-                      </div>
-                    </div>
-                  </div>
+                                                  </div>
+                                                    </div>
+                                                    </div>
                   <button className="mt-4 w-full rounded-md border border-[#f1f1f3] py-2 text-center text-sm text-[#4c4c4d] hover:bg-[#f1f1f3]">
                     View All Notifications
                   </button>
-                </div>
+                                                  </div>
               )}
-            </div>
+                                                </div>
 
             <div className="relative">
               <button
@@ -372,7 +389,7 @@ export default function TeacherDashboard() {
                   <div className="mb-2 border-b border-[#f1f1f3] pb-2">
                     <div className="px-3 py-2 text-sm font-medium">John Smith</div>
                     <div className="px-3 py-1 text-xs text-[#4c4c4d]">john.smith@example.com</div>
-                  </div>
+                                                </div>
                   <ul>
                     <li>
                       <button
@@ -394,27 +411,27 @@ export default function TeacherDashboard() {
                     </li>
                     <li className="mt-2 border-t border-[#f1f1f3] pt-2">
                       <button className="flex w-full items-center rounded-md px-3 py-2 text-sm text-[#4c4c4d] hover:bg-[#f1f1f3]">
-                        <LogOut className="mr-2 h-4 w-4" />
+                        <img src="/logout-icon.svg" alt="Logout" className="mr-2 h-4 w-4" />
                         Log Out
                       </button>
                     </li>
                   </ul>
-                </div>
-              )}
-            </div>
-          </div>
+                                      </div>
+                                    )}
+                                </div>
+                            </div>
         </header>
 
         {/* Main Content Area */}
         <main className="p-4 md:p-6">
           {/* Dashboard */}
           {activeTab === "dashboard" && (
-            <div className="space-y-6">
+          <div className="space-y-6">
               <div className="flex flex-col justify-between md:flex-row md:items-center">
                 <div>
                   <h1 className="text-2xl font-bold md:text-3xl">Welcome back, John!</h1>
                   <p className="text-[#4c4c4d]">Here's what's happening with your courses today.</p>
-                </div>
+                      </div>
                 <div className="mt-4 flex flex-wrap gap-2 md:mt-0">
                   <button className="rounded-md border border-[#f1f1f3] bg-white px-4 py-2 text-sm font-medium hover:bg-[#f1f1f3]">
                     Last 7 days
@@ -425,8 +442,8 @@ export default function TeacherDashboard() {
                   <button className="rounded-md border border-[#f1f1f3] bg-white px-4 py-2 text-sm font-medium hover:bg-[#f1f1f3]">
                     All time
                   </button>
-                </div>
-              </div>
+                    </div>
+                  </div>
 
               {/* Stats Cards */}
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -436,7 +453,7 @@ export default function TeacherDashboard() {
                     <div className="rounded-full bg-[#fff4e5] p-2">
                       <Users className="h-5 w-5 text-[#ff9500]" />
                     </div>
-                  </div>
+                    </div>
                   <p className="mt-4 text-3xl font-bold">1,245</p>
                   <div className="mt-2 flex items-center text-sm">
                     <TrendingUp className="mr-1 h-4 w-4 text-green-500" />
@@ -450,29 +467,29 @@ export default function TeacherDashboard() {
                     <h3 className="text-sm font-medium text-[#4c4c4d]">Course Enrollments</h3>
                     <div className="rounded-full bg-[#fff4e5] p-2">
                       <BookOpen className="h-5 w-5 text-[#ff9500]" />
-                    </div>
-                  </div>
+                          </div>
+                        </div>
                   <p className="mt-4 text-3xl font-bold">3,872</p>
                   <div className="mt-2 flex items-center text-sm">
                     <TrendingUp className="mr-1 h-4 w-4 text-green-500" />
                     <span className="font-medium text-green-500">+8.2%</span>
                     <span className="ml-1 text-[#4c4c4d]">from last month</span>
-                  </div>
-                </div>
+                      </div>
+                    </div>
 
                 <div className="rounded-lg border border-[#f1f1f3] bg-white p-6">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-medium text-[#4c4c4d]">Total Revenue</h3>
                     <div className="rounded-full bg-[#fff4e5] p-2">
                       <DollarSign className="h-5 w-5 text-[#ff9500]" />
-                    </div>
-                  </div>
+                          </div>
+                        </div>
                   <p className="mt-4 text-3xl font-bold">$24,568</p>
                   <div className="mt-2 flex items-center text-sm">
                     <TrendingUp className="mr-1 h-4 w-4 text-green-500" />
                     <span className="font-medium text-green-500">+18.3%</span>
                     <span className="ml-1 text-[#4c4c4d]">from last month</span>
-                  </div>
+                      </div>
                 </div>
 
                 <div className="rounded-lg border border-[#f1f1f3] bg-white p-6">
@@ -494,8 +511,8 @@ export default function TeacherDashboard() {
                     </div>
                     <span className="ml-1 text-[#4c4c4d]">from 256 reviews</span>
                   </div>
-                </div>
-              </div>
+            </div>
+          </div>
 
               {/* Recent Activity & Performance */}
               <div className="grid gap-6 lg:grid-cols-2">
@@ -505,45 +522,45 @@ export default function TeacherDashboard() {
                     <h2 className="text-lg font-bold">Recent Activity</h2>
                     <button className="text-sm text-[#ff9500]">View All</button>
                   </div>
-                  <div className="space-y-6">
+          <div className="space-y-6">
                     <div className="flex gap-4">
                       <div className="h-10 w-10 flex-shrink-0 rounded-full bg-[#fff4e5]">
                         <User className="h-full w-full p-2 text-[#ff9500]" />
-                      </div>
-                      <div>
+                    </div>
+                    <div>
                         <p className="font-medium">New student enrolled</p>
                         <p className="text-sm text-[#4c4c4d]">Emily Johnson enrolled in "UI/UX Design Fundamentals"</p>
                         <p className="mt-1 text-xs text-[#4c4c4d]">10 minutes ago</p>
-                      </div>
                     </div>
+                  </div>
                     <div className="flex gap-4">
                       <div className="h-10 w-10 flex-shrink-0 rounded-full bg-[#fff4e5]">
                         <MessageSquare className="h-full w-full p-2 text-[#ff9500]" />
-                      </div>
-                      <div>
+                  </div>
+                    <div>
                         <p className="font-medium">New question asked</p>
                         <p className="text-sm text-[#4c4c4d]">
                           Michael Brown asked a question in "Advanced JavaScript"
                         </p>
                         <p className="mt-1 text-xs text-[#4c4c4d]">1 hour ago</p>
-                      </div>
+                    </div>
                     </div>
                     <div className="flex gap-4">
                       <div className="h-10 w-10 flex-shrink-0 rounded-full bg-[#fff4e5]">
                         <Star className="h-full w-full p-2 text-[#ff9500]" />
-                      </div>
-                      <div>
+                    </div>
+                    <div>
                         <p className="font-medium">New course review</p>
                         <p className="text-sm text-[#4c4c4d]">
                           Sarah Thompson left a 5-star review on "Web Design Fundamentals"
                         </p>
                         <p className="mt-1 text-xs text-[#4c4c4d]">3 hours ago</p>
-                      </div>
                     </div>
+                  </div>
                     <div className="flex gap-4">
                       <div className="h-10 w-10 flex-shrink-0 rounded-full bg-[#fff4e5]">
                         <FileText className="h-full w-full p-2 text-[#ff9500]" />
-                      </div>
+                    </div>
                       <div>
                         <p className="font-medium">Assignment submitted</p>
                         <p className="text-sm text-[#4c4c4d]">
@@ -553,7 +570,7 @@ export default function TeacherDashboard() {
                       </div>
                     </div>
                   </div>
-                </div>
+                  </div>
 
                 {/* Performance Chart */}
                 <div className="rounded-lg border border-[#f1f1f3] bg-white p-6">
@@ -572,11 +589,11 @@ export default function TeacherDashboard() {
                       <BarChart3 className="mb-2 h-10 w-10 text-[#4c4c4d]" />
                       <p className="text-center text-sm text-[#4c4c4d]">
                         Course performance chart showing enrollments, completions, and revenue over time
-                      </p>
+                    </p>
+                  </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
               {/* Popular Courses */}
               <div className="rounded-lg border border-[#f1f1f3] bg-white p-6">
@@ -601,12 +618,12 @@ export default function TeacherDashboard() {
                           <div className="flex items-center">
                             <div className="h-10 w-10 flex-shrink-0 rounded bg-[#fff4e5]">
                               <PenTool className="h-full w-full p-2 text-[#ff9500]" />
-                            </div>
+          </div>
                             <div className="ml-3">
                               <p className="font-medium">UI/UX Design Fundamentals</p>
                               <p className="text-xs text-[#4c4c4d]">6 weeks • Intermediate</p>
-                            </div>
-                          </div>
+      </div>
+              </div>
                         </td>
                         <td className="py-4">
                           <p className="font-medium">458</p>
@@ -617,7 +634,7 @@ export default function TeacherDashboard() {
                             <Star className="mr-1 h-4 w-4 fill-[#ff9500] text-[#ff9500]" />
                             <span className="font-medium">4.9</span>
                             <span className="ml-1 text-xs text-[#4c4c4d]">(128)</span>
-                          </div>
+            </div>
                         </td>
                         <td className="py-4">
                           <p className="font-medium">$8,245</p>
@@ -634,12 +651,12 @@ export default function TeacherDashboard() {
                           <div className="flex items-center">
                             <div className="h-10 w-10 flex-shrink-0 rounded bg-[#fff4e5]">
                               <Code className="h-full w-full p-2 text-[#ff9500]" />
-                            </div>
+        </div>
                             <div className="ml-3">
                               <p className="font-medium">Advanced JavaScript</p>
                               <p className="text-xs text-[#4c4c4d]">8 weeks • Advanced</p>
-                            </div>
-                          </div>
+        </div>
+      </div>
                         </td>
                         <td className="py-4">
                           <p className="font-medium">372</p>
@@ -650,7 +667,7 @@ export default function TeacherDashboard() {
                             <Star className="mr-1 h-4 w-4 fill-[#ff9500] text-[#ff9500]" />
                             <span className="font-medium">4.8</span>
                             <span className="ml-1 text-xs text-[#4c4c4d]">(95)</span>
-                          </div>
+      </div>
                         </td>
                         <td className="py-4">
                           <p className="font-medium">$6,820</p>
@@ -709,7 +726,7 @@ export default function TeacherDashboard() {
                 <div>
                   <h1 className="text-2xl font-bold md:text-3xl">My Courses</h1>
                   <p className="text-[#4c4c4d]">Manage and monitor all your courses</p>
-                </div>
+            </div>
                 <div className="mt-4 flex flex-wrap gap-2 md:mt-0">
                   <div className="relative w-full sm:w-auto">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#4c4c4d]" />
@@ -717,8 +734,8 @@ export default function TeacherDashboard() {
                       type="text"
                       placeholder="Search courses..."
                       className="h-10 w-full rounded-md border border-[#f1f1f3] bg-white pl-10 pr-4 text-sm focus:border-[#ff9500] focus:outline-none focus:ring-1 focus:ring-[#ff9500] sm:w-60"
-                    />
-                  </div>
+              />
+            </div>
                   <button
                     onClick={() => setShowNewCourseModal(true)}
                     className="flex w-full items-center justify-center rounded-md bg-[#ff9500] px-4 py-2 text-sm font-medium text-white hover:bg-[#ff9500]/90 sm:w-auto"
@@ -759,7 +776,7 @@ export default function TeacherDashboard() {
                       <span className="rounded-md bg-green-500 px-2 py-1 text-xs font-medium text-white">
                         Published
                       </span>
-                    </div>
+              </div>
                   </div>
                   <div className="p-4">
                     <h3 className="mb-1 text-lg font-bold">UI/UX Design Fundamentals</h3>
@@ -786,7 +803,7 @@ export default function TeacherDashboard() {
                       </button>
                     </div>
                   </div>
-                </div>
+              </div>
 
                 {/* Course Card 2 */}
                 <div className="overflow-hidden rounded-lg border border-[#f1f1f3] bg-white">
@@ -800,19 +817,19 @@ export default function TeacherDashboard() {
                       <span className="rounded-md bg-green-500 px-2 py-1 text-xs font-medium text-white">
                         Published
                       </span>
+              </div>
                     </div>
-                  </div>
                   <div className="p-4">
                     <h3 className="mb-1 text-lg font-bold">Advanced JavaScript</h3>
                     <div className="mb-3 flex items-center text-sm text-[#4c4c4d]">
                       <Clock className="mr-1 h-4 w-4" />
                       <span>8 weeks • Advanced</span>
-                    </div>
+                  </div>
                     <div className="mb-4 flex items-center justify-between">
                       <div className="flex items-center">
                         <Users className="mr-1 h-4 w-4 text-[#4c4c4d]" />
                         <span className="text-sm text-[#4c4c4d]">372 students</span>
-                      </div>
+                </div>
                       <div className="flex items-center">
                         <Star className="mr-1 h-4 w-4 fill-[#ff9500] text-[#ff9500]" />
                         <span className="text-sm font-medium">4.8</span>
@@ -841,8 +858,8 @@ export default function TeacherDashboard() {
                       <span className="rounded-md bg-green-500 px-2 py-1 text-xs font-medium text-white">
                         Published
                       </span>
-                    </div>
-                  </div>
+                </div>
+                </div>
                   <div className="p-4">
                     <h3 className="mb-1 text-lg font-bold">Web Design Fundamentals</h3>
                     <div className="mb-3 flex items-center text-sm text-[#4c4c4d]">
@@ -908,8 +925,8 @@ export default function TeacherDashboard() {
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+                </div>
+              )}
 
           {/* Profile Tab */}
           {activeTab === "profile" && <TeacherProfile />}
@@ -927,100 +944,23 @@ export default function TeacherDashboard() {
               <p className="mt-2 text-center text-sm text-[#4c4c4d]">
                 The {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} section is under development and will be
                 available soon.
-              </p>
-            </div>
+                </p>
+              </div>
           )}
         </main>
       </div>
 
       {/* New Course Modal */}
       {showNewCourseModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold">Create New Course</h2>
-              <button
-                onClick={() => setShowNewCourseModal(false)}
-                className="rounded-full p-1 text-[#4c4c4d] hover:bg-[#f1f1f3]"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label htmlFor="course-title" className="mb-1 block text-sm font-medium">
-                  Course Title
-                </label>
-                <input
-                  id="course-title"
-                  type="text"
-                  placeholder="Enter course title"
-                  className="w-full rounded-md border border-[#f1f1f3] bg-white px-3 py-2 text-sm focus:border-[#ff9500] focus:outline-none focus:ring-1 focus:ring-[#ff9500]"
-                />
-              </div>
-              <div>
-                <label htmlFor="course-category" className="mb-1 block text-sm font-medium">
-                  Category
-                </label>
-                <select
-                  id="course-category"
-                  className="w-full rounded-md border border-[#f1f1f3] bg-white px-3 py-2 text-sm focus:border-[#ff9500] focus:outline-none focus:ring-1 focus:ring-[#ff9500]"
-                >
-                  <option>Web Development</option>
-                  <option>UI/UX Design</option>
-                  <option>Mobile Development</option>
-                  <option>Data Science</option>
-                  <option>Programming</option>
-                </select>
-              </div>
-              <div>
-                <label htmlFor="course-level" className="mb-1 block text-sm font-medium">
-                  Level
-                </label>
-                <select
-                  id="course-level"
-                  className="w-full rounded-md border border-[#f1f1f3] bg-white px-3 py-2 text-sm focus:border-[#ff9500] focus:outline-none focus:ring-1 focus:ring-[#ff9500]"
-                >
-                  <option>Beginner</option>
-                  <option>Intermediate</option>
-                  <option>Advanced</option>
-                </select>
-              </div>
-              <div>
-                <label htmlFor="course-description" className="mb-1 block text-sm font-medium">
-                  Description
-                </label>
-                <textarea
-                  id="course-description"
-                  rows={3}
-                  placeholder="Enter course description"
-                  className="w-full rounded-md border border-[#f1f1f3] bg-white px-3 py-2 text-sm focus:border-[#ff9500] focus:outline-none focus:ring-1 focus:ring-[#ff9500]"
-                ></textarea>
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium">Course Thumbnail</label>
-                <div className="flex items-center justify-center rounded-md border border-dashed border-[#f1f1f3] bg-[#f7f7f8] p-4">
-                  <div className="text-center">
-                    <Upload className="mx-auto h-8 w-8 text-[#4c4c4d]" />
-                    <p className="mt-2 text-sm text-[#4c4c4d]">
-                      Drag and drop an image or <span className="text-[#ff9500]">browse files</span>
-                    </p>
-                    <p className="text-xs text-[#4c4c4d]">Recommended: 1280x720px, Max 5MB</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="mt-6 flex justify-end space-x-3">
-              <button
-                onClick={() => setShowNewCourseModal(false)}
-                className="rounded-md border border-[#f1f1f3] bg-white px-4 py-2 text-sm font-medium text-[#4c4c4d] hover:bg-[#f1f1f3]"
-              >
-                Cancel
-              </button>
-              <button className="rounded-md bg-[#ff9500] px-4 py-2 text-sm font-medium text-white hover:bg-[#ff9500]/90">
-                Create Course
-              </button>
-            </div>
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 p-4 overflow-y-auto">
+          <div className="w-full max-w-4xl rounded-lg bg-white p-6 shadow-lg my-8 relative">
+            <button 
+              onClick={() => setShowNewCourseModal(false)}
+              className="absolute right-4 top-4 p-2 rounded-full hover:bg-gray-100"
+            >
+              <X className="h-5 w-5 text-gray-500" />
+            </button>
+            <CourseCreationForm />
           </div>
         </div>
       )}

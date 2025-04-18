@@ -1,5 +1,6 @@
-import type React from "react"
-import { useState, useEffect, useRef } from "react"
+import type React from "react";
+import { useState, useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
 import {
   BookOpen,
   ChevronDown,
@@ -31,38 +32,41 @@ import {
   Layers,
   Smartphone,
   CreditCard,
-} from "lucide-react"
+} from "lucide-react";
 
-import StudentProfile from "./student/profile/studentProfile"
-import StudentSettings from "./student/settings/studentSettings"
-import { useAuth } from '../hooks/useAuth'
-import { Course, Certificate, Notification } from "../types/dashboard"
-import useStudentDashboardData from '../hooks/useDashboardStudentData'
+import StudentProfile from "./student/profile/studentProfile";
+import StudentSettings from "./student/settings/studentSettings";
+// import { useAuth } from '../hooks/useAuth'
+import { Course, Certificate, Notification } from "../types/dashboard";
+import useStudentDashboardData from "../hooks/useDashboardStudentData";
+import type { Category } from "../hooks/courseExplore";
 
 export default function StudentDashboard() {
-  const [activeTab, setActiveTab] = useState("my-learning")
-  const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [selectedView, setSelectedView] = useState("all")
-  const [showNotifications, setShowNotifications] = useState(false)
-  const [showProfileMenu, setShowProfileMenu] = useState(false)
-  const [showMobileMenu, setShowMobileMenu] = useState(false)
-  const [windowWidth, setWindowWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 0)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [showFilters, setShowFilters] = useState(false)
-  const [showCourseDetails, setShowCourseDetails] = useState(false)
-  const [selectedCourse, setSelectedCourse] = useState<number | null>(null)
-  const [sortOption, setSortOption] = useState("recent")
-  const [categoryFilter, setCategoryFilter] = useState("all")
-  const [progressFilter, setProgressFilter] = useState("all")
-  const [showArchived, setShowArchived] = useState(false)
-  const notificationsRef = useRef<HTMLDivElement>(null)
-  const profileMenuRef = useRef<HTMLDivElement>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const { user } = useAuth()
-  const [courses, setCourses] = useState<Course[]>([])
-  const [certificates, setCertificates] = useState<Certificate[]>([])
-  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [activeTab, setActiveTab] = useState("my-learning");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [selectedView, setSelectedView] = useState("all");
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(
+    typeof window !== "undefined" ? window.innerWidth : 0
+  );
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [showCourseDetails, setShowCourseDetails] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState<number | null>(null);
+  const [sortOption, setSortOption] = useState("recent");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [progressFilter, setProgressFilter] = useState("all");
+  const [showArchived, setShowArchived] = useState(false);
+  const notificationsRef = useRef<HTMLDivElement>(null);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  // const { user } = useAuth()
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [certificates, setCertificates] = useState<Certificate[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [userProfile, setUserProfile] = useState<{
     name: string;
     email: string;
@@ -70,221 +74,274 @@ export default function StudentDashboard() {
   }>({
     name: "",
     email: "",
-    avatar: ""
-  })
-  const { data: dashboardData, loading: apiLoading } = useStudentDashboardData()
+    avatar: "",
+  });
+  const { data: dashboardData, loading: apiLoading } =
+    useStudentDashboardData();
 
   // Handle window resize
   useEffect(() => {
     const handleResize = () => {
-      setWindowWidth(window.innerWidth)
+      setWindowWidth(window.innerWidth);
       if (window.innerWidth < 1024) {
-        setSidebarOpen(false)
+        setSidebarOpen(false);
       } else {
-        setSidebarOpen(true)
+        setSidebarOpen(true);
       }
-    }
+    };
 
     // Set initial state
-    handleResize()
+    handleResize();
 
-    window.addEventListener("resize", handleResize)
-    return () => window.removeEventListener("resize", handleResize)
-  }, [])
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // Close menus when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
-        setShowNotifications(false)
+      if (
+        notificationsRef.current &&
+        !notificationsRef.current.contains(event.target as Node)
+      ) {
+        setShowNotifications(false);
       }
-      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
-        setShowProfileMenu(false)
+      if (
+        profileMenuRef.current &&
+        !profileMenuRef.current.contains(event.target as Node)
+      ) {
+        setShowProfileMenu(false);
       }
-    }
+    };
 
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen)
-  }
+    setSidebarOpen(!sidebarOpen);
+  };
 
   const toggleMobileMenu = () => {
-    setShowMobileMenu(!showMobileMenu)
+    setShowMobileMenu(!showMobileMenu);
     // Close other menus when mobile menu is opened
     if (!showMobileMenu) {
-      setShowNotifications(false)
-      setShowProfileMenu(false)
+      setShowNotifications(false);
+      setShowProfileMenu(false);
     }
-  }
+  };
 
   const toggleNotifications = () => {
-    setShowNotifications(!showNotifications)
+    setShowNotifications(!showNotifications);
     if (!showNotifications) {
-      setShowProfileMenu(false)
+      setShowProfileMenu(false);
     }
-  }
+  };
 
   const toggleProfileMenu = () => {
-    setShowProfileMenu(!showProfileMenu)
+    setShowProfileMenu(!showProfileMenu);
     if (!showProfileMenu) {
-      setShowNotifications(false)
+      setShowNotifications(false);
     }
-  }
+  };
 
   const handleTabChange = (tab: string) => {
-    setActiveTab(tab)
+    setActiveTab(tab);
     if (windowWidth < 1024) {
-      setShowMobileMenu(false)
+      setShowMobileMenu(false);
     }
-  }
+  };
 
   const handleViewChange = (view: string) => {
-    setSelectedView(view)
-  }
+    setSelectedView(view);
+  };
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value)
-  }
+    setSearchTerm(e.target.value);
+  };
 
   const toggleFilters = () => {
-    setShowFilters(!showFilters)
-  }
+    setShowFilters(!showFilters);
+  };
 
   const handleCourseClick = (index: number) => {
-    setSelectedCourse(index)
-    setShowCourseDetails(true)
-  }
+    setSelectedCourse(index);
+    setShowCourseDetails(true);
+  };
 
   const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSortOption(e.target.value)
-  }
+    setSortOption(e.target.value);
+  };
 
   const handleCategoryFilterChange = (category: string) => {
-    setCategoryFilter(category)
-  }
+    setCategoryFilter(category);
+  };
 
   const handleProgressFilterChange = (progress: string) => {
-    setProgressFilter(progress)
-  }
+    setProgressFilter(progress);
+  };
 
   const toggleArchivedCourses = () => {
-    setShowArchived(!showArchived)
-  }
+    setShowArchived(!showArchived);
+  };
 
   // Fetch dashboard data
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        setLoading(true)
-        console.log("fetchDashboardData")
+        setLoading(true);
+        console.log("fetchDashboardData");
         // Utiliser les données réelles de l'API si disponibles
         if (dashboardData) {
           // Mettre à jour les états avec les données de l'API
-          setCourses(dashboardData.courses || [])
-          setCertificates(dashboardData.certificates || [])
-          setNotifications(dashboardData.notifications || [])
-          setUserProfile(dashboardData.userProfile || {})
-          setLoading(false)
-        } else {
-          // Fallback sur les données de démonstration si l'API n'a pas encore répondu
-          setTimeout(() => {
-            // Données de démonstration
-            setCourses([
-              {
-                id: 1,
-                title: "Introduction to React",
-                instructor: "John Doe",
-                progress: 75,
-                image: "/placeholder.svg",
-                lastViewed: "2023-05-15",
-                rating: 4.5,
-                reviews: 120,
-                totalLessons: 24,
-                completedLessons: 18,
-                category: "Web Development",
-                level: "Beginner",
-                description: "Learn the basics of React",
-                bookmarked: true,
-                isArchived: false,
-                estimatedTimeLeft: "2 weeks",
-                lastSection: "State Management",
-                lastLesson: "useState Hook"
-              },
-              // Ajoutez d'autres cours si nécessaire
-            ])
-            
-            setCertificates([
-              {
-                id: 1,
-                title: "React Fundamentals",
-                issuer: "OpenCode Academy",
-                date: "2023-04-10",
-                image: "/placeholder.svg",
-                course: "Introduction to React",
-                skills: ["React", "JavaScript", "HTML", "CSS"]
-              },
-              // Ajoutez d'autres certificats si nécessaire
-            ])
-            
-            setNotifications([
-              {
-                id: 1,
-                title: "New course available",
-                course: "Advanced React Patterns",
-                time: "2 hours ago",
-                icon: "BookOpen",
-                read: false
-              },
-              // Ajoutez d'autres notifications si nécessaire
-            ])
-            
-            setUserProfile({
-              name: "John Doe",
-              email: "john.doe@example.com",
-              avatar: "/placeholder.svg"
-            })
-            
-            setLoading(false)
-          }, 1000)
+          setCourses(dashboardData.courses || []);
+          setCertificates(dashboardData.certificates || []);
+          setNotifications(dashboardData.notifications || []);
+          setUserProfile(dashboardData.userProfile || {});
+          setLoading(false);
+          //     } else {
+          //       // Fallback sur les données de démonstration si l'API n'a pas encore répondu
+          //       setTimeout(() => {
+          //         // Données de démonstration
+          //         setCourses([
+          // {
+          //   id: 1,
+          //             title: "Introduction to React",
+          //             instructor: "John Doe",
+          //             progress: 75,
+          //             image: "/placeholder.svg",
+          //             lastViewed: "2023-05-15",
+          //             rating: 4.5,
+          //             reviews: 120,
+          //             totalLessons: 24,
+          //             completedLessons: 18,
+          //   category: "Web Development",
+          //   level: "Beginner",
+          //             description: "Learn the basics of React",
+          //   bookmarked: true,
+          //   isArchived: false,
+          //             estimatedTimeLeft: "2 weeks",
+          //             lastSection: "State Management",
+          //             lastLesson: "useState Hook"
+          //           },
+          //           // Ajoutez d'autres cours si nécessaire
+          //         ])
+
+          //         setCertificates([
+          //           {
+          //             id: 1,
+          //             title: "React Fundamentals",
+          //             issuer: "OpenCode Academy",
+          //             date: "2023-04-10",
+          //             image: "/placeholder.svg",
+          //             course: "Introduction to React",
+          //             skills: ["React", "JavaScript", "HTML", "CSS"]
+          //           },
+          //           // Ajoutez d'autres certificats si nécessaire
+          //         ])
+
+          //         setNotifications([
+          // {
+          //   id: 1,
+          //             title: "New course available",
+          //             course: "Advanced React Patterns",
+          //             time: "2 hours ago",
+          //             icon: "BookOpen",
+          //             read: false
+          //           },
+          //           // Ajoutez d'autres notifications si nécessaire
+          //         ])
+
+          //         setUserProfile({
+          //           name: "John Doe",
+          //           email: "john.doe@example.com",
+          //           avatar: "/placeholder.svg"
+          //         })
+
+          //         setLoading(false)
+          //       }, 1000)
         }
       } catch (error) {
-        setError("Failed to load dashboard data")
-        setLoading(false)
+        console.error("Erreur lors du chargement des données:", error);
+        setError("Failed to load dashboard data");
+        setLoading(false);
       }
-    }
+    };
 
-    fetchDashboardData()
-  }, [dashboardData])
+    fetchDashboardData();
+  }, [dashboardData]);
 
   if (loading) {
-    return <div>Chargement...</div>
+    return <div>Chargement...</div>;
   }
 
   if (error) {
-    return <div>Erreur: {error}</div>
+    return <div>Erreur: {error}</div>;
   }
 
   if (!dashboardData) {
-    return <div>Aucune donnée disponible</div>
+    return <div>Aucune donnée disponible</div>;
   }
 
-  // Sample student data
-  
-
   // Sample categories for filtering
-  const categories = [
-    { id: "all", name: "All Categories" },
-    { id: "web-development", name: "Web Development" },
-    { id: "programming", name: "Programming" },
-    { id: "marketing", name: "Marketing" },
-    { id: "design", name: "Design" },
-    { id: "data-science", name: "Data Science" },
-    { id: "mobile-development", name: "Mobile Development" },
-    { id: "database", name: "Database" },
-  ]
+  // const categories: Category[] = [
+  //   {
+  //     id: "all",
+  //     title: "All Categories",
+  //     description: "All available categories",
+  //     image_url: "/placeholder.svg?height=400&width=600",
+  //     subcategories: []
+  //   },
+  //   {
+  //     id: "web-development",
+  //     title: "Web Development",
+  //     description: "Learn web development technologies",
+  //     image_url: "/placeholder.svg?height=400&width=600",
+  //     subcategories: []
+  //   },
+  //   {
+  //     id: "programming",
+  //     title: "Programming",
+  //     description: "Learn programming languages and concepts",
+  //     image_url: "/placeholder.svg?height=400&width=600",
+  //     subcategories: []
+  //   },
+  //   {
+  //     id: "marketing",
+  //     title: "Marketing",
+  //     description: "Learn digital marketing strategies",
+  //     image_url: "/placeholder.svg?height=400&width=600",
+  //     subcategories: []
+  //   },
+  //   {
+  //     id: "design",
+  //     title: "Design",
+  //     description: "Learn design principles and tools",
+  //     image_url: "/placeholder.svg?height=400&width=600",
+  //     subcategories: []
+  //   },
+  //   {
+  //     id: "data-science",
+  //     title: "Data Science",
+  //     description: "Learn data science and analytics",
+  //     image_url: "/placeholder.svg?height=400&width=600",
+  //     subcategories: []
+  //   },
+  //   {
+  //     id: "mobile-development",
+  //     title: "Mobile Development",
+  //     description: "Learn mobile app development",
+  //     image_url: "/placeholder.svg?height=400&width=600",
+  //     subcategories: []
+  //   },
+  //   {
+  //     id: "database",
+  //     title: "Database",
+  //     description: "Learn database management systems",
+  //     image_url: "/placeholder.svg?height=400&width=600",
+  //     subcategories: []
+  //   }
+  // ]
 
   // Filter and sort courses
   const filteredCourses = courses
@@ -292,7 +349,7 @@ export default function StudentDashboard() {
       // Filter by search term
       const matchesSearch =
         course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        course.instructor.toLowerCase().includes(searchTerm.toLowerCase())
+        course.instructor.toLowerCase().includes(searchTerm.toLowerCase());
 
       // Filter by view (all, in-progress, completed)
       const matchesView =
@@ -304,11 +361,14 @@ export default function StudentDashboard() {
               ? course.progress < 100 && course.progress > 0
               : selectedView === "not-started"
                 ? course.progress === 0
-                : true
+          : true;
 
       // Filter by category
       const matchesCategory =
-        categoryFilter === "all" ? true : course.category.toLowerCase().replace(/\s+/g, "-") === categoryFilter
+        categoryFilter === "all"
+          ? true
+          : course.category.toLowerCase().replace(/\s+/g, "-") ===
+            categoryFilter;
 
       // Filter by progress
       const matchesProgress =
@@ -320,12 +380,18 @@ export default function StudentDashboard() {
               ? course.progress > 0 && course.progress < 100
               : progressFilter === "completed"
                 ? course.progress === 100
-                : true
+          : true;
 
       // Filter by archived status
-      const matchesArchived = showArchived ? true : !course.isArchived
+      const matchesArchived = showArchived ? true : !course.isArchived;
 
-      return matchesSearch && matchesView && matchesCategory && matchesProgress && matchesArchived
+      return (
+        matchesSearch &&
+        matchesView &&
+        matchesCategory &&
+        matchesProgress &&
+        matchesArchived
+      );
     })
     .sort((a, b) => {
       // Sort by selected option
@@ -335,58 +401,89 @@ export default function StudentDashboard() {
           ? 1
           : b.lastViewed === "Completed"
             ? -1
-            : (a.lastViewed && b.lastViewed) ? a.lastViewed.localeCompare(b.lastViewed) : 0
+          : a.lastViewed && b.lastViewed
+          ? a.lastViewed.localeCompare(b.lastViewed)
+          : 0;
       } else if (sortOption === "title-asc") {
         // Sort by title (A-Z)
-        return a.title.localeCompare(b.title)
+        return a.title.localeCompare(b.title);
       } else if (sortOption === "title-desc") {
         // Sort by title (Z-A)
-        return b.title.localeCompare(a.title)
+        return b.title.localeCompare(a.title);
       } else if (sortOption === "progress-high") {
         // Sort by progress (highest first)
-        return b.progress - a.progress
+        return b.progress - a.progress;
       } else if (sortOption === "progress-low") {
         // Sort by progress (lowest first)
-        return a.progress - b.progress
+        return a.progress - b.progress;
       }
-      return 0
-    })
+      return 0;
+    });
 
   return (
     <div className="flex min-h-screen bg-[#f7f9fa] font-sans text-[#1c1d1f]">
       {/* Mobile Menu Overlay */}
-      {showMobileMenu && <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={toggleMobileMenu}></div>}
+      {showMobileMenu && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={toggleMobileMenu}
+        ></div>
+      )}
 
       {/* Sidebar */}
       <aside
         className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-white transition-all duration-300 ${
           sidebarOpen ? "w-64" : "w-20"
-        } ${showMobileMenu ? "translate-x-0" : "-translate-x-full lg:translate-x-0"} shadow-md`}
+        } ${
+          showMobileMenu
+            ? "translate-x-0"
+            : "-translate-x-full lg:translate-x-0"
+        } shadow-md`}
       >
         <div className="flex h-16 items-center justify-between border-b border-gray-200 px-4">
           <div className="flex items-center">
             <div className="flex h-10 w-10 items-center justify-center rounded-md bg-[#FF9500]">
               <BookOpen className="h-5 w-5 text-white" />
             </div>
-            {sidebarOpen && <span className="ml-3 text-lg font-bold">Udemy</span>}
+            {sidebarOpen && (
+              <span className="ml-3 text-lg font-bold">Udemy</span>
+            )}
           </div>
-          <button onClick={toggleSidebar} className="rounded-md p-1 text-gray-500 hover:bg-gray-100 hidden lg:block">
-            <ChevronRight className={`h-5 w-5 transition-transform duration-300 ${sidebarOpen ? "rotate-180" : ""}`} />
+          <button
+            onClick={toggleSidebar}
+            className="rounded-md p-1 text-gray-500 hover:bg-gray-100 hidden lg:block"
+          >
+            <ChevronRight
+              className={`h-5 w-5 transition-transform duration-300 ${
+                sidebarOpen ? "rotate-180" : ""
+              }`}
+            />
           </button>
-          <button onClick={toggleMobileMenu} className="rounded-md p-1 text-gray-500 hover:bg-gray-100 lg:hidden">
+          <button
+            onClick={toggleMobileMenu}
+            className="rounded-md p-1 text-gray-500 hover:bg-gray-100 lg:hidden"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         <nav className="flex-1 overflow-y-auto p-4">
           <div className="mb-6">
-            <h3 className={`mb-2 text-xs font-semibold uppercase text-gray-500 ${!sidebarOpen && "sr-only"}`}>Learn</h3>
+            <h3
+              className={`mb-2 text-xs font-semibold uppercase text-gray-500 ${
+                !sidebarOpen && "sr-only"
+              }`}
+            >
+              Learn
+            </h3>
             <ul className="space-y-1">
               <li>
                 <button
                   onClick={() => handleTabChange("my-learning")}
                   className={`flex w-full items-center rounded-md px-3 py-2 ${
-                    activeTab === "my-learning" ? "bg-[#f7f9fa] text-[#FF9500]" : "text-gray-700 hover:bg-gray-100"
+                    activeTab === "my-learning"
+                      ? "bg-[#f7f9fa] text-[#FF9500]"
+                      : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
                   <BookOpen className="h-5 w-5" />
@@ -397,7 +494,9 @@ export default function StudentDashboard() {
                 <button
                   onClick={() => handleTabChange("wishlist")}
                   className={`flex w-full items-center rounded-md px-3 py-2 ${
-                    activeTab === "wishlist" ? "bg-[#f7f9fa] text-[#FF9500]" : "text-gray-700 hover:bg-gray-100"
+                    activeTab === "wishlist"
+                      ? "bg-[#f7f9fa] text-[#FF9500]"
+                      : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
                   <Heart className="h-5 w-5" />
@@ -408,7 +507,9 @@ export default function StudentDashboard() {
                 <button
                   onClick={() => handleTabChange("archived")}
                   className={`flex w-full items-center rounded-md px-3 py-2 ${
-                    activeTab === "archived" ? "bg-[#f7f9fa] text-[#FF9500]" : "text-gray-700 hover:bg-gray-100"
+                    activeTab === "archived"
+                      ? "bg-[#f7f9fa] text-[#FF9500]"
+                      : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
                   <Bookmark className="h-5 w-5" />
@@ -419,7 +520,11 @@ export default function StudentDashboard() {
           </div>
 
           <div className="mb-6">
-            <h3 className={`mb-2 text-xs font-semibold uppercase text-gray-500 ${!sidebarOpen && "sr-only"}`}>
+            <h3
+              className={`mb-2 text-xs font-semibold uppercase text-gray-500 ${
+                !sidebarOpen && "sr-only"
+              }`}
+            >
               Manage
             </h3>
             <ul className="space-y-1">
@@ -427,7 +532,9 @@ export default function StudentDashboard() {
                 <button
                   onClick={() => handleTabChange("certificates")}
                   className={`flex w-full items-center rounded-md px-3 py-2 ${
-                    activeTab === "certificates" ? "bg-[#f7f9fa] text-[#FF9500]" : "text-gray-700 hover:bg-gray-100"
+                    activeTab === "certificates"
+                      ? "bg-[#f7f9fa] text-[#FF9500]"
+                      : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
                   <Award className="h-5 w-5" />
@@ -438,7 +545,9 @@ export default function StudentDashboard() {
                 <button
                   onClick={() => handleTabChange("tools")}
                   className={`flex w-full items-center rounded-md px-3 py-2 ${
-                    activeTab === "tools" ? "bg-[#f7f9fa] text-[#FF9500]" : "text-gray-700 hover:bg-gray-100"
+                    activeTab === "tools"
+                      ? "bg-[#f7f9fa] text-[#FF9500]"
+                      : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
                   <Settings className="h-5 w-5" />
@@ -449,7 +558,9 @@ export default function StudentDashboard() {
                 <button
                   onClick={() => handleTabChange("notifications")}
                   className={`flex w-full items-center rounded-md px-3 py-2 ${
-                    activeTab === "notifications" ? "bg-[#f7f9fa] text-[#FF9500]" : "text-gray-700 hover:bg-gray-100"
+                    activeTab === "notifications"
+                      ? "bg-[#f7f9fa] text-[#FF9500]"
+                      : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
                   <Bell className="h-5 w-5" />
@@ -460,7 +571,11 @@ export default function StudentDashboard() {
           </div>
 
           <div className="mb-6">
-            <h3 className={`mb-2 text-xs font-semibold uppercase text-gray-500 ${!sidebarOpen && "sr-only"}`}>
+            <h3
+              className={`mb-2 text-xs font-semibold uppercase text-gray-500 ${
+                !sidebarOpen && "sr-only"
+              }`}
+            >
               Account
             </h3>
             <ul className="space-y-1">
@@ -468,7 +583,9 @@ export default function StudentDashboard() {
                 <button
                   onClick={() => handleTabChange("profile")}
                   className={`flex w-full items-center rounded-md px-3 py-2 ${
-                    activeTab === "profile" ? "bg-[#f7f9fa] text-[#FF9500]" : "text-gray-700 hover:bg-gray-100"
+                    activeTab === "profile"
+                      ? "bg-[#f7f9fa] text-[#FF9500]"
+                      : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
                   <User className="h-5 w-5" />
@@ -479,7 +596,9 @@ export default function StudentDashboard() {
                 <button
                   onClick={() => handleTabChange("settings")}
                   className={`flex w-full items-center rounded-md px-3 py-2 ${
-                    activeTab === "settings" ? "bg-[#f7f9fa] text-[#FF9500]" : "text-gray-700 hover:bg-gray-100"
+                    activeTab === "settings"
+                      ? "bg-[#f7f9fa] text-[#FF9500]"
+                      : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
                   <Settings className="h-5 w-5" />
@@ -490,11 +609,15 @@ export default function StudentDashboard() {
                 <button
                   onClick={() => handleTabChange("payment-methods")}
                   className={`flex w-full items-center rounded-md px-3 py-2 ${
-                    activeTab === "payment-methods" ? "bg-[#f7f9fa] text-[#FF9500]" : "text-gray-700 hover:bg-gray-100"
+                    activeTab === "payment-methods"
+                      ? "bg-[#f7f9fa] text-[#FF9500]"
+                      : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
                   <CreditCard className="h-5 w-5" />
-                  {sidebarOpen && <span className="ml-3">Moyens de paiement</span>}
+                  {sidebarOpen && (
+                    <span className="ml-3">Moyens de paiement</span>
+                  )}
                 </button>
               </li>
             </ul>
@@ -506,7 +629,9 @@ export default function StudentDashboard() {
                 <button
                   onClick={() => handleTabChange("help")}
                   className={`flex w-full items-center rounded-md px-3 py-2 ${
-                    activeTab === "help" ? "bg-[#f7f9fa] text-[#FF9500]" : "text-gray-700 hover:bg-gray-100"
+                    activeTab === "help"
+                      ? "bg-[#f7f9fa] text-[#FF9500]"
+                      : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
                   <HelpCircle className="h-5 w-5" />
@@ -518,7 +643,9 @@ export default function StudentDashboard() {
 
           {sidebarOpen && (
             <div className="mt-6 rounded-lg bg-[#f7f9fa] p-4">
-              <h4 className="font-medium text-[#FF9500]">Become an Instructor</h4>
+              <h4 className="font-medium text-[#FF9500]">
+                Become an Instructor
+              </h4>
               <p className="mt-1 text-xs text-gray-600">
                 Share your knowledge and earn income by creating online courses
               </p>
@@ -530,19 +657,26 @@ export default function StudentDashboard() {
         </nav>
 
         <div className="border-t border-gray-200 p-4">
-          <button className="flex w-full items-center rounded-md px-3 py-2 text-gray-700 hover:bg-gray-100">
+          <Link to="/logout" className="flex w-full items-center rounded-md px-3 py-2 text-gray-700 hover:bg-gray-100">
             <LogOut className="h-5 w-5" />
             {sidebarOpen && <span className="ml-3">Log Out</span>}
-          </button>
+          </Link>
         </div>
       </aside>
 
       {/* Main Content */}
-      <div className={`flex-1 ${windowWidth >= 1024 ? (sidebarOpen ? "ml-64" : "ml-20") : "ml-0"}`}>
+      <div
+        className={`flex-1 ${
+          windowWidth >= 1024 ? (sidebarOpen ? "ml-64" : "ml-20") : "ml-0"
+        }`}
+      >
         {/* Header */}
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 md:px-6">
           <div className="flex items-center">
-            <button onClick={toggleMobileMenu} className="rounded-md p-2 text-gray-500 hover:bg-gray-100 lg:hidden">
+            <button
+              onClick={toggleMobileMenu}
+              className="rounded-md p-2 text-gray-500 hover:bg-gray-100 lg:hidden"
+            >
               <Menu className="h-5 w-5" />
             </button>
             {!sidebarOpen && windowWidth >= 1024 && (
@@ -588,20 +722,36 @@ export default function StudentDashboard() {
                 >
                   <div className="mb-4 flex items-center justify-between">
                     <h3 className="font-medium">Notifications</h3>
-                    <button className="text-xs text-[#FF9500]">Mark all as read</button>
+                    <button className="text-xs text-[#FF9500]">
+                      Mark all as read
+                    </button>
                   </div>
                   <div className="space-y-4 max-h-[60vh] overflow-y-auto">
                     {notifications.map((notification) => (
-                      <div key={notification.id} className={`flex gap-3 ${notification.read ? "opacity-75" : ""}`}>
+                      <div
+                        key={notification.id}
+                        className={`flex gap-3 ${
+                          notification.read ? "opacity-75" : ""
+                        }`}
+                      >
                         <div className="h-10 w-10 flex-shrink-0 rounded-full bg-[#f7f9fa]">
-                          <notification.icon className="h-full w-full p-2 text-[#FF9500]" />
+                          {React.createElement(notification.icon, {
+                            className: "h-full w-full p-2 text-[#FF9500]",
+                          })}
                         </div>
                         <div>
                           <p className="text-sm">
-                            <span className="font-medium">{notification.title}</span> in{" "}
-                            <span className="font-medium">{notification.course}</span>
+                            <span className="font-medium">
+                              {notification.title}
+                            </span>{" "}
+                            in{" "}
+                            <span className="font-medium">
+                              {notification.course}
+                            </span>
                           </p>
-                          <p className="text-xs text-gray-500">{notification.time}</p>
+                          <p className="text-xs text-gray-500">
+                            {notification.time}
+                          </p>
                         </div>
                         {!notification.read && (
                           <div className="ml-auto h-2 w-2 flex-shrink-0 rounded-full bg-[#FF9500]"></div>
@@ -621,7 +771,11 @@ export default function StudentDashboard() {
                 onClick={toggleProfileMenu}
                 className="flex items-center rounded-full text-gray-700 hover:bg-gray-100"
               >
-                <img src={userProfile.avatar || "/placeholder.svg"} alt="Profile" className="h-10 w-10 rounded-full" />
+                <img
+                  src={userProfile.avatar || "/placeholder.svg"}
+                  alt="Profile"
+                  className="h-10 w-10 rounded-full"
+                />
               </button>
 
               {showProfileMenu && (
@@ -630,8 +784,12 @@ export default function StudentDashboard() {
                   className="absolute right-0 mt-2 w-56 rounded-md border border-gray-200 bg-white p-2 shadow-lg"
                 >
                   <div className="mb-2 border-b border-gray-200 pb-2">
-                    <div className="px-3 py-2 text-sm font-medium">{userProfile.name}</div>
-                    <div className="px-3 py-1 text-xs text-gray-500">{userProfile.email}</div>
+                    <div className="px-3 py-2 text-sm font-medium">
+                      {userProfile.name}
+                    </div>
+                    <div className="px-3 py-1 text-xs text-gray-500">
+                      {userProfile.email}
+                    </div>
                   </div>
                   <ul>
                     <li>
@@ -690,8 +848,12 @@ export default function StudentDashboard() {
             <div className="space-y-6">
               <div className="flex flex-col justify-between md:flex-row md:items-center">
                 <div>
-                  <h1 className="text-2xl font-bold md:text-3xl">My Learning</h1>
-                  <p className="text-gray-600">Keep track of your learning progress</p>
+                  <h1 className="text-2xl font-bold md:text-3xl">
+                    My Learning
+                  </h1>
+                  <p className="text-gray-600">
+                    Keep track of your learning progress
+                  </p>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2 md:mt-0">
                   <button
@@ -741,13 +903,17 @@ export default function StudentDashboard() {
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-medium text-gray-500">Your Progress</h3>
+                    <h3 className="text-sm font-medium text-gray-500">
+                      Your Progress
+                    </h3>
                     <div className="rounded-full bg-[#f7f9fa] p-2">
                       <TrendingUp className="h-5 w-5 text-[#FF9500]" />
                     </div>
                   </div>
                   <p className="mt-4 text-3xl font-bold">62%</p>
-                  <div className="mt-2 text-sm text-gray-600">Overall course completion</div>
+                  <div className="mt-2 text-sm text-gray-600">
+                    Overall course completion
+                  </div>
                   <div className="mt-3 h-2.5 w-full rounded-full bg-gray-100">
                     <div className="h-2.5 w-[62%] rounded-full bg-[#FF9500]"></div>
                   </div>
@@ -755,7 +921,9 @@ export default function StudentDashboard() {
 
                 <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-medium text-gray-500">Active Courses</h3>
+                    <h3 className="text-sm font-medium text-gray-500">
+                      Active Courses
+                    </h3>
                     <div className="rounded-full bg-[#f7f9fa] p-2">
                       <BookOpen className="h-5 w-5 text-[#FF9500]" />
                     </div>
@@ -770,7 +938,9 @@ export default function StudentDashboard() {
 
                 <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-medium text-gray-500">Hours Spent</h3>
+                    <h3 className="text-sm font-medium text-gray-500">
+                      Hours Spent
+                    </h3>
                     <div className="rounded-full bg-[#f7f9fa] p-2">
                       <Clock className="h-5 w-5 text-[#FF9500]" />
                     </div>
@@ -785,7 +955,9 @@ export default function StudentDashboard() {
 
                 <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-medium text-gray-500">Certificates Earned</h3>
+                    <h3 className="text-sm font-medium text-gray-500">
+                      Certificates Earned
+                    </h3>
                     <div className="rounded-full bg-[#f7f9fa] p-2">
                       <Award className="h-5 w-5 text-[#FF9500]" />
                     </div>
@@ -827,8 +999,12 @@ export default function StudentDashboard() {
                   <option value="recent">Sort by: Recently Accessed</option>
                   <option value="title-asc">Sort by: Title A-Z</option>
                   <option value="title-desc">Sort by: Title Z-A</option>
-                  <option value="progress-high">Sort by: Progress (High to Low)</option>
-                  <option value="progress-low">Sort by: Progress (Low to High)</option>
+                  <option value="progress-high">
+                    Sort by: Progress (High to Low)
+                  </option>
+                  <option value="progress-low">
+                    Sort by: Progress (Low to High)
+                  </option>
                 </select>
               </div>
 
@@ -837,7 +1013,10 @@ export default function StudentDashboard() {
                 <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
                   <div className="mb-4 flex items-center justify-between">
                     <h3 className="font-medium">Filters</h3>
-                    <button onClick={toggleFilters} className="text-xs text-[#FF9500]">
+                    <button
+                      onClick={toggleFilters}
+                      className="text-xs text-[#FF9500]"
+                    >
                       Clear all
                     </button>
                   </div>
@@ -846,15 +1025,22 @@ export default function StudentDashboard() {
                       <h4 className="mb-2 text-sm font-medium">Categories</h4>
                       <div className="space-y-2">
                         {categories.map((category) => (
-                          <label key={category.id} className="flex items-center">
+                          <label
+                            key={category.id}
+                            className="flex items-center"
+                          >
                             <input
                               type="radio"
                               name="category"
                               checked={categoryFilter === category.id}
-                              onChange={() => handleCategoryFilterChange(category.id)}
+                              onChange={() =>
+                                handleCategoryFilterChange(category.id)
+                              }
                               className="h-4 w-4 rounded border-gray-300 text-[#FF9500]"
                             />
-                            <span className="ml-2 text-sm">{category.title}</span>
+                            <span className="ml-2 text-sm">
+                              {category.title}
+                            </span>
                           </label>
                         ))}
                       </div>
@@ -877,7 +1063,9 @@ export default function StudentDashboard() {
                             type="radio"
                             name="progress"
                             checked={progressFilter === "not-started"}
-                            onChange={() => handleProgressFilterChange("not-started")}
+                            onChange={() =>
+                              handleProgressFilterChange("not-started")
+                            }
                             className="h-4 w-4 rounded border-gray-300 text-[#FF9500]"
                           />
                           <span className="ml-2 text-sm">Not started (0%)</span>
@@ -887,17 +1075,23 @@ export default function StudentDashboard() {
                             type="radio"
                             name="progress"
                             checked={progressFilter === "in-progress"}
-                            onChange={() => handleProgressFilterChange("in-progress")}
+                            onChange={() =>
+                              handleProgressFilterChange("in-progress")
+                            }
                             className="h-4 w-4 rounded border-gray-300 text-[#FF9500]"
                           />
-                          <span className="ml-2 text-sm">In progress (1-99%)</span>
+                          <span className="ml-2 text-sm">
+                            In progress (1-99%)
+                          </span>
                         </label>
                         <label className="flex items-center">
                           <input
                             type="radio"
                             name="progress"
                             checked={progressFilter === "completed"}
-                            onChange={() => handleProgressFilterChange("completed")}
+                            onChange={() =>
+                              handleProgressFilterChange("completed")
+                            }
                             className="h-4 w-4 rounded border-gray-300 text-[#FF9500]"
                           />
                           <span className="ml-2 text-sm">Completed (100%)</span>
@@ -914,7 +1108,9 @@ export default function StudentDashboard() {
                             onChange={toggleArchivedCourses}
                             className="h-4 w-4 rounded border-gray-300 text-[#FF9500]"
                           />
-                          <span className="ml-2 text-sm">Show archived courses</span>
+                          <span className="ml-2 text-sm">
+                            Show archived courses
+                          </span>
                         </label>
                       </div>
                     </div>
@@ -935,16 +1131,21 @@ export default function StudentDashboard() {
                 {filteredCourses.length === 0 ? (
                   <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 bg-white p-8 text-center">
                     <BookOpen className="h-12 w-12 text-gray-400" />
-                    <h3 className="mt-4 text-lg font-medium">No courses found</h3>
+                    <h3 className="mt-4 text-lg font-medium">
+                      No courses found
+                    </h3>
                     <p className="mt-2 text-sm text-gray-500">
-                      Try adjusting your search or filter to find what you're looking for.
+                      Try adjusting your search or filter to find what you're
+                      looking for.
                     </p>
                   </div>
                 ) : (
                   filteredCourses.map((course, index) => (
                     <div
                       key={course.id}
-                      className={`overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md ${course.isArchived ? "opacity-75" : ""}`}
+                      className={`overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md ${
+                        course.isArchived ? "opacity-75" : ""
+                      }`}
                     >
                       <div className="flex flex-col md:flex-row">
                         <div
@@ -981,13 +1182,15 @@ export default function StudentDashboard() {
                               >
                                 {course.title}
                               </h3>
-                              <p className="text-sm text-gray-500">{course.instructor}</p>
+                              <p className="text-sm text-gray-500">
+                                {course.instructor}
+                              </p>
                             </div>
                             <div className="flex items-center">
                               <button
                                 className="rounded-full p-1.5 text-gray-500 hover:bg-gray-100"
                                 onClick={(e) => {
-                                  e.stopPropagation()
+                                  e.stopPropagation();
                                   // Toggle bookmark logic would go here
                                 }}
                               >
@@ -1009,11 +1212,17 @@ export default function StudentDashboard() {
                           <div className="mb-3 mt-2">
                             <div className="flex items-center justify-between text-sm">
                               <span className="text-gray-500">Progress</span>
-                              <span className="font-medium">{course.progress}% complete</span>
+                              <span className="font-medium">
+                                {course.progress}% complete
+                              </span>
                             </div>
                             <div className="mt-1 h-2 w-full rounded-full bg-gray-100">
                               <div
-                                className={`h-2 rounded-full ${course.progress === 100 ? "bg-green-500" : "bg-[#FF9500]"}`}
+                                className={`h-2 rounded-full ${
+                                  course.progress === 100
+                                    ? "bg-green-500"
+                                    : "bg-[#FF9500]"
+                                }`}
                                 style={{ width: `${course.progress}%` }}
                               ></div>
                             </div>
@@ -1026,7 +1235,8 @@ export default function StudentDashboard() {
                                 <span>{course.estimatedTimeLeft} left</span>
                                 <span className="mx-2">•</span>
                                 <span>
-                                  {course.completedLessons}/{course.totalLessons} lessons
+                                  {course.completedLessons}/
+                                  {course.totalLessons} lessons
                                 </span>
                               </div>
                               <button
@@ -1037,7 +1247,9 @@ export default function StudentDashboard() {
                                 }`}
                                 onClick={() => handleCourseClick(index)}
                               >
-                                {course.progress === 100 ? "Leave a review" : "Continue learning"}
+                                {course.progress === 100
+                                  ? "Leave a review"
+                                  : "Continue learning"}
                               </button>
                             </div>
 
@@ -1045,7 +1257,10 @@ export default function StudentDashboard() {
                               <div className="mt-3 text-sm text-gray-500">
                                 <p>Last viewed: {course.lastViewed}</p>
                                 <p className="mt-1">
-                                  <span className="font-medium">{course.lastSection}:</span> {course.lastLesson}
+                                  <span className="font-medium">
+                                    {course.lastSection}:
+                                  </span>{" "}
+                                  {course.lastLesson}
                                 </p>
                               </div>
                             )}
@@ -1060,7 +1275,9 @@ export default function StudentDashboard() {
               {/* Recommended Courses Section */}
               <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
                 <div className="mb-6 flex items-center justify-between">
-                  <h2 className="text-lg font-bold">Recommended Based on Your Learning</h2>
+                  <h2 className="text-lg font-bold">
+                    Recommended Based on Your Learning
+                  </h2>
                   <button className="text-sm text-[#FF9500]">View All</button>
                 </div>
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -1089,14 +1306,19 @@ export default function StudentDashboard() {
                           <span className="text-sm font-medium">4.8</span>
                         </div>
                       </div>
-                      <h3 className="mb-2 text-lg font-bold">React Native for Mobile Apps</h3>
+                      <h3 className="mb-2 text-lg font-bold">
+                        React Native for Mobile Apps
+                      </h3>
                       <p className="mb-4 text-sm text-gray-500">
-                        Learn to build native mobile apps for both iOS and Android.
+                        Learn to build native mobile apps for both iOS and
+                        Android.
                       </p>
                       <div className="flex items-center justify-between">
                         <div>
                           <span className="text-lg font-bold">$16.99</span>
-                          <span className="ml-2 text-sm line-through text-gray-500">$94.99</span>
+                          <span className="ml-2 text-sm line-through text-gray-500">
+                            $94.99
+                          </span>
                         </div>
                         <button className="rounded-md bg-[#FF9500] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#8710d8]">
                           Add to Cart
@@ -1113,8 +1335,12 @@ export default function StudentDashboard() {
           {activeTab === "certificates" && (
             <div className="space-y-6">
               <div>
-                <h1 className="text-2xl font-bold md:text-3xl">My Certificates</h1>
-                <p className="text-gray-600">View and download your course completion certificates</p>
+                <h1 className="text-2xl font-bold md:text-3xl">
+                  My Certificates
+                </h1>
+                <p className="text-gray-600">
+                  View and download your course completion certificates
+                </p>
               </div>
 
               {/* Certificates */}
@@ -1123,8 +1349,12 @@ export default function StudentDashboard() {
                 {certificates.length === 0 ? (
                   <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 p-8 text-center">
                     <Award className="h-12 w-12 text-gray-400" />
-                    <h3 className="mt-4 text-lg font-medium">No certificates yet</h3>
-                    <p className="mt-2 text-sm text-gray-500">Complete a course to earn your first certificate.</p>
+                    <h3 className="mt-4 text-lg font-medium">
+                      No certificates yet
+                    </h3>
+                    <p className="mt-2 text-sm text-gray-500">
+                      Complete a course to earn your first certificate.
+                    </p>
                   </div>
                 ) : (
                   <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -1149,15 +1379,20 @@ export default function StudentDashboard() {
                           </div>
                         </div>
                         <div className="p-4">
-                          <h3 className="text-lg font-bold mb-1">{certificate.title}</h3>
+                          <h3 className="text-lg font-bold mb-1">
+                            {certificate.title}
+                          </h3>
                           <p className="text-sm text-gray-500 mb-3">
                             Issued by {certificate.issuer} • {certificate.date}
                           </p>
                           <div className="mb-3">
                             <h4 className="text-sm font-medium mb-1">Skills</h4>
                             <div className="flex flex-wrap gap-1">
-                              {certificate.skills.map((skill, index) => (
-                                <span key={index} className="rounded-full bg-[#f7f9fa] px-2 py-1 text-xs text-gray-700">
+                              {certificate.skills?.map((skill, index) => (
+                                <span
+                                  key={index}
+                                  className="rounded-full bg-[#f7f9fa] px-2 py-1 text-xs text-gray-700"
+                                >
                                   {skill}
                                 </span>
                               ))}
@@ -1175,34 +1410,44 @@ export default function StudentDashboard() {
 
               {/* Certificate Benefits */}
               <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-                <h2 className="mb-4 text-lg font-bold">Why Certificates Matter</h2>
+                <h2 className="mb-4 text-lg font-bold">
+                  Why Certificates Matter
+                </h2>
                 <div className="grid gap-6 md:grid-cols-3">
                   <div className="rounded-lg border border-gray-200 bg-[#f7f9fa] p-4">
                     <div className="mb-3 rounded-full bg-[#f7f9fa] p-2 w-fit">
                       <Award className="h-6 w-6 text-[#FF9500]" />
                     </div>
-                    <h3 className="text-md font-medium mb-2">Showcase Your Skills</h3>
+                    <h3 className="text-md font-medium mb-2">
+                      Showcase Your Skills
+                    </h3>
                     <p className="text-sm text-gray-600">
-                      Add certificates to your LinkedIn profile and resume to demonstrate your expertise to potential
-                      employers.
+                      Add certificates to your LinkedIn profile and resume to
+                      demonstrate your expertise to potential employers.
                     </p>
                   </div>
                   <div className="rounded-lg border border-gray-200 bg-[#f7f9fa] p-4">
                     <div className="mb-3 rounded-full bg-[#f7f9fa] p-2 w-fit">
                       <TrendingUp className="h-6 w-6 text-[#FF9500]" />
                     </div>
-                    <h3 className="text-md font-medium mb-2">Career Advancement</h3>
+                    <h3 className="text-md font-medium mb-2">
+                      Career Advancement
+                    </h3>
                     <p className="text-sm text-gray-600">
-                      Use your certificates to negotiate promotions or apply for new positions in your field.
+                      Use your certificates to negotiate promotions or apply for
+                      new positions in your field.
                     </p>
                   </div>
                   <div className="rounded-lg border border-gray-200 bg-[#f7f9fa] p-4">
                     <div className="mb-3 rounded-full bg-[#f7f9fa] p-2 w-fit">
                       <Lightbulb className="h-6 w-6 text-[#FF9500]" />
                     </div>
-                    <h3 className="text-md font-medium mb-2">Validate Your Knowledge</h3>
+                    <h3 className="text-md font-medium mb-2">
+                      Validate Your Knowledge
+                    </h3>
                     <p className="text-sm text-gray-600">
-                      Prove your understanding of key concepts and demonstrate your commitment to continuous learning.
+                      Prove your understanding of key concepts and demonstrate
+                      your commitment to continuous learning.
                     </p>
                   </div>
                 </div>
@@ -1215,7 +1460,9 @@ export default function StudentDashboard() {
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
               <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-lg bg-white shadow-lg">
                 <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white p-4">
-                  <h2 className="text-xl font-bold">{courses[selectedCourse].title}</h2>
+                  <h2 className="text-xl font-bold">
+                    {courses[selectedCourse].title}
+                  </h2>
                   <button
                     onClick={() => setShowCourseDetails(false)}
                     className="rounded-full p-1.5 text-gray-500 hover:bg-gray-100"
@@ -1229,7 +1476,10 @@ export default function StudentDashboard() {
                     <div className="w-full md:w-2/3">
                       <div className="relative h-64 rounded-lg bg-gray-100 overflow-hidden">
                         <img
-                          src={courses[selectedCourse].image || "/placeholder.svg"}
+                          src={
+                            courses[selectedCourse].image || "/placeholder.svg"
+                          } 
+                          
                           alt={courses[selectedCourse].title}
                           className="h-full w-full object-cover"
                         />
@@ -1241,22 +1491,30 @@ export default function StudentDashboard() {
                       </div>
 
                       <div className="mt-6">
-                        <h3 className="text-lg font-bold mb-2">About this course</h3>
-                        <p className="text-gray-600">{courses[selectedCourse].description}</p>
+                        <h3 className="text-lg font-bold mb-2">
+                          About this course
+                        </h3>
+                        <p className="text-gray-600">
+                          {courses[selectedCourse].description}
+                        </p>
 
                         <div className="mt-4 grid grid-cols-2 gap-4">
                           <div className="flex items-center">
                             <Layers className="h-5 w-5 text-gray-500 mr-2" />
                             <div>
                               <p className="text-sm font-medium">Level</p>
-                              <p className="text-sm text-gray-500">{courses[selectedCourse].level}</p>
+                              <p className="text-sm text-gray-500">
+                                {courses[selectedCourse].level}
+                              </p>
                             </div>
                           </div>
                           <div className="flex items-center">
                             <BookOpen className="h-5 w-5 text-gray-500 mr-2" />
                             <div>
                               <p className="text-sm font-medium">Lessons</p>
-                              <p className="text-sm text-gray-500">{courses[selectedCourse].totalLessons} total</p>
+                              <p className="text-sm text-gray-500">
+                                {courses[selectedCourse].totalLessons} total
+                              </p>
                             </div>
                           </div>
                         </div>
@@ -1265,16 +1523,26 @@ export default function StudentDashboard() {
 
                     <div className="w-full md:w-1/3">
                       <div className="rounded-lg border border-gray-200 bg-[#f7f9fa] p-4">
-                        <h3 className="text-lg font-bold mb-4">Your Progress</h3>
+                        <h3 className="text-lg font-bold mb-4">
+                          Your Progress
+                        </h3>
                         <div className="mb-3">
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-gray-500">Completion</span>
-                            <span className="font-medium">{courses[selectedCourse].progress}%</span>
+                            <span className="font-medium">
+                              {courses[selectedCourse].progress}%
+                            </span>
                           </div>
                           <div className="mt-1 h-2 w-full rounded-full bg-white">
                             <div
-                              className={`h-2 rounded-full ${courses[selectedCourse].progress === 100 ? "bg-green-500" : "bg-[#FF9500]"}`}
-                              style={{ width: `${courses[selectedCourse].progress}%` }}
+                              className={`h-2 rounded-full ${
+                                courses[selectedCourse].progress === 100
+                                  ? "bg-green-500"
+                                  : "bg-[#FF9500]"
+                              }`}
+                              style={{
+                                width: `${courses[selectedCourse].progress}%`,
+                              }}
                             ></div>
                           </div>
                         </div>
@@ -1286,7 +1554,8 @@ export default function StudentDashboard() {
                               <span className="text-sm">Lessons Completed</span>
                             </div>
                             <span className="text-sm font-medium">
-                              {courses[selectedCourse].completedLessons}/{courses[selectedCourse].totalLessons}
+                              {courses[selectedCourse].completedLessons}/
+                              {courses[selectedCourse].totalLessons}
                             </span>
                           </div>
                           <div className="flex items-center justify-between">
@@ -1294,7 +1563,9 @@ export default function StudentDashboard() {
                               <Clock className="h-4 w-4 text-gray-500 mr-2" />
                               <span className="text-sm">Last Viewed</span>
                             </div>
-                            <span className="text-sm">{courses[selectedCourse].lastViewed}</span>
+                            <span className="text-sm">
+                              {courses[selectedCourse].lastViewed}
+                            </span>
                           </div>
                         </div>
 
@@ -1324,16 +1595,22 @@ export default function StudentDashboard() {
                         <div className="flex items-center justify-between bg-[#f7f9fa] px-4 py-3">
                           <div className="flex items-center">
                             <ChevronDown className="h-5 w-5 text-gray-500 mr-2" />
-                            <h4 className="font-medium">Section 1: Introduction</h4>
+                            <h4 className="font-medium">
+                              Section 1: Introduction
+                            </h4>
                           </div>
-                          <div className="text-sm text-gray-500">3/3 • 15 min</div>
+                          <div className="text-sm text-gray-500">
+                            3/3 • 15 min
+                          </div>
                         </div>
                         <div className="p-4 bg-white">
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center">
                                 <CheckCircle className="h-4 w-4 text-green-500 mr-3" />
-                                <span className="text-sm">Welcome to the Course</span>
+                                <span className="text-sm">
+                                  Welcome to the Course
+                                </span>
                               </div>
                               <div className="flex items-center text-xs text-gray-500">
                                 <Play className="h-3 w-3 mr-1" />
@@ -1353,7 +1630,9 @@ export default function StudentDashboard() {
                             <div className="flex items-center justify-between">
                               <div className="flex items-center">
                                 <CheckCircle className="h-4 w-4 text-green-500 mr-3" />
-                                <span className="text-sm">Setting Up Your Environment</span>
+                                <span className="text-sm">
+                                  Setting Up Your Environment
+                                </span>
                               </div>
                               <div className="flex items-center text-xs text-gray-500">
                                 <Play className="h-3 w-3 mr-1" />
@@ -1368,9 +1647,13 @@ export default function StudentDashboard() {
                         <div className="flex items-center justify-between bg-[#f7f9fa] px-4 py-3">
                           <div className="flex items-center">
                             <ChevronRight className="h-5 w-5 text-gray-500 mr-2" />
-                            <h4 className="font-medium">Section 2: Core Concepts</h4>
+                            <h4 className="font-medium">
+                              Section 2: Core Concepts
+                            </h4>
                           </div>
-                          <div className="text-sm text-gray-500">12/20 • 2h 30min</div>
+                          <div className="text-sm text-gray-500">
+                            12/20 • 2h 30min
+                          </div>
                         </div>
                       </div>
 
@@ -1378,9 +1661,13 @@ export default function StudentDashboard() {
                         <div className="flex items-center justify-between bg-[#f7f9fa] px-4 py-3">
                           <div className="flex items-center">
                             <ChevronRight className="h-5 w-5 text-gray-500 mr-2" />
-                            <h4 className="font-medium">Section 3: Advanced Topics</h4>
+                            <h4 className="font-medium">
+                              Section 3: Advanced Topics
+                            </h4>
                           </div>
-                          <div className="text-sm text-gray-500">0/15 • 3h 15min</div>
+                          <div className="text-sm text-gray-500">
+                            0/15 • 3h 15min
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1396,15 +1683,25 @@ export default function StudentDashboard() {
                         className="h-16 w-16 rounded-full object-cover"
                       />
                       <div>
-                        <h4 className="font-medium">{courses[selectedCourse].instructor}</h4>
-                        <p className="text-sm text-gray-500 mt-1">Professional Developer & Instructor</p>
+                        <h4 className="font-medium">
+                          {courses[selectedCourse].instructor}
+                        </h4>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Professional Developer & Instructor
+                        </p>
                         <div className="mt-2 flex items-center">
                           <Star className="h-4 w-4 fill-[#eb8a2f] text-[#eb8a2f]" />
-                          <span className="ml-1 text-sm">{courses[selectedCourse].rating} Instructor Rating</span>
+                          <span className="ml-1 text-sm">
+                            {courses[selectedCourse].rating} Instructor Rating
+                          </span>
                           <span className="mx-2 text-gray-500">•</span>
-                          <span className="text-sm text-gray-500">{courses[selectedCourse].reviews} Reviews</span>
+                          <span className="text-sm text-gray-500">
+                            {courses[selectedCourse].reviews} Reviews
+                          </span>
                           <span className="mx-2 text-gray-500">•</span>
-                          <span className="text-sm text-gray-500">50K+ Students</span>
+                          <span className="text-sm text-gray-500">
+                            50K+ Students
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -1422,7 +1719,9 @@ export default function StudentDashboard() {
                     </button>
                     <button className="flex items-center rounded-md border border-gray-200 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                       <Bookmark className="mr-2 h-4 w-4" />
-                      {courses[selectedCourse].bookmarked ? "Remove from Saved" : "Save Course"}
+                      {courses[selectedCourse].bookmarked
+                        ? "Remove from Saved"
+                        : "Save Course"}
                     </button>
                   </div>
                 </div>
@@ -1435,7 +1734,9 @@ export default function StudentDashboard() {
             <div className="space-y-6">
               <div>
                 <h1 className="text-2xl font-bold md:text-3xl">Mon Profil</h1>
-                <p className="text-gray-600">Gérez vos informations personnelles et vos préférences</p>
+                <p className="text-gray-600">
+                  Gérez vos informations personnelles et vos préférences
+                </p>
               </div>
               <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
                 <StudentProfile />
@@ -1448,7 +1749,9 @@ export default function StudentDashboard() {
             <div className="space-y-6">
               <div>
                 <h1 className="text-2xl font-bold md:text-3xl">Paramètres</h1>
-                <p className="text-gray-600">Configurez vos préférences de compte et de notification</p>
+                <p className="text-gray-600">
+                  Configurez vos préférences de compte et de notification
+                </p>
               </div>
               <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
                 <StudentSettings />
@@ -1457,15 +1760,19 @@ export default function StudentDashboard() {
           )}
 
           {/* Other tabs would use the tabbed interface pattern */}
-          {activeTab !== "my-learning" && activeTab !== "certificates" && activeTab !== "profile" && activeTab !== "settings" && (
+          {activeTab !== "my-learning" &&
+            activeTab !== "certificates" &&
+            activeTab !== "profile" &&
+            activeTab !== "settings" && (
             <div className="flex h-64 flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 bg-white p-6">
               <div className="rounded-full bg-[#f7f9fa] p-3">
                 <Lightbulb className="h-6 w-6 text-[#FF9500]" />
               </div>
               <h3 className="mt-4 text-lg font-medium">Bientôt disponible</h3>
               <p className="mt-2 text-center text-sm text-gray-500">
-                La section {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} est en cours de développement et sera
-                disponible bientôt.
+                  La section{" "}
+                  {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} est
+                  en cours de développement et sera disponible bientôt.
               </p>
             </div>
           )}
@@ -1474,9 +1781,12 @@ export default function StudentDashboard() {
           <div className="mt-8 rounded-lg border border-gray-200 bg-[#f7f9fa] p-6">
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="text-center md:text-left">
-                <h3 className="text-xl font-bold text-[#FF9500]">Learn on the go!</h3>
+                <h3 className="text-xl font-bold text-[#FF9500]">
+                  Learn on the go!
+                </h3>
                 <p className="mt-2 text-gray-600">
-                  Download our mobile app for iOS and Android to learn anytime, anywhere.
+                  Download our mobile app for iOS and Android to learn anytime,
+                  anywhere.
                 </p>
                 <div className="mt-4 flex flex-wrap justify-center md:justify-start gap-3">
                   <button className="flex items-center rounded-md bg-[#1c1d1f] px-4 py-2 text-sm font-medium text-white">
@@ -1490,7 +1800,11 @@ export default function StudentDashboard() {
                 </div>
               </div>
               <div className="hidden md:block">
-                <img src="/placeholder.svg?height=120&width=200" alt="Mobile App" className="h-30 w-auto" />
+                <img
+                  src="/placeholder.svg?height=120&width=200"
+                  alt="Mobile App"
+                  className="h-30 w-auto"
+                />
               </div>
             </div>
           </div>
@@ -1518,6 +1832,5 @@ export default function StudentDashboard() {
         </footer>
       </div>
     </div>
-  )
+  );
 }
-

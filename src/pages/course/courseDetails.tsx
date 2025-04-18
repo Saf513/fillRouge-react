@@ -58,6 +58,7 @@ export default function CourseDetails() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // 
     // Ici, vous devrez implémenter l'appel API pour récupérer les détails du cours
     // Pour l'instant, nous utilisons des données fictives
     const fetchCourseDetails = async () => {
@@ -94,6 +95,7 @@ export default function CourseDetails() {
       }
     }
 
+     
     fetchCourseDetails()
   }, [id])
 

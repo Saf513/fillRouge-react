@@ -1,4 +1,4 @@
-import { axiosClient } from '../api/axios';
+import axiosClient  from '../api/axios';
 import { ProfileResponse, UserSettings, NotificationSettings, PaymentMethod } from '../types/profile';
 
 export const profileService = {

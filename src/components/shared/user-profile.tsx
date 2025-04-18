@@ -1,8 +1,5 @@
-"use client"
-
-import type React from "react"
-
-import { useState } from "react"
+import  React ,{useState} from "react"
+import { Link } from "react-router-dom"
 import {
   Mail,
   Phone,
@@ -27,7 +24,7 @@ import {
   Instagram,
   Youtube,
 } from "lucide-react"
-import { Link } from "react-router-dom"
+
 
 type UserRole = "student" | "teacher" | "admin"
 

@@ -1,8 +1,8 @@
-"use client"
-
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
 import useCategories from "../../hooks/useCategories"
+import useCourses from "../../hooks/useCourses"
+import { Course } from "../../types/course"
 
 import {
   Search,
@@ -22,35 +22,24 @@ import {
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 
-// Types
-type Course = {
-  id: number
+interface Course {
+  id: string
   title: string
-  instructor: string
-  rating: number
-  reviewCount: number
-  price: number
-  salePrice?: number
-  image: string
-  category: string
-  subcategory: string
-  level: string
-  duration: string
-  studentsCount: number
-  lastUpdated: string
-  language: string
-  bestseller: boolean
-  featured: boolean
-  new: boolean
-  tags: string[]
+  subtitle: string
   description: string
+  category_id: string
+  subcategory_id: string
+  level: string
+  language: string
+  price: number
+  discount: number
+  average_rating: number
+  reviewCount: number
+  studentsCount: number
+  created_at: string
+  bestseller: boolean
+  new: boolean
 }
-
-// type Category = {
-//   id: string
-//   name: string
-//   subcategories: { id: string; name: string }[]
-// }
 
 export default function CoursesExplorer() {
   const navigate = useNavigate()
@@ -67,7 +56,7 @@ export default function CoursesExplorer() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [isScrolled, setIsScrolled] = useState(false)
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false)
-  const [hoveredCourse, setHoveredCourse] = useState<number | null>(null)
+  const [hoveredCourse, setHoveredCourse] = useState<string | null>(null)
 
   // Handle scroll for sticky header
   useEffect(() => {
@@ -78,439 +67,69 @@ export default function CoursesExplorer() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
-  // Sample categories data
-//   const categories: Category[] = [
-//     {
-//       id: "development",
-//       name: "Development",
-//       subcategories: [
-//         { id: "web-development", name: "Web Development" },
-//         { id: "mobile-development", name: "Mobile Development" },
-//         { id: "game-development", name: "Game Development" },
-//         { id: "database-design", name: "Database Design" },
-//         { id: "programming-languages", name: "Programming Languages" },
-//       ],
-//     },
-//     {
-//       id: "business",
-//       name: "Business",
-//       subcategories: [
-//         { id: "entrepreneurship", name: "Entrepreneurship" },
-//         { id: "marketing", name: "Marketing" },
-//         { id: "finance", name: "Finance" },
-//         { id: "sales", name: "Sales" },
-//         { id: "strategy", name: "Strategy" },
-//       ],
-//     },
-//     {
-//       id: "design",
-//       name: "Design",
-//       subcategories: [
-//         { id: "web-design", name: "Web Design" },
-//         { id: "graphic-design", name: "Graphic Design" },
-//         { id: "ui-ux", name: "UI/UX Design" },
-//         { id: "3d-animation", name: "3D & Animation" },
-//         { id: "fashion-design", name: "Fashion Design" },
-//       ],
-//     },
-//     {
-//       id: "marketing",
-//       name: "Marketing",
-//       subcategories: [
-//         { id: "digital-marketing", name: "Digital Marketing" },
-//         { id: "social-media", name: "Social Media Marketing" },
-//         { id: "content-marketing", name: "Content Marketing" },
-//         { id: "seo", name: "SEO" },
-//         { id: "branding", name: "Branding" },
-//       ],
-//     },
-//     {
-//       id: "photography",
-//       name: "Photography",
-//       subcategories: [
-//         { id: "digital-photography", name: "Digital Photography" },
-//         { id: "portrait-photography", name: "Portrait Photography" },
-//         { id: "commercial-photography", name: "Commercial Photography" },
-//         { id: "video-design", name: "Video Design" },
-//       ],
-//     },
-//     {
-//       id: "music",
-//       name: "Music",
-//       subcategories: [
-//         { id: "instruments", name: "Instruments" },
-//         { id: "music-production", name: "Music Production" },
-//         { id: "music-theory", name: "Music Theory" },
-//         { id: "vocal", name: "Vocal" },
-//       ],
-//     },
-//     {
-//       id: "health",
-//       name: "Health & Fitness",
-//       subcategories: [
-//         { id: "fitness", name: "Fitness" },
-//         { id: "nutrition", name: "Nutrition" },
-//         { id: "yoga", name: "Yoga" },
-//         { id: "mental-health", name: "Mental Health" },
-//       ],
-//     },
-//     {
-//       id: "academics",
-//       name: "Academics",
-//       subcategories: [
-//         { id: "math", name: "Math" },
-//         { id: "science", name: "Science" },
-//         { id: "language", name: "Language" },
-//         { id: "test-prep", name: "Test Prep" },
-//       ],
-//     },
-//   ]
-  const { categories, loading: categoriesLoading, error: categoriesError } = useCategories();
-
-  if (categoriesLoading) {
-    return <div>Chargement des catégories...</div>;
-  }
-
-  if (categoriesError) {
-    return <div>Erreur: {categoriesError}</div>;
-  }
-
-  // Sample courses data
-  const allCourses: Course[] = [
-    {
-      id: 1,
-      title: "Complete Web Development Bootcamp 2023",
-      instructor: "Dr. Angela Yu",
-      rating: 4.8,
-      reviewCount: 154892,
-      price: 129.99,
-      salePrice: 19.99,
-      image: "/placeholder.svg?height=400&width=600",
-      category: "development",
-      subcategory: "web-development",
-      level: "Beginner to Advanced",
-      duration: "63 hours",
-      studentsCount: 785421,
-      lastUpdated: "November 2023",
-      language: "English",
-      bestseller: true,
-      featured: true,
-      new: false,
-      tags: ["HTML", "CSS", "JavaScript", "React", "Node.js"],
-      description:
-        "Become a full-stack web developer with just one course. HTML, CSS, Javascript, Node, React, MongoDB, and more!",
-    },
-    {
-      id: 2,
-      title: "Advanced JavaScript: Master Modern Concepts",
-      instructor: "Andrei Neagoie",
-      rating: 4.9,
-      reviewCount: 42156,
-      price: 149.99,
-      salePrice: 24.99,
-      image: "/placeholder.svg?height=400&width=600",
-      category: "development",
-      subcategory: "programming-languages",
-      level: "Intermediate to Advanced",
-      duration: "35 hours",
-      studentsCount: 325789,
-      lastUpdated: "October 2023",
-      language: "English",
-      bestseller: true,
-      featured: false,
-      new: false,
-      tags: ["JavaScript", "ES6", "Async/Await", "Functional Programming"],
-      description:
-        "Take your JavaScript skills to the next level with advanced concepts, patterns, and modern best practices.",
-    },
-    {
-      id: 3,
-      title: "UI/UX Design Masterclass: Design Beautiful Interfaces",
-      instructor: "Daniel Walter Scott",
-      rating: 4.7,
-      reviewCount: 28954,
-      price: 119.99,
-      salePrice: 17.99,
-      image: "/placeholder.svg?height=400&width=600",
-      category: "design",
-      subcategory: "ui-ux",
-      level: "All Levels",
-      duration: "42 hours",
-      studentsCount: 215478,
-      lastUpdated: "December 2023",
-      language: "English",
-      bestseller: false,
-      featured: true,
-      new: true,
-      tags: ["Figma", "Adobe XD", "Wireframing", "Prototyping"],
-      description:
-        "Learn to design beautiful user interfaces and create amazing user experiences from a senior designer.",
-    },
-    {
-      id: 4,
-      title: "Digital Marketing Strategy: Complete Guide",
-      instructor: "Rob Percival",
-      rating: 4.6,
-      reviewCount: 18745,
-      price: 99.99,
-      salePrice: 14.99,
-      image: "/placeholder.svg?height=400&width=600",
-      category: "marketing",
-      subcategory: "digital-marketing",
-      level: "Beginner to Intermediate",
-      duration: "28 hours",
-      studentsCount: 185632,
-      lastUpdated: "September 2023",
-      language: "English",
-      bestseller: false,
-      featured: false,
-      new: false,
-      tags: ["SEO", "Social Media", "Email Marketing", "Google Ads"],
-      description:
-        "Master digital marketing strategy with this comprehensive guide to SEO, social media, email marketing, and more.",
-    },
-    {
-      id: 5,
-      title: "Financial Analysis & Financial Modeling in Excel",
-      instructor: "365 Careers",
-      rating: 4.7,
-      reviewCount: 32541,
-      price: 139.99,
-      salePrice: 21.99,
-      image: "/placeholder.svg?height=400&width=600",
-      category: "business",
-      subcategory: "finance",
-      level: "Intermediate",
-      duration: "22 hours",
-      studentsCount: 245789,
-      lastUpdated: "August 2023",
-      language: "English",
-      bestseller: true,
-      featured: false,
-      new: false,
-      tags: ["Excel", "Financial Analysis", "Financial Modeling", "Valuation"],
-      description:
-        "Learn financial analysis and financial modeling using Excel from scratch with practical examples and case studies.",
-    },
-    {
-      id: 6,
-      title: "iOS 17 & Swift 5: Complete iOS App Development",
-      instructor: "Dr. Angela Yu",
-      rating: 4.8,
-      reviewCount: 38954,
-      price: 159.99,
-      salePrice: 24.99,
-      image: "/placeholder.svg?height=400&width=600",
-      category: "development",
-      subcategory: "mobile-development",
-      level: "Beginner to Advanced",
-      duration: "55 hours",
-      studentsCount: 325478,
-      lastUpdated: "November 2023",
-      language: "English",
-      bestseller: true,
-      featured: true,
-      new: true,
-      tags: ["iOS", "Swift", "SwiftUI", "Xcode", "App Development"],
-      description:
-        "From beginner to iOS app developer with just one comprehensive course! Fully updated for iOS 17 and Swift 5.",
-    },
-    {
-      id: 7,
-      title: "Professional Photography Masterclass",
-      instructor: "Phil Ebiner",
-      rating: 4.6,
-      reviewCount: 24587,
-      price: 109.99,
-      salePrice: 16.99,
-      image: "/placeholder.svg?height=400&width=600",
-      category: "photography",
-      subcategory: "digital-photography",
-      level: "All Levels",
-      duration: "32 hours",
-      studentsCount: 198745,
-      lastUpdated: "July 2023",
-      language: "English",
-      bestseller: false,
-      featured: false,
-      new: false,
-      tags: ["DSLR", "Lighting", "Composition", "Editing"],
-      description:
-        "Master photography with this comprehensive course covering everything from camera basics to advanced techniques.",
-    },
-    {
-      id: 8,
-      title: "Complete Python Developer in 2023: Zero to Mastery",
-      instructor: "Andrei Neagoie",
-      rating: 4.7,
-      reviewCount: 45871,
-      price: 129.99,
-      salePrice: 19.99,
-      image: "/placeholder.svg?height=400&width=600",
-      category: "development",
-      subcategory: "programming-languages",
-      level: "Beginner to Advanced",
-      duration: "30 hours",
-      studentsCount: 354789,
-      lastUpdated: "October 2023",
-      language: "English",
-      bestseller: true,
-      featured: false,
-      new: false,
-      tags: ["Python", "Data Science", "Machine Learning", "Web Development"],
-      description:
-        "Learn Python from scratch, get hired, and have fun along the way with the most modern, comprehensive Python course available.",
-    },
-    {
-      id: 9,
-      title: "The Complete Digital Marketing Course - 12 Courses in 1",
-      instructor: "Rob Percival, Daragh Walsh",
-      rating: 4.5,
-      reviewCount: 32541,
-      price: 199.99,
-      salePrice: 29.99,
-      image: "/placeholder.svg?height=400&width=600",
-      category: "marketing",
-      subcategory: "digital-marketing",
-      level: "All Levels",
-      duration: "52 hours",
-      studentsCount: 425789,
-      lastUpdated: "September 2023",
-      language: "English",
-      bestseller: true,
-      featured: true,
-      new: false,
-      tags: ["SEO", "Social Media", "Facebook Ads", "Google Ads", "Analytics"],
-      description:
-        "Master Digital Marketing Strategy, Social Media Marketing, SEO, YouTube, Email, Facebook Marketing, Analytics & More!",
-    },
-    {
-      id: 10,
-      title: "React - The Complete Guide 2023 (incl. React Router & Redux)",
-      instructor: "Maximilian Schwarzmüller",
-      rating: 4.8,
-      reviewCount: 58741,
-      price: 149.99,
-      salePrice: 22.99,
-      image: "/placeholder.svg?height=400&width=600",
-      category: "development",
-      subcategory: "web-development",
-      level: "All Levels",
-      duration: "48 hours",
-      studentsCount: 485632,
-      lastUpdated: "December 2023",
-      language: "English",
-      bestseller: true,
-      featured: true,
-      new: true,
-      tags: ["React", "Redux", "Hooks", "Context API", "Next.js"],
-      description:
-        "Dive in and learn React.js from scratch! Learn Reactjs, Hooks, Redux, React Routing, Animations, Next.js and way more!",
-    },
-    {
-      id: 11,
-      title: "The Complete Graphic Design Theory for Beginners Course",
-      instructor: "Lindsay Marsh",
-      rating: 4.6,
-      reviewCount: 18745,
-      price: 109.99,
-      salePrice: 16.99,
-      image: "/placeholder.svg?height=400&width=600",
-      category: "design",
-      subcategory: "graphic-design",
-      level: "Beginner",
-      duration: "22 hours",
-      studentsCount: 154789,
-      lastUpdated: "August 2023",
-      language: "English",
-      bestseller: false,
-      featured: false,
-      new: false,
-      tags: ["Typography", "Color Theory", "Layout Design", "Logo Design"],
-      description:
-        "Learn Graphic Design Theory and the Basic Principles of Color Theory, Typography, Branding, Logo Design, Layout & More!",
-    },
-    {
-      id: 12,
-      title: "Machine Learning A-Z™: Hands-On Python & R In Data Science",
-      instructor: "Kirill Eremenko, Hadelin de Ponteves",
-      rating: 4.7,
-      reviewCount: 42156,
-      price: 159.99,
-      salePrice: 24.99,
-      image: "/placeholder.svg?height=400&width=600",
-      category: "development",
-      subcategory: "programming-languages",
-      level: "Intermediate to Advanced",
-      duration: "44 hours",
-      studentsCount: 754123,
-      lastUpdated: "October 2023",
-      language: "English",
-      bestseller: true,
-      featured: true,
-      new: false,
-      tags: ["Machine Learning", "Python", "R", "Data Science", "AI"],
-      description:
-        "Learn to create Machine Learning Algorithms in Python and R from two Data Science experts. Code templates included.",
-    },
-  ]
+  const { categories, loading: categoriesLoading, error: categoriesError } = useCategories()
+  const { courses, loading: coursesLoading, error: coursesError, total, currentPage, perPage, setCurrentPage } = useCourses()
 
   // Filter courses based on search, category, and other filters
-  const filteredCourses = allCourses
-    .filter((course) => {
+  const filteredCourses = useCallback(() => {
+    if (!courses) return []
+    
+    return courses.filter((course: Course) => {
       // Search term filter
-      const matchesSearch =
-        course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        course.instructor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        course.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        course.tags.some((tag) => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+      const searchMatch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        course.subtitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        course.description.toLowerCase().includes(searchTerm.toLowerCase())
 
       // Category filter
-      const matchesCategory = selectedCategory ? course.category === selectedCategory : true
+      const categoryMatch = !selectedCategory || course.category_id === selectedCategory
 
       // Subcategory filter
-      const matchesSubcategory = selectedSubcategory ? course.subcategory === selectedSubcategory : true
+      const subcategoryMatch = !selectedSubcategory || course.subcategory_id === selectedSubcategory
 
       // Price range filter
-      const matchesPriceRange =
-        (course.salePrice || course.price) >= priceRange[0] && (course.salePrice || course.price) <= priceRange[1]
+      const price = course.discount ? course.price * (1 - course.discount / 100) : course.price
+      const priceMatch = price >= priceRange[0] && price <= priceRange[1]
 
       // Level filter
-      const matchesLevel = selectedLevels.length === 0 || selectedLevels.some((level) => course.level.includes(level))
+      const levelMatch = selectedLevels.length === 0 || selectedLevels.includes(course.level)
 
       // Language filter
-      const matchesLanguage = selectedLanguages.length === 0 || selectedLanguages.includes(course.language)
+      const languageMatch = selectedLanguages.length === 0 || selectedLanguages.includes(course.language)
 
       // Rating filter
-      const matchesRating = selectedRating ? course.rating >= selectedRating : true
+      const ratingMatch = !selectedRating || course.average_rating >= selectedRating
 
-      return (
-        matchesSearch &&
-        matchesCategory &&
-        matchesSubcategory &&
-        matchesPriceRange &&
-        matchesLevel &&
-        matchesLanguage &&
-        matchesRating
-      )
-    })
-    .sort((a, b) => {
+      return searchMatch && categoryMatch && subcategoryMatch && levelMatch && languageMatch && ratingMatch && priceMatch
+    }).sort((a: Course, b: Course) => {
       // Sort based on selected option
       switch (sortOption) {
         case "popular":
-          return b.studentsCount - a.studentsCount
+          return (b.studentsCount || 0) - (a.studentsCount || 0)
         case "highest-rated":
-          return b.rating - a.rating
+          return b.average_rating - a.average_rating
         case "newest":
-          return new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()
+          return new Date(b.created_at || "").getTime() - new Date(a.created_at || "").getTime()
         case "price-low":
-          return (a.salePrice || a.price) - (b.salePrice || b.price)
+          return (a.discount ? a.price * (1 - a.discount / 100) : a.price) - (b.discount ? b.price * (1 - b.discount / 100) : b.price)
         case "price-high":
-          return (b.salePrice || b.price) - (a.salePrice || a.price)
+          return (b.discount ? b.price * (1 - b.discount / 100) : b.price) - (a.discount ? a.price * (1 - a.discount / 100) : a.price)
         default:
           return 0
       }
     })
+  }, [courses, searchTerm, selectedCategory, selectedSubcategory, priceRange, selectedLevels, selectedLanguages, selectedRating, sortOption])
+
+  if (categoriesLoading || coursesLoading) {
+    return <div>Chargement des données...</div>
+  }
+
+  if (categoriesError) {
+    return <div>Erreur: {categoriesError}</div>
+  }
+
+  if (coursesError) {
+    return <div>Erreur: {coursesError}</div>
+  }
 
   // Handle category selection
   const handleCategorySelect = (categoryId: string) => {
@@ -561,20 +180,27 @@ export default function CoursesExplorer() {
   }
 
   // Get active category name
-  const getActiveCategoryName = () => {
+  const getActiveCategoryName = useCallback(() => {
     if (!selectedCategory) return "All Categories"
     const category = categories.find((c) => c.id === selectedCategory)
     return category ? category.title : "All Categories"
-  }
+  }, [categories, selectedCategory])
 
   // Get active subcategory name
-  const getActiveSubcategoryName = () => {
+  const getActiveSubcategoryName = useCallback(() => {
     if (!selectedSubcategory) return "All Subcategories"
     const category = categories.find((c) => c.id === selectedCategory)
-    if (!category) return "All Subcategories"
+    if (!category || !category.subcategories) return "All Subcategories"
     const subcategory = category.subcategories.find((s) => s.id === selectedSubcategory)
     return subcategory ? subcategory.title : "All Subcategories"
-  }
+  }, [categories, selectedCategory, selectedSubcategory])
+
+  // Get subcategories for a given category
+  const getSubcategories = useCallback(() => {
+    if (!selectedCategory) return []
+    const category = categories.find((c) => c.id === selectedCategory)
+    return category && category.subcategories ? category.subcategories : []
+  }, [categories, selectedCategory])
 
   // Render star rating
   const renderStarRating = (rating: number) => {
@@ -588,7 +214,7 @@ export default function CoursesExplorer() {
             />
           ))}
         </div>
-        <span className="text-sm font-medium">{rating.toFixed(1)}</span>
+        <span className="text-sm font-medium">{Number(rating).toFixed(1)}</span>
       </div>
     )
   }
@@ -678,7 +304,7 @@ export default function CoursesExplorer() {
 
                         {selectedCategory === category.id && (
                           <div className="ml-4 border-l border-gray-200 pl-2 mt-1 mb-2">
-                            {category.subcategories.map((subcategory) => (
+                            {category.subcategories && category.subcategories.map((subcategory) => (
                               <button
                                 key={subcategory.id}
                                 onClick={() => handleSubcategorySelect(subcategory.id)}
@@ -789,9 +415,7 @@ export default function CoursesExplorer() {
                   All {getActiveCategoryName()}
                 </button>
 
-                {categories
-                  .find((c) => c.id === selectedCategory)
-                  ?.subcategories.map((subcategory) => (
+                {getSubcategories().map((subcategory) => (
                     <button
                       key={subcategory.id}
                       onClick={() => handleSubcategorySelect(subcategory.id)}
@@ -920,13 +544,13 @@ export default function CoursesExplorer() {
                   : "All Courses"}
               </h2>
               <p className="text-gray-600">
-                {filteredCourses.length} results
+                {filteredCourses().length} results
                 {searchTerm && ` for "${searchTerm}"`}
               </p>
             </div>
 
             {/* Courses */}
-            {filteredCourses.length === 0 ? (
+            {filteredCourses().length === 0 ? (
               <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
                 <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                   <Search className="h-8 w-8 text-gray-400" />
@@ -950,13 +574,13 @@ export default function CoursesExplorer() {
                     : "space-y-6"
                 }
               >
-                {filteredCourses.map((course) => (
+                {filteredCourses().map((course) => (
                   <motion.div
                     key={course.id}
                     className={`bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow ${
                       viewMode === "list" ? "flex flex-col md:flex-row" : ""
                     }`}
-                    onMouseEnter={() => setHoveredCourse(course.id)}
+                    onMouseEnter={() => setHoveredCourse(course.id.toString())}
                     onMouseLeave={() => setHoveredCourse(null)}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -964,7 +588,7 @@ export default function CoursesExplorer() {
                   >
                     <div className={`relative ${viewMode === "list" ? "md:w-64 flex-shrink-0" : ""}`}>
                       <img
-                        src={course.image || "/placeholder.svg"}
+                        src={course.image_url || "/placeholder.svg"}
                         alt={course.title}
                         className="w-full h-48 object-cover"
                       />
@@ -978,7 +602,7 @@ export default function CoursesExplorer() {
                           NEW
                         </div>
                       )}
-                      {hoveredCourse === course.id && (
+                      {hoveredCourse === course.id.toString() && (
                         <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center">
                           <div className="bg-white p-2 rounded-full">
                             <Play className="h-8 w-8 text-[#a435f0]" />
@@ -995,11 +619,11 @@ export default function CoursesExplorer() {
                         </button>
                       </div>
 
-                      <p className="text-sm text-gray-600 mb-2">{course.instructor}</p>
+                      <p className="text-sm text-gray-600 mb-2">{course.instructor.first_name} {course.instructor.last_name}</p>
 
                       <div className="flex items-center mb-2">
-                        {renderStarRating(course.rating)}
-                        <span className="text-xs text-gray-500 ml-1">({course.reviewCount.toLocaleString()})</span>
+                        {renderStarRating(course.average_rating)}
+                        <span className="text-xs text-gray-500 ml-1">({course.reviewCount?.toLocaleString()})</span>
                       </div>
 
                       <div className="flex items-center text-xs text-gray-600 space-x-3 mb-3">
@@ -1009,7 +633,7 @@ export default function CoursesExplorer() {
                         </div>
                         <div className="flex items-center">
                           <Users className="h-3 w-3 mr-1" />
-                          <span>{course.studentsCount.toLocaleString()} students</span>
+                          <span>{course.studentsCount?.toLocaleString()} students</span>
                         </div>
                         <div className="flex items-center">
                           <BookOpen className="h-3 w-3 mr-1" />
@@ -1023,15 +647,15 @@ export default function CoursesExplorer() {
 
                       <div className="mt-auto flex items-center justify-between">
                         <div className="flex items-center">
-                          {course.salePrice ? (
+                          {course.discount ? (
                             <>
-                              <span className="text-lg font-bold">${course.salePrice.toFixed(2)}</span>
+                              <span className="text-lg font-bold">${(course.price * (1 - course.discount / 100)).toFixed(2)}</span>
                               <span className="text-sm text-gray-500 line-through ml-2">
-                                ${course.price.toFixed(2)}
+                                ${Number(course.price).toFixed(2)}
                               </span>
                             </>
                           ) : (
-                            <span className="text-lg font-bold">${course.price.toFixed(2)}</span>
+                            <span className="text-lg font-bold">${Number(course.price).toFixed(2)}</span>
                           )}
                         </div>
 
@@ -1054,24 +678,34 @@ export default function CoursesExplorer() {
             )}
 
             {/* Pagination */}
-            {filteredCourses.length > 0 && (
+            {filteredCourses().length > 0 && (
               <div className="mt-8 flex justify-center">
                 <nav className="flex items-center space-x-1">
-                  <button className="px-3 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100">
+                  <button 
+                    className="px-3 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100"
+                    onClick={() => setCurrentPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
                     <ChevronLeft className="h-4 w-4" />
                   </button>
-                  <button className="px-4 py-2 rounded-md bg-[#a435f0] text-white font-medium">1</button>
-                  <button className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100">
-                    2
+                  {Array.from({ length: Math.ceil(total / perPage) }, (_, i) => i + 1).map((page) => (
+                    <button
+                      key={page}
+                      className={`px-4 py-2 rounded-md ${
+                        currentPage === page
+                          ? "bg-[#a435f0] text-white font-medium"
+                          : "border border-gray-300 text-gray-700 hover:bg-gray-100"
+                      }`}
+                      onClick={() => setCurrentPage(page)}
+                    >
+                      {page}
                   </button>
-                  <button className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100">
-                    3
-                  </button>
-                  <span className="px-2 text-gray-500">...</span>
-                  <button className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100">
-                    12
-                  </button>
-                  <button className="px-3 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100">
+                  ))}
+                  <button 
+                    className="px-3 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100"
+                    onClick={() => setCurrentPage(currentPage + 1)}
+                    disabled={currentPage === Math.ceil(total / perPage)}
+                  >
                     <ChevronRight className="h-4 w-4" />
                   </button>
                 </nav>

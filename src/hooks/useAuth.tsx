@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { axiosClient } from "../api/axios";
+import  axiosClient  from "../api/axios";
 
 interface User {
   id: number;

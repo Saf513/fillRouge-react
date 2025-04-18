@@ -5,7 +5,7 @@ import { Checkbox } from "../components/ui/checkbox";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { axiosClient } from "../api/axios";
+import axiosClient from "../api/axios";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 

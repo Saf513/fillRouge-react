@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate } from "react-router-dom";
-import { axiosClient } from "@/api/axios";
+import axiosClient  from "@/api/axios";
 import { useAuth } from "@/hooks/useAuth";
 
 const Signup = () => {

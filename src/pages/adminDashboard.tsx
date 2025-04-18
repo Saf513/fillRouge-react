@@ -1,1218 +1,823 @@
-"use client"
-
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
+import { useNavigate } from "react-router-dom"
+import useCategories from '@/hooks/useCategories'
+import useCourses from '@/hooks/useCourses'
+import { Course } from '@/types/course'
+import { motion, AnimatePresence } from "framer-motion"
 import {
+  Search,
+  Filter,
+  ChevronDown,
+  Star,
+  Clock,
   Users,
   BookOpen,
-  DollarSign,
-  BarChart2,
-  Settings,
-  Bell,
-  Search,
-  Menu,
+  Heart,
+  BarChart3,
+  ChevronRight,             
+  ChevronLeft,
   X,
-  Filter,
-  Download,
-  Trash2,
-  Edit,
-  Eye,
-  Calendar,
+  Play,
+  ShoppingCart,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
 
-const AdminDashboard = () => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
-  const [activeTab, setActiveTab] = useState("overview")
-  const [selectedCourse, setSelectedCourse] = useState(null)
-  const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false)
+export default function CoursesExplorer() {
+  const navigate = useNavigate()
+  const [searchTerm, setSearchTerm] = useState("")
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null)
+  const [showFilters, setShowFilters] = useState(false)
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 200])
+  const [selectedLevels, setSelectedLevels] = useState<string[]>([])
+  const [selectedLanguages, setSelectedLanguages] = useState<string[]>([])
+  const [selectedRating, setSelectedRating] = useState<number | null>(null)
+  const [sortOption, setSortOption] = useState("popular")
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+  const [isScrolled, setIsScrolled] = useState(false)
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false)
+  const [hoveredCourse, setHoveredCourse] = useState<string | null>(null)
 
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen)
-  }
-
-  // Données simulées pour le dashboard
-  const stats = [
-    { title: "Utilisateurs Totaux", value: "24,532", change: "+12%", icon: <Users className="h-5 w-5" /> },
-    { title: "Cours Actifs", value: "1,245", change: "+8%", icon: <BookOpen className="h-5 w-5" /> },
-    { title: "Revenus Mensuels", value: "€48,234", change: "+15%", icon: <DollarSign className="h-5 w-5" /> },
-    { title: "Taux de Complétion", value: "76%", change: "+3%", icon: <BarChart2 className="h-5 w-5" /> },
-  ]
-
-  const pendingCourses = [
-    {
-      id: 1,
-      title: "Introduction à Python",
-      instructor: "Marie Dupont",
-      category: "Programmation",
-      submitted: "2023-11-15",
-      status: "pending",
-    },
-    {
-      id: 2,
-      title: "Marketing Digital Avancé",
-      instructor: "Jean Martin",
-      category: "Marketing",
-      submitted: "2023-11-14",
-      status: "pending",
-    },
-    {
-      id: 3,
-      title: "Design UX/UI pour Débutants",
-      instructor: "Sophie Leclerc",
-      category: "Design",
-      submitted: "2023-11-13",
-      status: "pending",
-    },
-  ]
-
-  const recentUsers = [
-    { id: 1, name: "Thomas Bernard", email: "thomas.b@example.com", role: "student", joined: "2023-11-15", courses: 3 },
-    {
-      id: 2,
-      name: "Camille Roux",
-      email: "camille.r@example.com",
-      role: "instructor",
-      joined: "2023-11-14",
-      courses: 2,
-    },
-    { id: 3, name: "Lucas Moreau", email: "lucas.m@example.com", role: "student", joined: "2023-11-13", courses: 5 },
-    { id: 4, name: "Emma Petit", email: "emma.p@example.com", role: "student", joined: "2023-11-12", courses: 1 },
-  ]
-
-  const recentTransactions = [
-    {
-      id: 1,
-      user: "Alexandre Dubois",
-      course: "JavaScript Moderne",
-      amount: "€49.99",
-      date: "2023-11-15",
-      status: "completed",
-    },
-    {
-      id: 2,
-      user: "Léa Martin",
-      course: "Photographie Professionnelle",
-      amount: "€89.99",
-      date: "2023-11-14",
-      status: "completed",
-    },
-    { id: 3, user: "Hugo Blanc", course: "Excel Avancé", amount: "€29.99", date: "2023-11-13", status: "refunded" },
-    {
-      id: 4,
-      user: "Julie Rousseau",
-      course: "Marketing Digital",
-      amount: "€69.99",
-      date: "2023-11-12",
-      status: "pending",
-    },
-  ]
-
-  const allCourses = [
-    {
-      id: 1,
-      title: "Introduction à Python",
-      instructor: "Marie Dupont",
-      category: "Programmation",
-      students: 1245,
-      rating: 4.8,
-      revenue: "€12,450",
-      status: "active",
-    },
-    {
-      id: 2,
-      title: "Marketing Digital Avancé",
-      instructor: "Jean Martin",
-      category: "Marketing",
-      students: 876,
-      rating: 4.5,
-      revenue: "€8,760",
-      status: "active",
-    },
-    {
-      id: 3,
-      title: "Design UX/UI pour Débutants",
-      instructor: "Sophie Leclerc",
-      category: "Design",
-      students: 654,
-      rating: 4.7,
-      revenue: "€6,540",
-      status: "active",
-    },
-    {
-      id: 4,
-      title: "Machine Learning Fondamentaux",
-      instructor: "Pierre Dubois",
-      category: "Data Science",
-      students: 432,
-      rating: 4.9,
-      revenue: "€8,640",
-      status: "active",
-    },
-    {
-      id: 5,
-      title: "Développement Web Full Stack",
-      instructor: "Lucie Moreau",
-      category: "Développement Web",
-      students: 987,
-      rating: 4.6,
-      revenue: "€9,870",
-      status: "active",
-    },
-    {
-      id: 6,
-      title: "Photographie pour Débutants",
-      instructor: "Marc Leroy",
-      category: "Photographie",
-      students: 543,
-      rating: 4.4,
-      revenue: "€5,430",
-      status: "inactive",
-    },
-  ]
-
-  const allUsers = [
-    {
-      id: 1,
-      name: "Thomas Bernard",
-      email: "thomas.b@example.com",
-      role: "student",
-      joined: "2023-11-15",
-      courses: 3,
-      status: "active",
-    },
-    {
-      id: 2,
-      name: "Camille Roux",
-      email: "camille.r@example.com",
-      role: "instructor",
-      joined: "2023-11-14",
-      courses: 2,
-      status: "active",
-    },
-    {
-      id: 3,
-      name: "Lucas Moreau",
-      email: "lucas.m@example.com",
-      role: "student",
-      joined: "2023-11-13",
-      courses: 5,
-      status: "active",
-    },
-    {
-      id: 4,
-      name: "Emma Petit",
-      email: "emma.p@example.com",
-      role: "student",
-      joined: "2023-11-12",
-      courses: 1,
-      status: "inactive",
-    },
-    {
-      id: 5,
-      name: "Nicolas Durand",
-      email: "nicolas.d@example.com",
-      role: "instructor",
-      joined: "2023-11-10",
-      courses: 4,
-      status: "active",
-    },
-    {
-      id: 6,
-      name: "Sophie Martin",
-      email: "sophie.m@example.com",
-      role: "admin",
-      joined: "2023-10-05",
-      courses: 0,
-      status: "active",
-    },
-  ]
-
-  const renderStatusBadge = (status) => {
-    switch (status) {
-      case "active":
-        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Actif</Badge>
-      case "inactive":
-        return <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">Inactif</Badge>
-      case "pending":
-        return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">En attente</Badge>
-      case "completed":
-        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Complété</Badge>
-      case "refunded":
-        return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Remboursé</Badge>
-      default:
-        return <Badge>{status}</Badge>
+  // Handle scroll for sticky header
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 100)
     }
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
+
+  const { categories, loading: categoriesLoading, error: categoriesError } = useCategories()
+  const { courses, loading: coursesLoading, error: coursesError, total, currentPage, perPage, setCurrentPage } = useCourses()
+
+  // Filter courses based on search, category, and other filters
+  const filteredCourses = useCallback(() => {
+    if (!courses) return []
+    
+    return courses.filter((course: Course) => {
+      // Filtre du terme de recherche
+      const searchMatch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (course?.subtitle && course.subtitle.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        course.description.toLowerCase().includes(searchTerm.toLowerCase())
+
+      // Filtre de catégorie
+      const categoryMatch = !selectedCategory ||( course?.category_id &&course.category_id.toString() === selectedCategory)
+
+      // Subcategory filter
+      const subcategoryMatch = !selectedSubcategory || course?.subcategory_id === selectedSubcategory
+
+      // Price range filter
+      const price = course.discount ? course.price * (1 - course.discount / 100) : course.price
+      const priceMatch = price >= priceRange[0] && price <= priceRange[1]
+
+      // Level filter
+      const levelMatch = selectedLevels.length === 0 || selectedLevels.includes(course.level)
+
+      // Language filter
+      const languageMatch = selectedLanguages.length === 0 || selectedLanguages.includes(course.language)
+
+      // Rating filter
+      const ratingMatch = !selectedRating || course.average_rating >= selectedRating
+
+      return searchMatch && categoryMatch && subcategoryMatch && levelMatch && languageMatch && ratingMatch && priceMatch
+    }).sort((a: Course, b: Course) => {
+      // Sort based on selected option
+      switch (sortOption) {
+        case "popular":
+          return (b.studentsCount || 0) - (a.studentsCount || 0)
+        case "highest-rated":
+          return b.average_rating - a.average_rating
+        case "newest":
+          return new Date(b.created_at || "").getTime() - new Date(a.created_at || "").getTime()
+        case "price-low":
+          return (a.discount ? a.price * (1 - a.discount / 100) : a.price) - (b.discount ? b.price * (1 - b.discount / 100) : b.price)
+        case "price-high":
+          return (b.discount ? b.price * (1 - b.discount / 100) : b.price) - (a.discount ? a.price * (1 - a.discount / 100) : a.price)
+        default:
+          return 0
+      }
+    })
+  }, [courses, searchTerm, selectedCategory, selectedSubcategory, priceRange, selectedLevels, selectedLanguages, selectedRating, sortOption])
+
+  if (categoriesLoading || coursesLoading) {
+    return <div>Chargement des données...</div>
   }
 
-  const handleCourseApproval = (courseId, action) => {
-    // Logique pour approuver ou rejeter un cours
-    console.log(`Course ${courseId} ${action === "approve" ? "approved" : "rejected"}`)
-    setIsApprovalDialogOpen(false)
+  if (categoriesError) {
+    return <div>Erreur: {categoriesError}</div>
+  }
+
+  if (coursesError) {
+    return <div>Erreur: {coursesError}</div>
+  }
+
+  // Handle category selection
+  const handleCategorySelect = (categoryId: string) => {
+    if (selectedCategory === categoryId) {
+      setSelectedCategory(null)
+      setSelectedSubcategory(null)
+    } else {
+      setSelectedCategory(categoryId)
+      setSelectedSubcategory(null)
+    }
+    setShowCategoryDropdown(false)
+  }
+
+  // Handle subcategory selection
+  const handleSubcategorySelect = (subcategoryId: string) => {
+    setSelectedSubcategory(subcategoryId === selectedSubcategory ? null : subcategoryId)
+  }
+
+  // Handle level selection
+  const handleLevelSelect = (level: string) => {
+    setSelectedLevels((prev) => (prev.includes(level) ? prev.filter((l) => l !== level) : [...prev, level]))
+  }
+
+  // Handle language selection
+  const handleLanguageSelect = (language: string) => {
+    setSelectedLanguages((prev) => (prev.includes(language) ? prev.filter((l) => l !== language) : [...prev, language]))
+  }
+
+  // Handle rating selection
+  const handleRatingSelect = (rating: number) => {
+    setSelectedRating(rating === selectedRating ? null : rating)
+  }
+
+  // Handle price range change
+  const handlePriceRangeChange = (value: [number, number]) => {
+    setPriceRange(value)
+  }
+
+  // Reset all filters
+  const resetFilters = () => {
+    setSelectedCategory(null)
+    setSelectedSubcategory(null)
+    setSelectedLevels([])
+    setSelectedLanguages([])
+    setSelectedRating(null)
+    setPriceRange([0, 200])
+    setSortOption("popular")
+  }
+
+  // Get active category name
+  const getActiveCategoryName = useCallback(() => {
+    if (!selectedCategory) return "All Categories"
+    const category = categories.find((c) => c.id === selectedCategory)
+    return category ? category.title : "All Categories"
+  }, [categories, selectedCategory])
+
+  // Get active subcategory name
+  const getActiveSubcategoryName = useCallback(() => {
+    if (!selectedSubcategory) return "All Subcategories"
+    const category = categories.find((c) => c.id === selectedCategory)
+    if (!category || !category.subcategories) return "All Subcategories"
+    const subcategory = category.subcategories.find((s) => s.id === selectedSubcategory)
+    return subcategory ? subcategory.title : "All Subcategories"
+  }, [categories, selectedCategory, selectedSubcategory])
+
+  // Get subcategories for a given category
+  const getSubcategories = useCallback(() => {
+    if (!selectedCategory) return []
+    const category = categories.find((c) => c.id === selectedCategory)
+    return category && category.subcategories ? category.subcategories : []
+  }, [categories, selectedCategory])
+
+  // Render star rating
+  const renderStarRating = (rating: number) => {
+    return (
+      <div className="flex items-center">
+        <div className="flex items-center mr-1">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <Star
+              key={star}
+              className={`h-4 w-4 ${star <= Math.round(rating) ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`}
+            />
+          ))}
+        </div>
+        <span className="text-sm font-medium">{Number(rating).toFixed(1)}</span>
+      </div>
+    )
   }
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Sidebar */}
-      <div
-        className={`${isSidebarOpen ? "w-64" : "w-20"} bg-white dark:bg-gray-800 shadow-md transition-all duration-300 ease-in-out overflow-hidden`}
-      >
-        <div className="p-4 flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center">
-            <BookOpen className="h-8 w-8 text-primary" />
-            {isSidebarOpen && <span className="ml-2 text-xl font-bold text-gray-800 dark:text-white">EduAdmin</span>}
+    <div className="min-h-screen bg-white">
+      {/* Hero Section */}
+      <div className="relative bg-gradient-to-r from-[#a435f0] to-[#8710d8] text-white">
+        <div className="container mx-auto px-4 py-16 md:py-24">
+          <div className="max-w-3xl">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">Expand Your Knowledge</h1>
+            <p className="text-xl md:text-2xl mb-8">
+              Discover thousands of courses taught by industry experts and take your skills to the next level.
+            </p>
+            <div className="relative max-w-2xl">
+              <input
+                type="text"
+                placeholder="What do you want to learn today?"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full h-14 pl-12 pr-4 rounded-xl text-gray-800 bg-white shadow-lg focus:outline-none focus:ring-2 focus:ring-[#a435f0]"
+              />
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500" />
+              <button className="absolute right-3 top-1/2 transform -translate-y-1/2 bg-[#a435f0] text-white px-4 py-2 rounded-lg hover:bg-[#8710d8] transition-colors">
+                Search
+              </button>
+            </div>
           </div>
-          <button onClick={toggleSidebar} className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
-            {isSidebarOpen ? (
-              <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-            ) : (
-              <Menu className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-            )}
-          </button>
         </div>
-        <nav className="mt-5 px-2">
-          <Button
-            variant={activeTab === "overview" ? "default" : "ghost"}
-            className={`w-full justify-start mb-2 ${!isSidebarOpen && "justify-center"}`}
-            onClick={() => setActiveTab("overview")}
-          >
-            <BarChart2 className="h-5 w-5 mr-2" />
-            {isSidebarOpen && <span>Vue d'ensemble</span>}
-          </Button>
-          <Button
-            variant={activeTab === "courses" ? "default" : "ghost"}
-            className={`w-full justify-start mb-2 ${!isSidebarOpen && "justify-center"}`}
-            onClick={() => setActiveTab("courses")}
-          >
-            <BookOpen className="h-5 w-5 mr-2" />
-            {isSidebarOpen && <span>Cours</span>}
-          </Button>
-          <Button
-            variant={activeTab === "users" ? "default" : "ghost"}
-            className={`w-full justify-start mb-2 ${!isSidebarOpen && "justify-center"}`}
-            onClick={() => setActiveTab("users")}
-          >
-            <Users className="h-5 w-5 mr-2" />
-            {isSidebarOpen && <span>Utilisateurs</span>}
-          </Button>
-          <Button
-            variant={activeTab === "finance" ? "default" : "ghost"}
-            className={`w-full justify-start mb-2 ${!isSidebarOpen && "justify-center"}`}
-            onClick={() => setActiveTab("finance")}
-          >
-            <DollarSign className="h-5 w-5 mr-2" />
-            {isSidebarOpen && <span>Finances</span>}
-          </Button>
-          <Button
-            variant={activeTab === "reports" ? "default" : "ghost"}
-            className={`w-full justify-start mb-2 ${!isSidebarOpen && "justify-center"}`}
-            onClick={() => setActiveTab("reports")}
-          >
-            <BarChart2 className="h-5 w-5 mr-2" />
-            {isSidebarOpen && <span>Rapports</span>}
-          </Button>
-          <Button
-            variant={activeTab === "settings" ? "default" : "ghost"}
-            className={`w-full justify-start mb-2 ${!isSidebarOpen && "justify-center"}`}
-            onClick={() => setActiveTab("settings")}
-          >
-            <Settings className="h-5 w-5 mr-2" />
-            {isSidebarOpen && <span>Paramètres</span>}
-          </Button>
-        </nav>
+
+        {/* Wave shape divider */}
+        <div className="absolute bottom-0 left-0 right-0 h-16 overflow-hidden">
+          <svg viewBox="0 0 1440 100" className="absolute bottom-0 w-full h-full" preserveAspectRatio="none">
+            <path
+              fill="#ffffff"
+              fillOpacity="1"
+              d="M0,32L60,42.7C120,53,240,75,360,74.7C480,75,600,53,720,42.7C840,32,960,32,1080,37.3C1200,43,1320,53,1380,58.7L1440,64L1440,100L1380,100C1320,100,1200,100,1080,100C960,100,840,100,720,100C600,100,480,100,360,100C240,100,120,100,60,100L0,100Z"
+            ></path>
+          </svg>
+        </div>
+      </div>
+
+      {/* Sticky Category Navigation */}
+      <div
+        className={`sticky top-0 z-30 bg-white border-b border-gray-200 transition-shadow ${isScrolled ? "shadow-md" : ""}`}
+      >
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between py-3">
+            {/* Category Dropdown (Mobile) */}
+            <div className="relative md:hidden">
+              <button
+                onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                className="flex items-center space-x-2 px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+              >
+                <span>{getActiveCategoryName()}</span>
+                <ChevronDown className="h-4 w-4" />
+              </button>
+
+              {showCategoryDropdown && (
+                <div className="absolute left-0 mt-2 w-64 rounded-lg bg-white shadow-xl border border-gray-200 z-40 max-h-96 overflow-y-auto">
+                  <div className="p-2">
+                    <button
+                      onClick={() => {
+                        setSelectedCategory(null)
+                        setSelectedSubcategory(null)
+                        setShowCategoryDropdown(false)
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-md ${
+                        !selectedCategory ? "bg-[#f7f9fa] text-[#a435f0] font-medium" : "hover:bg-gray-100"
+                      }`}
+                    >
+                      All Categories
+                    </button>
+                    {categories.map((category) => (
+                      <div key={category.id}>
+                        <button
+                          onClick={() => handleCategorySelect(category.id)}
+                          className={`w-full text-left px-3 py-2 rounded-md flex items-center justify-between ${
+                            selectedCategory === category.id
+                              ? "bg-[#f7f9fa] text-[#a435f0] font-medium"
+                              : "hover:bg-gray-100"
+                          }`}
+                        >
+                          <span>{category.title}</span>
+                          <ChevronRight className="h-4 w-4" />
+                        </button>
+
+                        {selectedCategory === category.id && (
+                          <div className="ml-4 border-l border-gray-200 pl-2 mt-1 mb-2">
+                            {category.subcategories && category.subcategories.map((subcategory) => (
+                              <button
+                                key={subcategory.id}
+                                onClick={() => handleSubcategorySelect(subcategory.id)}
+                                className={`w-full text-left px-3 py-1.5 rounded-md ${
+                                  selectedSubcategory === subcategory.id
+                                    ? "bg-[#f7f9fa] text-[#a435f0] font-medium"
+                                    : "hover:bg-gray-100"
+                                }`}
+                              >
+                                {subcategory.title}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Category Navigation (Desktop) */}
+            <div className="hidden md:flex items-center space-x-1 overflow-x-auto scrollbar-hide">
+              <button
+                onClick={() => {
+                  setSelectedCategory(null)
+                  setSelectedSubcategory(null)
+                }}
+                className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                  !selectedCategory
+                    ? "bg-[#a435f0] text-white"
+                    : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
+                }`}
+              >
+                All Categories
+              </button>
+
+              {categories.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => handleCategorySelect(category.id)}
+                  className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                    selectedCategory === category.id
+                      ? "bg-[#a435f0] text-white"
+                      : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
+                  }`}
+                >
+                  {category.title}
+                </button>
+              ))}
+            </div>
+
+            {/* Filter and Sort Controls */}
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="flex items-center space-x-2 px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+              >
+                <Filter className="h-4 w-4" />
+                <span className="hidden sm:inline">Filters</span>
+              </button>
+
+              <select
+                value={sortOption}
+                onChange={(e) => setSortOption(e.target.value)}
+                className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#a435f0]"
+              >
+                <option value="popular">Most Popular</option>
+                <option value="highest-rated">Highest Rated</option>
+                <option value="newest">Newest</option>
+                <option value="price-low">Price: Low to High</option>
+                <option value="price-high">Price: High to Low</option>
+              </select>
+
+              <div className="hidden sm:flex items-center space-x-2">
+                <button
+                  onClick={() => setViewMode("grid")}
+                  className={`p-2 rounded-lg ${viewMode === "grid" ? "bg-gray-100" : "hover:bg-gray-100"}`}
+                >
+                  <BarChart3 className="h-5 w-5 text-gray-700" />
+                </button>
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={`p-2 rounded-lg ${viewMode === "list" ? "bg-gray-100" : "hover:bg-gray-100"}`}
+                >
+                  <div className="flex flex-col space-y-1">
+                    <div className="h-1 w-5 bg-gray-700 rounded-full"></div>
+                    <div className="h-1 w-5 bg-gray-700 rounded-full"></div>
+                    <div className="h-1 w-5 bg-gray-700 rounded-full"></div>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Subcategory Navigation (when a category is selected) */}
+          {selectedCategory && (
+            <div className="py-2 overflow-x-auto scrollbar-hide">
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setSelectedSubcategory(null)}
+                  className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                    !selectedSubcategory
+                      ? "bg-[#a435f0] text-white"
+                      : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
+                  }`}
+                >
+                  All {getActiveCategoryName()}
+                </button>
+
+                {getSubcategories().map((subcategory) => (
+                    <button
+                      key={subcategory.id}
+                      onClick={() => handleSubcategorySelect(subcategory.id)}
+                      className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                        selectedSubcategory === subcategory.id
+                          ? "bg-[#a435f0] text-white"
+                          : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
+                      }`}
+                    >
+                      {subcategory.title}
+                    </button>
+                  ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        {/* Header */}
-        <header className="bg-white dark:bg-gray-800 shadow-sm">
-          <div className="px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center">
-              <h1 className="text-xl font-semibold text-gray-800 dark:text-white">
-                {activeTab === "overview" && "Vue d'ensemble"}
-                {activeTab === "courses" && "Gestion des Cours"}
-                {activeTab === "users" && "Gestion des Utilisateurs"}
-                {activeTab === "finance" && "Finances"}
-                {activeTab === "reports" && "Rapports"}
-                {activeTab === "settings" && "Paramètres"}
-              </h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="relative">
-                <Input
-                  type="text"
-                  placeholder="Rechercher..."
-                  className="pl-10 pr-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 focus:ring-primary focus:border-primary"
-                />
-                <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-              </div>
-              <Button variant="outline" size="icon">
-                <Bell className="h-5 w-5" />
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                    <Avatar>
-                      <AvatarImage src="/placeholder.svg?height=40&width=40" alt="Admin" />
-                      <AvatarFallback>AD</AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Mon Compte</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem>Profil</DropdownMenuItem>
-                  <DropdownMenuItem>Paramètres</DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem>Déconnexion</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-        </header>
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex flex-col md:flex-row gap-6">
+          {/* Filters Panel (Desktop) */}
+          {showFilters && (
+            <div className="md:w-64 lg:w-72 flex-shrink-0">
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sticky top-24">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold">Filters</h3>
+                  <button onClick={resetFilters} className="text-sm text-[#a435f0] hover:underline">
+                    Reset All
+                  </button>
+                </div>
 
-        {/* Dashboard Content */}
-        <main className="p-6">
-          {/* Overview Tab */}
-          {activeTab === "overview" && (
-            <div className="space-y-6">
-              {/* Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {stats.map((stat, index) => (
-                  <Card key={index}>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                      <CardTitle className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                        {stat.title}
-                      </CardTitle>
-                      <div className="p-2 bg-primary/10 rounded-full">{stat.icon}</div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">{stat.value}</div>
-                      <p className="text-xs text-green-500 mt-1">{stat.change} depuis le mois dernier</p>
-                    </CardContent>
-                  </Card>
+                {/* Price Range Filter */}
+                <div className="mb-6">
+                  <h4 className="font-medium mb-3">Price Range</h4>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-gray-600">${priceRange[0]}</span>
+                    <span className="text-sm text-gray-600">${priceRange[1]}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="200"
+                    step="5"
+                    value={priceRange[1]}
+                    onChange={(e) => handlePriceRangeChange([priceRange[0], Number.parseInt(e.target.value)])}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#a435f0]"
+                  />
+                </div>
+
+                {/* Level Filter */}
+                <div className="mb-6">
+                  <h4 className="font-medium mb-3">Level</h4>
+                  <div className="space-y-2">
+                    {["Beginner", "Intermediate", "Advanced", "All Levels"].map((level) => (
+                      <label key={level} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedLevels.includes(level)}
+                          onChange={() => handleLevelSelect(level)}
+                          className="rounded border-gray-300 text-[#a435f0] focus:ring-[#a435f0] h-4 w-4"
+                        />
+                        <span className="ml-2 text-sm">{level}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Language Filter */}
+                <div className="mb-6">
+                  <h4 className="font-medium mb-3">Language</h4>
+                  <div className="space-y-2">
+                    {["English", "French", "Spanish", "German", "Japanese"].map((language) => (
+                      <label key={language} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedLanguages.includes(language)}
+                          onChange={() => handleLanguageSelect(language)}
+                          className="rounded border-gray-300 text-[#a435f0] focus:ring-[#a435f0] h-4 w-4"
+                        />
+                        <span className="ml-2 text-sm">{language}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Rating Filter */}
+                <div className="mb-6">
+                  <h4 className="font-medium mb-3">Rating</h4>
+                  <div className="space-y-2">
+                    {[4.5, 4.0, 3.5, 3.0].map((rating) => (
+                      <label key={rating} className="flex items-center">
+                        <input
+                          type="radio"
+                          name="rating"
+                          checked={selectedRating === rating}
+                          onChange={() => handleRatingSelect(rating)}
+                          className="rounded-full border-gray-300 text-[#a435f0] focus:ring-[#a435f0] h-4 w-4"
+                        />
+                        <span className="ml-2 flex items-center">
+                          {renderStarRating(rating)}
+                          <span className="ml-1 text-sm text-gray-600">& up</span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setShowFilters(false)}
+                  className="w-full py-2 rounded-lg bg-[#a435f0] text-white font-medium hover:bg-[#8710d8] transition-colors md:hidden"
+                >
+                  Apply Filters
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Courses Grid */}
+          <div className="flex-1">
+            {/* Results Summary */}
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold mb-2">
+                {selectedCategory
+                  ? `${getActiveCategoryName()} ${selectedSubcategory ? `- ${getActiveSubcategoryName()}` : ""} Courses`
+                  : "All Courses"}
+              </h2>
+              <p className="text-gray-600">
+                {filteredCourses().length} results
+                {searchTerm && ` for "${searchTerm}"`}
+              </p>
+            </div>
+
+            {/* Courses */}
+            {filteredCourses().length === 0 ? (
+              <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+                <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                  <Search className="h-8 w-8 text-gray-400" />
+                </div>
+                <h3 className="text-xl font-bold mb-2">No courses found</h3>
+                <p className="text-gray-600 mb-4">
+                  Try adjusting your search or filter to find what you're looking for.
+                </p>
+                <button
+                  onClick={resetFilters}
+                  className="px-4 py-2 bg-[#a435f0] text-white rounded-lg hover:bg-[#8710d8] transition-colors"
+                >
+                  Reset Filters
+                </button>
+              </div>
+            ) : (
+              <div
+                className={
+                  viewMode === "grid"
+                    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                    : "space-y-6"
+                }
+              >
+                {filteredCourses().map((course) => (
+                  <motion.div
+                    key={course.id}
+                    className={`bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow ${
+                      viewMode === "list" ? "flex flex-col md:flex-row" : ""
+                    }`}
+                    onMouseEnter={() => setHoveredCourse(course.id.toString())}
+                    onMouseLeave={() => setHoveredCourse(null)}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <div className={`relative ${viewMode === "list" ? "md:w-64 flex-shrink-0" : ""}`}>
+                      <img
+                        src={course.image_url || "/placeholder.svg"}
+                        alt={course.title}
+                        className="w-full h-48 object-cover"
+                      />
+                      {course.bestseller && (
+                        <div className="absolute top-3 left-3 bg-yellow-400 text-xs font-bold px-2 py-1 rounded">
+                          BESTSELLER
+                        </div>
+                      )}
+                      {course.new && (
+                        <div className="absolute top-3 left-3 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded">
+                          NEW
+                        </div>
+                      )}
+                      {hoveredCourse === course.id.toString() && (
+                        <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center">
+                          <div className="bg-white p-2 rounded-full">
+                            <Play className="h-8 w-8 text-[#a435f0]" />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="p-4 flex flex-col flex-grow">
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="font-bold text-lg line-clamp-2">{course.title}</h3>
+                        <button className="flex-shrink-0 ml-2 text-gray-400 hover:text-[#a435f0]">
+                          <Heart className="h-5 w-5" />
+                        </button>
+                      </div>
+
+                      <p className="text-sm text-gray-600 mb-2">{course.instructor.first_name} {course.instructor.last_name}</p>
+
+                      <div className="flex items-center mb-2">
+                        {renderStarRating(course.average_rating)}
+                        <span className="text-xs text-gray-500 ml-1">({course.reviewCount?.toLocaleString()})</span>
+                      </div>
+
+                      <div className="flex items-center text-xs text-gray-600 space-x-3 mb-3">
+                        <div className="flex items-center">
+                          <Clock className="h-3 w-3 mr-1" />
+                          <span>{course.duration}</span>
+                        </div>
+                        <div className="flex items-center">
+                          <Users className="h-3 w-3 mr-1" />
+                          <span>{course.studentsCount?.toLocaleString()} students</span>
+                        </div>
+                        <div className="flex items-center">
+                          <BookOpen className="h-3 w-3 mr-1" />
+                          <span>{course.level}</span>
+                        </div>
+                      </div>
+
+                      {viewMode === "list" && (
+                        <p className="text-sm text-gray-600 mb-4 line-clamp-2">{course.description}</p>
+                      )}
+
+                      <div className="mt-auto flex items-center justify-between">
+                        <div className="flex items-center">
+                          {course.discount ? (
+                            <>
+                              <span className="text-lg font-bold">${(course.price * (1 - course.discount / 100)).toFixed(2)}</span>
+                              <span className="text-sm text-gray-500 line-through ml-2">
+                                ${Number(course.price).toFixed(2)}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-lg font-bold">${Number(course.price).toFixed(2)}</span>
+                          )}
+                        </div>
+
+                        <div className="flex gap-2">
+                          <button className="p-1.5 bg-[#a435f0] text-white text-sm font-medium rounded-lg hover:bg-[#8710d8] transition-colors">
+                            <ShoppingCart className="h-4 w-4" />
+                          </button>
+                          <button 
+                            onClick={() => navigate(`/course/${course.id}`)}
+                            className="p-1.5 bg-[#a435f0] text-white text-sm font-medium rounded-lg hover:bg-[#8710d8] transition-colors"
+                          >
+                            <BookOpen className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
                 ))}
               </div>
+            )}
 
-              {/* Charts and Tables */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Pending Courses */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Cours en Attente d'Approbation</CardTitle>
-                    <CardDescription>Cours récemment soumis nécessitant une révision</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Titre du Cours</TableHead>
-                          <TableHead>Instructeur</TableHead>
-                          <TableHead>Soumis le</TableHead>
-                          <TableHead>Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {pendingCourses.map((course) => (
-                          <TableRow key={course.id}>
-                            <TableCell className="font-medium">{course.title}</TableCell>
-                            <TableCell>{course.instructor}</TableCell>
-                            <TableCell>{new Date(course.submitted).toLocaleDateString()}</TableCell>
-                            <TableCell>
-                              <Dialog>
-                                <DialogTrigger asChild>
-                                  <Button variant="outline" size="sm" onClick={() => setSelectedCourse(course)}>
-                                    Réviser
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                  <DialogHeader>
-                                    <DialogTitle>Révision du Cours</DialogTitle>
-                                    <DialogDescription>
-                                      Examinez les détails du cours avant de l'approuver ou de le rejeter.
-                                    </DialogDescription>
-                                  </DialogHeader>
-                                  {selectedCourse && (
-                                    <div className="space-y-4 py-4">
-                                      <div className="space-y-2">
-                                        <h3 className="font-semibold">{selectedCourse.title}</h3>
-                                        <p className="text-sm text-gray-500">Par {selectedCourse.instructor}</p>
-                                        <Badge>{selectedCourse.category}</Badge>
-                                      </div>
-                                      <div className="space-y-2">
-                                        <h4 className="text-sm font-medium">Description du cours</h4>
-                                        <p className="text-sm">
-                                          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam in dui mauris.
-                                          Vivamus hendrerit arcu sed erat molestie vehicula.
-                                        </p>
-                                      </div>
-                                      <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                          <h4 className="text-sm font-medium">Durée</h4>
-                                          <p className="text-sm">8 heures</p>
-                                        </div>
-                                        <div>
-                                          <h4 className="text-sm font-medium">Niveau</h4>
-                                          <p className="text-sm">Intermédiaire</p>
-                                        </div>
-                                        <div>
-                                          <h4 className="text-sm font-medium">Prix</h4>
-                                          <p className="text-sm">€49.99</p>
-                                        </div>
-                                        <div>
-                                          <h4 className="text-sm font-medium">Langue</h4>
-                                          <p className="text-sm">Français</p>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  )}
-                                  <DialogFooter>
-                                    <Button
-                                      variant="outline"
-                                      onClick={() => handleCourseApproval(selectedCourse?.id, "reject")}
-                                    >
-                                      Rejeter
-                                    </Button>
-                                    <Button onClick={() => handleCourseApproval(selectedCourse?.id, "approve")}>
-                                      Approuver
-                                    </Button>
-                                  </DialogFooter>
-                                </DialogContent>
-                              </Dialog>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                  <CardFooter>
-                    <Button variant="outline" className="w-full">
-                      Voir tous les cours en attente
-                    </Button>
-                  </CardFooter>
-                </Card>
-
-                {/* Recent Users */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Utilisateurs Récents</CardTitle>
-                    <CardDescription>Nouveaux utilisateurs inscrits sur la plateforme</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Nom</TableHead>
-                          <TableHead>Rôle</TableHead>
-                          <TableHead>Inscrit le</TableHead>
-                          <TableHead>Cours</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {recentUsers.map((user) => (
-                          <TableRow key={user.id}>
-                            <TableCell className="font-medium">
-                              <div className="flex items-center">
-                                <Avatar className="h-8 w-8 mr-2">
-                                  <AvatarImage src={`/placeholder.svg?height=32&width=32`} />
-                                  <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <div className="font-medium">{user.name}</div>
-                                  <div className="text-xs text-gray-500">{user.email}</div>
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <Badge
-                                className={
-                                  user.role === "student"
-                                    ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
-                                    : user.role === "instructor"
-                                      ? "bg-purple-100 text-purple-800 hover:bg-purple-100"
-                                      : "bg-green-100 text-green-800 hover:bg-green-100"
-                                }
-                              >
-                                {user.role === "student"
-                                  ? "Étudiant"
-                                  : user.role === "instructor"
-                                    ? "Instructeur"
-                                    : "Admin"}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>{new Date(user.joined).toLocaleDateString()}</TableCell>
-                            <TableCell>{user.courses}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                  <CardFooter>
-                    <Button variant="outline" className="w-full" onClick={() => setActiveTab("users")}>
-                      Gérer les utilisateurs
-                    </Button>
-                  </CardFooter>
-                </Card>
+            {/* Pagination */}
+            {filteredCourses().length > 0 && (
+              <div className="mt-8 flex justify-center">
+                <nav className="flex items-center space-x-1">
+                  <button 
+                    className="px-3 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100"
+                    onClick={() => setCurrentPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  {Array.from({ length: Math.ceil(total / perPage) }, (_, i) => i + 1).map((page) => (
+                    <button
+                      key={page}
+                      className={`px-4 py-2 rounded-md ${
+                        currentPage === page
+                          ? "bg-[#a435f0] text-white font-medium"
+                          : "border border-gray-300 text-gray-700 hover:bg-gray-100"
+                      }`}
+                      onClick={() => setCurrentPage(page)}
+                    >
+                      {page}
+                  </button>
+                  ))}
+                  <button 
+                    className="px-3 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100"
+                    onClick={() => setCurrentPage(currentPage + 1)}
+                    disabled={currentPage === Math.ceil(total / perPage)}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </nav>
               </div>
-
-              {/* Recent Transactions */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Transactions Récentes</CardTitle>
-                  <CardDescription>Dernières transactions financières sur la plateforme</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Utilisateur</TableHead>
-                        <TableHead>Cours</TableHead>
-                        <TableHead>Montant</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Statut</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {recentTransactions.map((transaction) => (
-                        <TableRow key={transaction.id}>
-                          <TableCell className="font-medium">{transaction.user}</TableCell>
-                          <TableCell>{transaction.course}</TableCell>
-                          <TableCell>{transaction.amount}</TableCell>
-                          <TableCell>{new Date(transaction.date).toLocaleDateString()}</TableCell>
-                          <TableCell>{renderStatusBadge(transaction.status)}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-                <CardFooter>
-                  <Button variant="outline" className="w-full" onClick={() => setActiveTab("finance")}>
-                    Voir toutes les transactions
-                  </Button>
-                </CardFooter>
-              </Card>
-            </div>
-          )}
-
-          {/* Courses Tab */}
-          {activeTab === "courses" && (
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold">Gestion des Cours</h2>
-                <div className="flex space-x-2">
-                  <Button variant="outline" size="sm">
-                    <Filter className="h-4 w-4 mr-2" />
-                    Filtrer
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <Download className="h-4 w-4 mr-2" />
-                    Exporter
-                  </Button>
-                  <Button size="sm">
-                    <BookOpen className="h-4 w-4 mr-2" />
-                    Ajouter un Cours
-                  </Button>
-                </div>
-              </div>
-
-              <div className="flex justify-between items-center">
-                <div className="flex items-center space-x-2">
-                  <Input type="text" placeholder="Rechercher des cours..." className="w-80" />
-                  <Select>
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Catégorie" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Toutes</SelectItem>
-                      <SelectItem value="programming">Programmation</SelectItem>
-                      <SelectItem value="design">Design</SelectItem>
-                      <SelectItem value="marketing">Marketing</SelectItem>
-                      <SelectItem value="business">Business</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Select>
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Statut" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Tous</SelectItem>
-                      <SelectItem value="active">Actifs</SelectItem>
-                      <SelectItem value="inactive">Inactifs</SelectItem>
-                      <SelectItem value="pending">En attente</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">
-                    Affichage de {allCourses.length} cours sur {allCourses.length}
-                  </p>
-                </div>
-              </div>
-
-              <Card>
-                <CardContent className="p-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Titre du Cours</TableHead>
-                        <TableHead>Instructeur</TableHead>
-                        <TableHead>Catégorie</TableHead>
-                        <TableHead>Étudiants</TableHead>
-                        <TableHead>Note</TableHead>
-                        <TableHead>Revenus</TableHead>
-                        <TableHead>Statut</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {allCourses.map((course) => (
-                        <TableRow key={course.id}>
-                          <TableCell className="font-medium">{course.title}</TableCell>
-                          <TableCell>{course.instructor}</TableCell>
-                          <TableCell>{course.category}</TableCell>
-                          <TableCell>{course.students}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <span className="mr-1">{course.rating}</span>
-                              <svg className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
-                              </svg>
-                            </div>
-                          </TableCell>
-                          <TableCell>{course.revenue}</TableCell>
-                          <TableCell>{renderStatusBadge(course.status)}</TableCell>
-                          <TableCell>
-                            <div className="flex space-x-2">
-                              <Button variant="ghost" size="icon">
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="icon">
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="icon">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-                <CardFooter className="flex justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Button variant="outline" size="sm" disabled>
-                      Précédent
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      1
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      2
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      3
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      Suivant
-                    </Button>
-                  </div>
-                  <Select defaultValue="10">
-                    <SelectTrigger className="w-[120px]">
-                      <SelectValue placeholder="Afficher" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="10">10 par page</SelectItem>
-                      <SelectItem value="20">20 par page</SelectItem>
-                      <SelectItem value="50">50 par page</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </CardFooter>
-              </Card>
-            </div>
-          )}
-
-          {/* Users Tab */}
-          {activeTab === "users" && (
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold">Gestion des Utilisateurs</h2>
-                <div className="flex space-x-2">
-                  <Button variant="outline" size="sm">
-                    <Filter className="h-4 w-4 mr-2" />
-                    Filtrer
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <Download className="h-4 w-4 mr-2" />
-                    Exporter
-                  </Button>
-                  <Button size="sm">
-                    <Users className="h-4 w-4 mr-2" />
-                    Ajouter un Utilisateur
-                  </Button>
-                </div>
-              </div>
-
-              <div className="flex justify-between items-center">
-                <div className="flex items-center space-x-2">
-                  <Input type="text" placeholder="Rechercher des utilisateurs..." className="w-80" />
-                  <Select>
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Rôle" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Tous</SelectItem>
-                      <SelectItem value="student">Étudiants</SelectItem>
-                      <SelectItem value="instructor">Instructeurs</SelectItem>
-                      <SelectItem value="admin">Administrateurs</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Select>
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Statut" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Tous</SelectItem>
-                      <SelectItem value="active">Actifs</SelectItem>
-                      <SelectItem value="inactive">Inactifs</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">
-                    Affichage de {allUsers.length} utilisateurs sur {allUsers.length}
-                  </p>
-                </div>
-              </div>
-
-              <Card>
-                <CardContent className="p-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Nom</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Rôle</TableHead>
-                        <TableHead>Inscrit le</TableHead>
-                        <TableHead>Cours</TableHead>
-                        <TableHead>Statut</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {allUsers.map((user) => (
-                        <TableRow key={user.id}>
-                          <TableCell className="font-medium">
-                            <div className="flex items-center">
-                              <Avatar className="h-8 w-8 mr-2">
-                                <AvatarImage src={`/placeholder.svg?height=32&width=32`} />
-                                <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
-                              </Avatar>
-                              <div>{user.name}</div>
-                            </div>
-                          </TableCell>
-                          <TableCell>{user.email}</TableCell>
-                          <TableCell>
-                            <Badge
-                              className={
-                                user.role === "student"
-                                  ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
-                                  : user.role === "instructor"
-                                    ? "bg-purple-100 text-purple-800 hover:bg-purple-100"
-                                    : "bg-green-100 text-green-800 hover:bg-green-100"
-                              }
-                            >
-                              {user.role === "student"
-                                ? "Étudiant"
-                                : user.role === "instructor"
-                                  ? "Instructeur"
-                                  : "Admin"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{new Date(user.joined).toLocaleDateString()}</TableCell>
-                          <TableCell>{user.courses}</TableCell>
-                          <TableCell>{renderStatusBadge(user.status)}</TableCell>
-                          <TableCell>
-                            <div className="flex space-x-2">
-                              <Button variant="ghost" size="icon">
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="icon">
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="icon">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-                <CardFooter className="flex justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Button variant="outline" size="sm" disabled>
-                      Précédent
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      1
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      Suivant
-                    </Button>
-                  </div>
-                  <Select defaultValue="10">
-                    <SelectTrigger className="w-[120px]">
-                      <SelectValue placeholder="Afficher" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="10">10 par page</SelectItem>
-                      <SelectItem value="20">20 par page</SelectItem>
-                      <SelectItem value="50">50 par page</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </CardFooter>
-              </Card>
-            </div>
-          )}
-
-          {/* Finance Tab */}
-          {activeTab === "finance" && (
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold">Gestion Financière</h2>
-                <div className="flex space-x-2">
-                  <Button variant="outline" size="sm">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Période
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <Download className="h-4 w-4 mr-2" />
-                    Exporter
-                  </Button>
-                </div>
-              </div>
-
-              {/* Revenue Overview */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Revenus Totaux</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">€124,750.50</div>
-                    <p className="text-xs text-green-500 mt-1">+15% depuis le mois dernier</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Revenus Mensuels</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">€48,234.20</div>
-                    <p className="text-xs text-green-500 mt-1">+8% depuis le mois dernier</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Valeur Moyenne des Commandes</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">€54.75</div>
-                    <p className="text-xs text-red-500 mt-1">-2% depuis le mois dernier</p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Transactions */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Transactions</CardTitle>
-                  <CardDescription>Historique complet des transactions sur la plateforme</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex justify-between items-center mb-4">
-                    <div className="flex items-center space-x-2">
-                      <Input type="text" placeholder="Rechercher des transactions..." className="w-80" />
-                      <Select>
-                        <SelectTrigger className="w-40">
-                          <SelectValue placeholder="Statut" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Tous</SelectItem>
-                          <SelectItem value="completed">Complétés</SelectItem>
-                          <SelectItem value="pending">En attente</SelectItem>
-                          <SelectItem value="refunded">Remboursés</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Select>
-                        <SelectTrigger className="w-40">
-                          <SelectValue placeholder="Période" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Toutes</SelectItem>
-                          <SelectItem value="today">Aujourd'hui</SelectItem>
-                          <SelectItem value="week">Cette semaine</SelectItem>
-                          <SelectItem value="month">Ce mois</SelectItem>
-                          <SelectItem value="year">Cette année</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>ID</TableHead>
-                        <TableHead>Utilisateur</TableHead>
-                        <TableHead>Cours</TableHead>
-                        <TableHead>Montant</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Méthode</TableHead>
-                        <TableHead>Statut</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {[
-                        ...recentTransactions,
-                        {
-                          id: 5,
-                          user: "Marie Dubois",
-                          course: "Python pour Data Science",
-                          amount: "€59.99",
-                          date: "2023-11-10",
-                          status: "completed",
-                        },
-                        {
-                          id: 6,
-                          user: "Thomas Leroy",
-                          course: "Design Thinking",
-                          amount: "€39.99",
-                          date: "2023-11-08",
-                          status: "completed",
-                        },
-                        {
-                          id: 7,
-                          user: "Sophie Martin",
-                          course: "Marketing Digital Avancé",
-                          amount: "€89.99",
-                          date: "2023-11-05",
-                          status: "refunded",
-                        },
-                        {
-                          id: 8,
-                          user: "Lucas Bernard",
-                          course: "Introduction à l'IA",
-                          amount: "€79.99",
-                          date: "2023-11-01",
-                          status: "completed",
-                        },
-                      ].map((transaction) => (
-                        <TableRow key={transaction.id}>
-                          <TableCell>#{transaction.id.toString().padStart(6, "0")}</TableCell>
-                          <TableCell className="font-medium">{transaction.user}</TableCell>
-                          <TableCell>{transaction.course}</TableCell>
-                          <TableCell>{transaction.amount}</TableCell>
-                          <TableCell>{new Date(transaction.date).toLocaleDateString()}</TableCell>
-                          <TableCell>Carte bancaire</TableCell>
-                          <TableCell>{renderStatusBadge(transaction.status)}</TableCell>
-                          <TableCell>
-                            <Button variant="ghost" size="icon">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-                <CardFooter className="flex justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Button variant="outline" size="sm" disabled>
-                      Précédent
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      1
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      2
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      3
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      Suivant
-                    </Button>
-                  </div>
-                  <Select defaultValue="10">
-                    <SelectTrigger className="w-[120px]">
-                      <SelectValue placeholder="Afficher" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="10">10 par page</SelectItem>
-                      <SelectItem value="20">20 par page</SelectItem>
-                      <SelectItem value="50">50 par page</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </CardFooter>
-              </Card>
-            </div>
-          )}
-
-          {/* Settings Tab */}
-          {activeTab === "settings" && (
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold">Paramètres du Système</h2>
-                <Button>Sauvegarder les modifications</Button>
-              </div>
-
-              <Tabs defaultValue="general">
-                <TabsList className="grid w-full grid-cols-5">
-                  <TabsTrigger value="general">Général</TabsTrigger>
-                  <TabsTrigger value="appearance">Apparence</TabsTrigger>
-                  <TabsTrigger value="notifications">Notifications</TabsTrigger>
-                  <TabsTrigger value="security">Sécurité</TabsTrigger>
-                  <TabsTrigger value="integrations">Intégrations</TabsTrigger>
-                </TabsList>
-                <TabsContent value="general" className="mt-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Paramètres Généraux</CardTitle>
-                      <CardDescription>
-                        Configurez les paramètres généraux de votre plateforme d'apprentissage
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Nom de la Plateforme</label>
-                        <Input defaultValue="EduLearn" />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">URL du Site</label>
-                        <Input defaultValue="https://edulearn.example.com" />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Email de Contact</label>
-                        <Input defaultValue="contact@edulearn.example.com" />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Devise par Défaut</label>
-                        <Select defaultValue="eur">
-                          <SelectTrigger>
-                            <SelectValue placeholder="Sélectionner une devise" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="eur">Euro (€)</SelectItem>
-                            <SelectItem value="usd">Dollar US ($)</SelectItem>
-                            <SelectItem value="gbp">Livre Sterling (£)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Langue par Défaut</label>
-                        <Select defaultValue="fr">
-                          <SelectTrigger>
-                            <SelectValue placeholder="Sélectionner une langue" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="fr">Français</SelectItem>
-                            <SelectItem value="en">Anglais</SelectItem>
-                            <SelectItem value="es">Espagnol</SelectItem>
-                            <SelectItem value="de">Allemand</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-                <TabsContent value="appearance" className="mt-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Apparence</CardTitle>
-                      <CardDescription>Personnalisez l'apparence de votre plateforme d'apprentissage</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Thème</label>
-                        <div className="flex space-x-4">
-                          <div className="flex items-center space-x-2">
-                            <input type="radio" id="light" name="theme" defaultChecked />
-                            <label htmlFor="light">Clair</label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <input type="radio" id="dark" name="theme" />
-                            <label htmlFor="dark">Sombre</label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <input type="radio" id="system" name="theme" />
-                            <label htmlFor="system">Système</label>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Couleur Principale</label>
-                        <div className="flex space-x-4">
-                          <div className="w-8 h-8 rounded-full bg-primary cursor-pointer border-2 border-gray-300" />
-                          <div className="w-8 h-8 rounded-full bg-blue-500 cursor-pointer" />
-                          <div className="w-8 h-8 rounded-full bg-green-500 cursor-pointer" />
-                          <div className="w-8 h-8 rounded-full bg-purple-500 cursor-pointer" />
-                          <div className="w-8 h-8 rounded-full bg-red-500 cursor-pointer" />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Logo</label>
-                        <div className="flex items-center space-x-4">
-                          <div className="w-16 h-16 bg-gray-100 rounded flex items-center justify-center">
-                            <BookOpen className="h-8 w-8 text-primary" />
-                          </div>
-                          <Button variant="outline">Changer le logo</Button>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Favicon</label>
-                        <div className="flex items-center space-x-4">
-                          <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center">
-                            <BookOpen className="h-4 w-4 text-primary" />
-                          </div>
-                          <Button variant="outline">Changer le favicon</Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </Tabs>
-            </div>
-          )}
-        </main>
+            )}
+          </div>
+        </div>
       </div>
+
+      {/* Mobile Filters Modal */}
+      <AnimatePresence>
+        {showFilters && (
+          <motion.div
+            className="md:hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-end"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowFilters(false)}
+          >
+            <motion.div
+              className="bg-white rounded-t-xl w-full max-h-[80vh] overflow-y-auto"
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-4 border-b border-gray-200 sticky top-0 bg-white z-10">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-bold">Filters</h3>
+                  <button onClick={() => setShowFilters(false)}>
+                    <X className="h-5 w-5 text-gray-500" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-4">
+                {/* Price Range Filter */}
+                <div className="mb-6">
+                  <h4 className="font-medium mb-3">Price Range</h4>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-gray-600">${priceRange[0]}</span>
+                    <span className="text-sm text-gray-600">${priceRange[1]}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="200"
+                    step="5"
+                    value={priceRange[1]}
+                    onChange={(e) => handlePriceRangeChange([priceRange[0], Number.parseInt(e.target.value)])}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#a435f0]"
+                  />
+                </div>
+
+                {/* Level Filter */}
+                <div className="mb-6">
+                  <h4 className="font-medium mb-3">Level</h4>
+                  <div className="space-y-2">
+                    {["Beginner", "Intermediate", "Advanced", "All Levels"].map((level) => (
+                      <label key={level} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedLevels.includes(level)}
+                          onChange={() => handleLevelSelect(level)}
+                          className="rounded border-gray-300 text-[#a435f0] focus:ring-[#a435f0] h-4 w-4"
+                        />
+                        <span className="ml-2 text-sm">{level}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Language Filter */}
+                <div className="mb-6">
+                  <h4 className="font-medium mb-3">Language</h4>
+                  <div className="space-y-2">
+                    {["English", "French", "Spanish", "German", "Japanese"].map((language) => (
+                      <label key={language} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedLanguages.includes(language)}
+                          onChange={() => handleLanguageSelect(language)}
+                          className="rounded border-gray-300 text-[#a435f0] focus:ring-[#a435f0] h-4 w-4"
+                        />
+                        <span className="ml-2 text-sm">{language}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Rating Filter */}
+                <div className="mb-6">
+                  <h4 className="font-medium mb-3">Rating</h4>
+                  <div className="space-y-2">
+                    {[4.5, 4.0, 3.5, 3.0].map((rating) => (
+                      <label key={rating} className="flex items-center">
+                        <input
+                          type="radio"
+                          name="rating"
+                          checked={selectedRating === rating}
+                          onChange={() => handleRatingSelect(rating)}
+                          className="rounded-full border-gray-300 text-[#a435f0] focus:ring-[#a435f0] h-4 w-4"
+                        />
+                        <span className="ml-2 flex items-center">
+                          {renderStarRating(rating)}
+                          <span className="ml-1 text-sm text-gray-600">& up</span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex space-x-3">
+                  <button
+                    onClick={resetFilters}
+                    className="flex-1 py-2.5 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50"
+                  >
+                    Reset
+                  </button>
+                  <button
+                    onClick={() => setShowFilters(false)}
+                    className="flex-1 py-2.5 rounded-lg bg-[#a435f0] text-white font-medium hover:bg-[#8710d8] transition-colors"
+                  >
+                    Apply Filters
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
-
-export default AdminDashboard
 

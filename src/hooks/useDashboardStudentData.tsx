@@ -1,6 +1,6 @@
 // hooks/useStudentDashboardData.js
 import { useEffect, useState } from 'react';
-import { axiosClient } from '../api/axios';
+import axiosClient  from '../api/axios';
 import { AxiosError } from 'axios';
 import { useAuth } from './useAuth';
 

@@ -1,20 +1,15 @@
 import { X, Play, BookOpen, Clock, Star, CheckCircle, ChevronDown, ChevronRight, Layers, Download, MessageSquare, ExternalLink, Share2, Bookmark } from "lucide-react"
+import { useState } from "react"
+import { Course, Section, Lesson } from "../../types/course"
+import CourseSections from "./CourseSections"
+import LessonViewer from "./LessonViewer"
 
 interface CourseDetailsProps {
-  course: {
-    id: number
-    title: string
-    instructor: string
+  course: Course & {
     progress: number
-    image: string
-    lastViewed: string
-    rating: number
-    reviews: number
-    totalLessons: number
     completedLessons: number
-    category: string
-    level: string
-    description: string
+    totalLessons: number
+    lastViewed: string
     bookmarked: boolean
     isArchived: boolean
     estimatedTimeLeft: string
@@ -25,6 +20,109 @@ interface CourseDetailsProps {
 }
 
 export default function CourseDetails({ course, onClose }: CourseDetailsProps) {
+  const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null)
+  const [currentSectionIndex, setCurrentSectionIndex] = useState<number>(0)
+  const [currentLessonIndex, setCurrentLessonIndex] = useState<number>(0)
+
+  const handleLessonClick = (lesson: Lesson) => {
+    setSelectedLesson(lesson)
+    
+    // Trouver l'index de la section et de la leçon
+    if (course.sections) {
+      for (let i = 0; i < course.sections.length; i++) {
+        const section = course.sections[i]
+        const lessonIndex = section.lessons.findIndex(l => l.id === lesson.id)
+        if (lessonIndex !== -1) {
+          setCurrentSectionIndex(i)
+          setCurrentLessonIndex(lessonIndex)
+          break
+        }
+      }
+    }
+  }
+
+  const handleCloseLesson = () => {
+    setSelectedLesson(null)
+  }
+
+  const handleNextLesson = () => {
+    if (!course.sections) return
+    
+    const currentSection = course.sections[currentSectionIndex]
+    
+    // Si c'est la dernière leçon de la section
+    if (currentLessonIndex === currentSection.lessons.length - 1) {
+      // Si c'est la dernière section
+      if (currentSectionIndex === course.sections.length - 1) {
+        return // Ne rien faire, c'est la dernière leçon
+      }
+      
+      // Passer à la première leçon de la section suivante
+      setCurrentSectionIndex(currentSectionIndex + 1)
+      setCurrentLessonIndex(0)
+      setSelectedLesson(course.sections[currentSectionIndex + 1].lessons[0])
+    } else {
+      // Passer à la leçon suivante de la section actuelle
+      setCurrentLessonIndex(currentLessonIndex + 1)
+      setSelectedLesson(currentSection.lessons[currentLessonIndex + 1])
+    }
+  }
+
+  const handlePreviousLesson = () => {
+    if (!course.sections) return
+    
+    // Si c'est la première leçon de la section
+    if (currentLessonIndex === 0) {
+      // Si c'est la première section
+      if (currentSectionIndex === 0) {
+        return // Ne rien faire, c'est la première leçon
+      }
+      
+      // Passer à la dernière leçon de la section précédente
+      const previousSection = course.sections[currentSectionIndex - 1]
+      setCurrentSectionIndex(currentSectionIndex - 1)
+      setCurrentLessonIndex(previousSection.lessons.length - 1)
+      setSelectedLesson(previousSection.lessons[previousSection.lessons.length - 1])
+    } else {
+      // Passer à la leçon précédente de la section actuelle
+      const currentSection = course.sections[currentSectionIndex]
+      setCurrentLessonIndex(currentLessonIndex - 1)
+      setSelectedLesson(currentSection.lessons[currentLessonIndex - 1])
+    }
+  }
+
+  const hasNextLesson = () => {
+    if (!course.sections) return false
+    
+    const currentSection = course.sections[currentSectionIndex]
+    
+    // Si c'est la dernière leçon de la section
+    if (currentLessonIndex === currentSection.lessons.length - 1) {
+      // Si c'est la dernière section
+      if (currentSectionIndex === course.sections.length - 1) {
+        return false
+      }
+      return true
+    }
+    
+    return true
+  }
+
+  const hasPreviousLesson = () => {
+    if (!course.sections) return false
+    
+    // Si c'est la première leçon de la section
+    if (currentLessonIndex === 0) {
+      // Si c'est la première section
+      if (currentSectionIndex === 0) {
+        return false
+      }
+      return true
+    }
+    
+    return true
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
       <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-lg bg-white shadow-lg">
@@ -39,7 +137,7 @@ export default function CourseDetails({ course, onClose }: CourseDetailsProps) {
           <div className="mb-6 flex flex-col md:flex-row gap-6">
             <div className="w-full md:w-2/3">
               <div className="relative h-64 rounded-lg bg-gray-100 overflow-hidden">
-                <img src={course.image || "/placeholder.svg"} alt={course.title} className="h-full w-full object-cover" />
+                <img src={course.image_url || "/placeholder.svg"} alt={course.title} className="h-full w-full object-cover" />
                 <div className="absolute inset-0 flex items-center justify-center bg-black/40">
                   <button className="flex h-16 w-16 items-center justify-center rounded-full bg-white/80 text-[#FF9500] backdrop-blur-sm transition-all hover:bg-white">
                     <Play className="h-8 w-8" />
@@ -125,72 +223,17 @@ export default function CourseDetails({ course, onClose }: CourseDetailsProps) {
 
           {/* Contenu du Cours */}
           <div className="mt-6">
-            <h3 className="text-lg font-bold mb-4">Contenu du Cours</h3>
-            <div className="space-y-3">
-              <div className="rounded-lg border border-gray-200 overflow-hidden">
-                <div className="flex items-center justify-between bg-[#f7f9fa] px-4 py-3">
-                  <div className="flex items-center">
-                    <ChevronDown className="h-5 w-5 text-gray-500 mr-2" />
-                    <h4 className="font-medium">Section 1: Introduction</h4>
-                  </div>
-                  <div className="text-sm text-gray-500">3/3 • 15 min</div>
-                </div>
-                <div className="p-4 bg-white">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <CheckCircle className="h-4 w-4 text-green-500 mr-3" />
-                        <span className="text-sm">Bienvenue dans le Cours</span>
-                      </div>
-                      <div className="flex items-center text-xs text-gray-500">
-                        <Play className="h-3 w-3 mr-1" />
-                        <span>5 min</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <CheckCircle className="h-4 w-4 text-green-500 mr-3" />
-                        <span className="text-sm">Aperçu du Cours</span>
-                      </div>
-                      <div className="flex items-center text-xs text-gray-500">
-                        <Play className="h-3 w-3 mr-1" />
-                        <span>7 min</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <CheckCircle className="h-4 w-4 text-green-500 mr-3" />
-                        <span className="text-sm">Configuration de l'Environnement</span>
-                      </div>
-                      <div className="flex items-center text-xs text-gray-500">
-                        <Play className="h-3 w-3 mr-1" />
-                        <span>3 min</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+            {course.sections && course.sections.length > 0 ? (
+              <CourseSections 
+                sections={course.sections} 
+                onLessonClick={handleLessonClick} 
+              />
+            ) : (
+              <div>
+                <h3 className="text-lg font-bold mb-4">Contenu du Cours</h3>
+                <p className="text-gray-500">Aucune section disponible pour ce cours.</p>
               </div>
-
-              <div className="rounded-lg border border-gray-200 overflow-hidden">
-                <div className="flex items-center justify-between bg-[#f7f9fa] px-4 py-3">
-                  <div className="flex items-center">
-                    <ChevronRight className="h-5 w-5 text-gray-500 mr-2" />
-                    <h4 className="font-medium">Section 2: Concepts Fondamentaux</h4>
-                  </div>
-                  <div className="text-sm text-gray-500">12/20 • 2h 30min</div>
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-gray-200 overflow-hidden">
-                <div className="flex items-center justify-between bg-[#f7f9fa] px-4 py-3">
-                  <div className="flex items-center">
-                    <ChevronRight className="h-5 w-5 text-gray-500 mr-2" />
-                    <h4 className="font-medium">Section 3: Sujets Avancés</h4>
-                  </div>
-                  <div className="text-sm text-gray-500">0/15 • 3h 15min</div>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Informations sur l'Instructeur */}
@@ -199,19 +242,21 @@ export default function CourseDetails({ course, onClose }: CourseDetailsProps) {
             <div className="flex items-start gap-4">
               <img
                 src="/placeholder.svg?height=80&width=80"
-                alt={course.instructor}
+                alt={course.instructor?.first_name || "Instructeur"}
                 className="h-16 w-16 rounded-full object-cover"
               />
               <div>
-                <h4 className="font-medium">{course.instructor}</h4>
+                <h4 className="font-medium">
+                  {course.instructor ? `${course.instructor.first_name} ${course.instructor.last_name}` : "Instructeur"}
+                </h4>
                 <p className="text-sm text-gray-500 mt-1">Développeur Professionnel & Instructeur</p>
                 <div className="mt-2 flex items-center">
                   <Star className="h-4 w-4 fill-[#eb8a2f] text-[#eb8a2f]" />
-                  <span className="ml-1 text-sm">{course.rating} Note de l'Instructeur</span>
+                  <span className="ml-1 text-sm">{course.average_rating} Note de l'Instructeur</span>
                   <span className="mx-2 text-gray-500">•</span>
-                  <span className="text-sm text-gray-500">{course.reviews} Avis</span>
+                  <span className="text-sm text-gray-500">{course.reviewCount || 0} Avis</span>
                   <span className="mx-2 text-gray-500">•</span>
-                  <span className="text-sm text-gray-500">50K+ Étudiants</span>
+                  <span className="text-sm text-gray-500">{course.studentsCount || 0}+ Étudiants</span>
                 </div>
               </div>
             </div>
@@ -234,6 +279,18 @@ export default function CourseDetails({ course, onClose }: CourseDetailsProps) {
           </div>
         </div>
       </div>
+
+      {/* Affichage de la leçon sélectionnée */}
+      {selectedLesson && (
+        <LessonViewer
+          lesson={selectedLesson}
+          onClose={handleCloseLesson}
+          onNext={handleNextLesson}
+          onPrevious={handlePreviousLesson}
+          hasNext={hasNextLesson()}
+          hasPrevious={hasPreviousLesson()}
+        />
+      )}
     </div>
   )
 } 

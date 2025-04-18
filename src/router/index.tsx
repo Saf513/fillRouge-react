@@ -2,7 +2,7 @@ import Login from '../pages/Login'
 import Home from '../pages/home'
 import Signup from '../pages/signup'
 import { Layout } from '../layouts/layout'
-import {createBrowserRouter} from 'react-router-dom'
+import { createBrowserRouter, Navigate } from 'react-router-dom'
 import ForgetPassword from '../pages/forget-password'
 import TeacherDashboard from '../pages/teacherDashboard'
 import { ProtectedRoute } from '../components/ProtectedRoute'
@@ -51,6 +51,10 @@ export  const  router = createBrowserRouter([
           {
             path : '/student-dashboard/profile' ,
             element : <StudentProfilePage/>
+          },
+          {
+            path : '/logout',
+            element : <Navigate to="/login" replace />
           }
-    
+          
 ])
