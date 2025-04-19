@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
 import useCategories from "../../hooks/useCategories"
-import useCourses from "../../hooks/useCourses"
+import { useCourses } from "../../hooks/useCourses"
 import { Course } from "../../types/course"
 
 import {
@@ -22,23 +22,21 @@ import {
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 
-interface Course {
-  id: string
-  title: string
-  subtitle: string
-  description: string
-  category_id: string
-  subcategory_id: string
-  level: string
-  language: string
-  price: number
-  discount: number
-  average_rating: number
-  reviewCount: number
-  studentsCount: number
-  created_at: string
-  bestseller: boolean
-  new: boolean
+interface PriceRange {
+  min: number;
+  max: number;
+}
+
+interface PaginationData {
+  current_page: number;
+  per_page: number;
+  total: number;
+  last_page: number;
+}
+
+interface ApiResponse {
+  data: Course[];
+  courses: PaginationData;
 }
 
 export default function CoursesExplorer() {
@@ -48,7 +46,7 @@ export default function CoursesExplorer() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null)
   const [showFilters, setShowFilters] = useState(false)
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 200])
+  const [selectedPrice, setSelectedPrice] = useState<PriceRange>({ min: 0, max: 200 })
   const [selectedLevels, setSelectedLevels] = useState<string[]>([])
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>([])
   const [selectedRating, setSelectedRating] = useState<number | null>(null)
@@ -57,6 +55,9 @@ export default function CoursesExplorer() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false)
   const [hoveredCourse, setHoveredCourse] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(12)
+  const [priceRange, setPriceRange] = useState<{ min: number; max: number }>({ min: 0, max: 1000 })
 
   // Handle scroll for sticky header
   useEffect(() => {
@@ -67,69 +68,88 @@ export default function CoursesExplorer() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
-  const { categories, loading: categoriesLoading, error: categoriesError } = useCategories()
-  const { courses, loading: coursesLoading, error: coursesError, total, currentPage, perPage, setCurrentPage } = useCourses()
+  
+  const { categories, loading: categoriesLoading, error: categoriesError } = useCategories();
+  const { courses, loading, error } = useCourses();
 
-  // Filter courses based on search, category, and other filters
-  const filteredCourses = useCallback(() => {
-    if (!courses) return []
-    
-    return courses.filter((course: Course) => {
-      // Search term filter
-      const searchMatch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        course.subtitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        course.description.toLowerCase().includes(searchTerm.toLowerCase())
+  // Vérifier que courses est un tableau et extraire les données
+  const coursesData = Array.isArray(courses) ? courses : [];
 
-      // Category filter
-      const categoryMatch = !selectedCategory || course.category_id === selectedCategory
+  // Calculer la pagination
+  const totalPages = Math.ceil(coursesData.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedCourses = coursesData.slice(startIndex, endIndex);
 
-      // Subcategory filter
-      const subcategoryMatch = !selectedSubcategory || course.subcategory_id === selectedSubcategory
+  // Déplacer les hooks useCallback en dehors des conditions
+  const getActiveCategoryName = useCallback(() => {
+    if (!selectedCategory) return "All Categories";
+    const category = categories.find((c) => c.id === selectedCategory);
+    return category ? category.title : "All Categories";
+  }, [categories, selectedCategory]);
 
-      // Price range filter
-      const price = course.discount ? course.price * (1 - course.discount / 100) : course.price
-      const priceMatch = price >= priceRange[0] && price <= priceRange[1]
+  const getActiveSubcategoryName = useCallback(() => {
+    if (!selectedSubcategory) return "All Subcategories";
+    const category = categories.find((c) => c.id === selectedCategory);
+    if (!category || !category.subcategories) return "All Subcategories";
+    const subcategory = category.subcategories.find((s) => s.id === selectedSubcategory);
+    return subcategory ? subcategory.title : "All Subcategories";
+  }, [categories, selectedCategory, selectedSubcategory]);
 
-      // Level filter
-      const levelMatch = selectedLevels.length === 0 || selectedLevels.includes(course.level)
+  const getSubcategories = useCallback(() => {
+    if (!selectedCategory) return [];
+    const category = categories.find((c) => c.id === selectedCategory);
+    return category && category.subcategories ? category.subcategories : [];
+  }, [categories, selectedCategory]);
 
-      // Language filter
-      const languageMatch = selectedLanguages.length === 0 || selectedLanguages.includes(course.language)
-
-      // Rating filter
-      const ratingMatch = !selectedRating || course.average_rating >= selectedRating
-
-      return searchMatch && categoryMatch && subcategoryMatch && levelMatch && languageMatch && ratingMatch && priceMatch
-    }).sort((a: Course, b: Course) => {
-      // Sort based on selected option
-      switch (sortOption) {
-        case "popular":
-          return (b.studentsCount || 0) - (a.studentsCount || 0)
-        case "highest-rated":
-          return b.average_rating - a.average_rating
-        case "newest":
-          return new Date(b.created_at || "").getTime() - new Date(a.created_at || "").getTime()
-        case "price-low":
-          return (a.discount ? a.price * (1 - a.discount / 100) : a.price) - (b.discount ? b.price * (1 - b.discount / 100) : b.price)
-        case "price-high":
-          return (b.discount ? b.price * (1 - b.discount / 100) : b.price) - (a.discount ? a.price * (1 - a.discount / 100) : a.price)
-        default:
-          return 0
-      }
-    })
-  }, [courses, searchTerm, selectedCategory, selectedSubcategory, priceRange, selectedLevels, selectedLanguages, selectedRating, sortOption])
-
-  if (categoriesLoading || coursesLoading) {
-    return <div>Chargement des données...</div>
+  if (categoriesLoading || loading) {
+    return <div>Chargement des données...</div>;
   }
 
   if (categoriesError) {
-    return <div>Erreur: {categoriesError}</div>
+    return <div>Erreur: {categoriesError}</div>;
   }
 
-  if (coursesError) {
-    return <div>Erreur: {coursesError}</div>
+  if (error) {
+    return <div>Erreur: {error}</div>;
   }
+
+  // Filter courses based on search, category, and other filters
+  const filteredCourses = coursesData.filter((course: Course) => {
+    const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (course.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
+    const matchesCategory = !selectedCategory || course.category === selectedCategory;
+    const matchesSubcategory = !selectedSubcategory || course.subcategory === selectedSubcategory;
+    const matchesLevel = !selectedLevels.length || (course.level && selectedLevels.includes(course.level));
+    const matchesLanguage = !selectedLanguages.length || (course.language && selectedLanguages.includes(course.language));
+    const matchesRating = !selectedRating || (course.rating ?? 0) >= selectedRating;
+    const matchesPrice = !selectedPrice || (
+      course.price >= selectedPrice.min && course.price <= selectedPrice.max
+    );
+
+    return matchesSearch && matchesCategory && matchesSubcategory && 
+           matchesLevel && matchesLanguage && matchesRating && matchesPrice;
+  }).sort((a: Course, b: Course) => {
+    const aPrice = Number(a.price) || 0;
+    const bPrice = Number(b.price) || 0;
+    const aDiscountedPrice = Number(a.discount) > 0 ? aPrice * (1 - Number(a.discount) / 100) : aPrice;
+    const bDiscountedPrice = Number(b.discount) > 0 ? bPrice * (1 - Number(b.discount) / 100) : bPrice;
+
+    switch (sortOption) {
+      case "popular":
+        return (b.total_students ?? 0) - (a.total_students ?? 0);
+      case "highest-rated":
+        return (b.rating ?? 0) - (a.rating ?? 0);
+      case "newest":
+        return new Date(b.created_at ?? "").getTime() - new Date(a.created_at ?? "").getTime();
+      case "price-low":
+        return aDiscountedPrice - bDiscountedPrice;
+      case "price-high":
+        return bDiscountedPrice - aDiscountedPrice;
+      default:
+        return 0;
+    }
+  });
 
   // Handle category selection
   const handleCategorySelect = (categoryId: string) => {
@@ -165,7 +185,7 @@ export default function CoursesExplorer() {
 
   // Handle price range change
   const handlePriceRangeChange = (value: [number, number]) => {
-    setPriceRange(value)
+    setSelectedPrice({ min: value[0], max: value[1] })
   }
 
   // Reset all filters
@@ -175,32 +195,9 @@ export default function CoursesExplorer() {
     setSelectedLevels([])
     setSelectedLanguages([])
     setSelectedRating(null)
-    setPriceRange([0, 200])
+    setSelectedPrice({ min: 0, max: 200 })
     setSortOption("popular")
   }
-
-  // Get active category name
-  const getActiveCategoryName = useCallback(() => {
-    if (!selectedCategory) return "All Categories"
-    const category = categories.find((c) => c.id === selectedCategory)
-    return category ? category.title : "All Categories"
-  }, [categories, selectedCategory])
-
-  // Get active subcategory name
-  const getActiveSubcategoryName = useCallback(() => {
-    if (!selectedSubcategory) return "All Subcategories"
-    const category = categories.find((c) => c.id === selectedCategory)
-    if (!category || !category.subcategories) return "All Subcategories"
-    const subcategory = category.subcategories.find((s) => s.id === selectedSubcategory)
-    return subcategory ? subcategory.title : "All Subcategories"
-  }, [categories, selectedCategory, selectedSubcategory])
-
-  // Get subcategories for a given category
-  const getSubcategories = useCallback(() => {
-    if (!selectedCategory) return []
-    const category = categories.find((c) => c.id === selectedCategory)
-    return category && category.subcategories ? category.subcategories : []
-  }, [categories, selectedCategory])
 
   // Render star rating
   const renderStarRating = (rating: number) => {
@@ -218,6 +215,22 @@ export default function CoursesExplorer() {
       </div>
     )
   }
+
+  // Render instructor name
+  const renderInstructorName = (instructor: string) => {
+    const [firstName, lastName] = instructor.split(" ");
+    return `${firstName} ${lastName}`;
+  };
+
+  // Render rating
+  const renderRating = (rating: number | undefined) => {
+    return rating ?? 0;
+  };
+
+  // Render review count
+  const renderReviewCount = (reviews: number | undefined) => {
+    return reviews ?? 0;
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -449,21 +462,31 @@ export default function CoursesExplorer() {
                 </div>
 
                 {/* Price Range Filter */}
-                <div className="mb-6">
-                  <h4 className="font-medium mb-3">Price Range</h4>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-600">${priceRange[0]}</span>
-                    <span className="text-sm text-gray-600">${priceRange[1]}</span>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Prix
+                    </label>
+                    <div className="flex items-center space-x-4">
+                      <input
+                        type="number"
+                        min="0"
+                        value={priceRange.min}
+                        onChange={(e) => setPriceRange({ ...priceRange, min: Number(e.target.value) })}
+                        className="w-24 px-3 py-2 border border-gray-300 rounded-md"
+                        placeholder="Min"
+                      />
+                      <span>-</span>
+                      <input
+                        type="number"
+                        min="0"
+                        value={priceRange.max}
+                        onChange={(e) => setPriceRange({ ...priceRange, max: Number(e.target.value) })}
+                        className="w-24 px-3 py-2 border border-gray-300 rounded-md"
+                        placeholder="Max"
+                      />
+                    </div>
                   </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="200"
-                    step="5"
-                    value={priceRange[1]}
-                    onChange={(e) => handlePriceRangeChange([priceRange[0], Number.parseInt(e.target.value)])}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#a435f0]"
-                  />
                 </div>
 
                 {/* Level Filter */}
@@ -544,13 +567,13 @@ export default function CoursesExplorer() {
                   : "All Courses"}
               </h2>
               <p className="text-gray-600">
-                {filteredCourses().length} results
+                {filteredCourses.length} results
                 {searchTerm && ` for "${searchTerm}"`}
               </p>
             </div>
 
             {/* Courses */}
-            {filteredCourses().length === 0 ? (
+            {filteredCourses.length === 0 ? (
               <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
                 <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                   <Search className="h-8 w-8 text-gray-400" />
@@ -574,7 +597,7 @@ export default function CoursesExplorer() {
                     : "space-y-6"
                 }
               >
-                {filteredCourses().map((course) => (
+                {paginatedCourses.map((course: Course) => (
                   <motion.div
                     key={course.id}
                     className={`bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow ${
@@ -619,11 +642,13 @@ export default function CoursesExplorer() {
                         </button>
                       </div>
 
-                      <p className="text-sm text-gray-600 mb-2">{course.instructor.first_name} {course.instructor.last_name}</p>
+                      <p className="text-sm text-gray-600 mb-2">
+                        {course.instructor.firstName} {course.instructor.lastName}
+                      </p>
 
                       <div className="flex items-center mb-2">
-                        {renderStarRating(course.average_rating)}
-                        <span className="text-xs text-gray-500 ml-1">({course.reviewCount?.toLocaleString()})</span>
+                        {renderStarRating(Number(course.average_rating))}
+                        <span className="text-xs text-gray-500 ml-1">({course.total_reviews})</span>
                       </div>
 
                       <div className="flex items-center text-xs text-gray-600 space-x-3 mb-3">
@@ -633,7 +658,7 @@ export default function CoursesExplorer() {
                         </div>
                         <div className="flex items-center">
                           <Users className="h-3 w-3 mr-1" />
-                          <span>{course.studentsCount?.toLocaleString()} students</span>
+                          <span>{course.total_students} étudiants</span>
                         </div>
                         <div className="flex items-center">
                           <BookOpen className="h-3 w-3 mr-1" />
@@ -647,9 +672,11 @@ export default function CoursesExplorer() {
 
                       <div className="mt-auto flex items-center justify-between">
                         <div className="flex items-center">
-                          {course.discount ? (
+                          {Number(course.discount) > 0 ? (
                             <>
-                              <span className="text-lg font-bold">${(course.price * (1 - course.discount / 100)).toFixed(2)}</span>
+                              <span className="text-lg font-bold">
+                                ${(Number(course.price) * (1 - Number(course.discount) / 100)).toFixed(2)}
+                              </span>
                               <span className="text-sm text-gray-500 line-through ml-2">
                                 ${Number(course.price).toFixed(2)}
                               </span>
@@ -678,17 +705,17 @@ export default function CoursesExplorer() {
             )}
 
             {/* Pagination */}
-            {filteredCourses().length > 0 && (
+            {filteredCourses.length > 0 && (
               <div className="mt-8 flex justify-center">
                 <nav className="flex items-center space-x-1">
                   <button 
                     className="px-3 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100"
-                    onClick={() => setCurrentPage(currentPage - 1)}
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                     disabled={currentPage === 1}
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </button>
-                  {Array.from({ length: Math.ceil(total / perPage) }, (_, i) => i + 1).map((page) => (
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                     <button
                       key={page}
                       className={`px-4 py-2 rounded-md ${
@@ -699,12 +726,12 @@ export default function CoursesExplorer() {
                       onClick={() => setCurrentPage(page)}
                     >
                       {page}
-                  </button>
+                    </button>
                   ))}
                   <button 
                     className="px-3 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100"
-                    onClick={() => setCurrentPage(currentPage + 1)}
-                    disabled={currentPage === Math.ceil(total / perPage)}
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
                   >
                     <ChevronRight className="h-4 w-4" />
                   </button>
@@ -744,21 +771,31 @@ export default function CoursesExplorer() {
 
               <div className="p-4">
                 {/* Price Range Filter */}
-                <div className="mb-6">
-                  <h4 className="font-medium mb-3">Price Range</h4>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-600">${priceRange[0]}</span>
-                    <span className="text-sm text-gray-600">${priceRange[1]}</span>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Prix
+                    </label>
+                    <div className="flex items-center space-x-4">
+                      <input
+                        type="number"
+                        min="0"
+                        value={priceRange.min}
+                        onChange={(e) => setPriceRange({ ...priceRange, min: Number(e.target.value) })}
+                        className="w-24 px-3 py-2 border border-gray-300 rounded-md"
+                        placeholder="Min"
+                      />
+                      <span>-</span>
+                      <input
+                        type="number"
+                        min="0"
+                        value={priceRange.max}
+                        onChange={(e) => setPriceRange({ ...priceRange, max: Number(e.target.value) })}
+                        className="w-24 px-3 py-2 border border-gray-300 rounded-md"
+                        placeholder="Max"
+                      />
+                    </div>
                   </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="200"
-                    step="5"
-                    value={priceRange[1]}
-                    onChange={(e) => handlePriceRangeChange([priceRange[0], Number.parseInt(e.target.value)])}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#a435f0]"
-                  />
                 </div>
 
                 {/* Level Filter */}
