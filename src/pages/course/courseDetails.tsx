@@ -2,102 +2,31 @@
 
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import Image from "next/image"
+import { useCourses } from '@/hooks/useCourses'
+import { Course } from '@/types/course'
 import {
   Play,
   Clock,
-  Globe,
-  Calendar,
   Users,
   Star,
-  StarHalf,
-  Share2,
-  Heart,
   BookOpen,
-  MessageSquare,
-  Download,
-  BadgeIcon as Certificate,
-  CheckCircle,
-  Info,
   ShoppingCart,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
-
-interface Course {
-  id: number
-  title: string
-  instructor: string
-  rating: number
-  reviewCount: number
-  price: number
-  salePrice?: number
-  image: string
-  category: string
-  subcategory: string
-  level: string
-  duration: string
-  studentsCount: number
-  lastUpdated: string
-  language: string
-  bestseller: boolean
-  featured: boolean
-  new: boolean
-  tags: string[]
-  description: string
-}
 
 export default function CourseDetails() {
   const { id } = useParams()
+  const { courses, loading } = useCourses()
   const [course, setCourse] = useState<Course | null>(null)
-  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // 
-    // Ici, vous devrez implémenter l'appel API pour récupérer les détails du cours
-    // Pour l'instant, nous utilisons des données fictives
-    const fetchCourseDetails = async () => {
-      try {
-        // Simuler un appel API
-        setTimeout(() => {
-          setCourse({
-            id: Number(id),
-            title: "Complete Web Development Bootcamp 2023",
-            instructor: "Dr. Angela Yu",
-            rating: 4.8,
-            reviewCount: 154892,
-            price: 129.99,
-            salePrice: 19.99,
-            image: "/placeholder.svg?height=400&width=600",
-            category: "development",
-            subcategory: "web-development",
-            level: "Beginner to Advanced",
-            duration: "63 hours",
-            studentsCount: 785421,
-            lastUpdated: "November 2023",
-            language: "English",
-            bestseller: true,
-            featured: true,
-            new: false,
-            tags: ["HTML", "CSS", "JavaScript", "React", "Node.js"],
-            description: "Become a full-stack web developer with just one course. HTML, CSS, Javascript, Node, React, MongoDB, and more!"
-          })
-          setLoading(false)
-        }, 1000)
-      } catch (error) {
-        console.error("Error fetching course details:", error)
-        setLoading(false)
+    if (courses && id) {
+      const foundCourse = courses.find(c => String(c.id) === id)
+      if (foundCourse) {
+        setCourse(foundCourse)
       }
     }
-
-     
-    fetchCourseDetails()
-  }, [id])
+  }, [courses, id])
 
   if (loading) {
     return (
@@ -118,8 +47,8 @@ export default function CourseDetails() {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Course not found</h1>
-          <p className="text-gray-600">The course you are looking for does not exist or has been removed.</p>
+          <h1 className="text-2xl font-bold mb-4">Cours non trouvé</h1>
+          <p className="text-gray-600">Le cours que vous recherchez n'existe pas ou a été supprimé.</p>
         </div>
       </div>
     )
@@ -135,64 +64,67 @@ export default function CourseDetails() {
           <div className="flex flex-wrap gap-4 mb-8">
             <div className="flex items-center">
               <Clock className="h-5 w-5 text-gray-500 mr-2" />
-              <span>{course.duration}</span>
-              </div>
-                <div className="flex items-center">
+              <span>{course.duration} heures</span>
+            </div>
+            <div className="flex items-center">
               <Users className="h-5 w-5 text-gray-500 mr-2" />
-              <span>{course.studentsCount.toLocaleString()} students</span>
-                </div>
+              <span>{course.total_students?.toLocaleString() || 0} étudiants</span>
+            </div>
             <div className="flex items-center">
               <BookOpen className="h-5 w-5 text-gray-500 mr-2" />
               <span>{course.level}</span>
             </div>
             <div className="flex items-center">
               <Star className="h-5 w-5 text-yellow-400 mr-2" />
-              <span>{course.rating} ({course.reviewCount.toLocaleString()} reviews)</span>
-        </div>
-      </div>
+              <span>{course.rating} ({course.total_reviews?.toLocaleString() || 0} avis)</span>
+            </div>
+            <div className="flex items-center">
+              <span className="text-gray-600">Par {course.instructor?.firstName} {course.instructor?.lastName}</span>
+            </div>
+          </div>
 
           <div className="mb-8">
-            <h2 className="text-xl font-bold mb-4">What you'll learn</h2>
+            <h2 className="text-xl font-bold mb-4">Ce que vous apprendrez</h2>
             <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {course.tags.map((tag, index) => (
+              {course.tags?.map((tag, index) => (
                 <li key={index} className="flex items-center">
                   <Play className="h-4 w-4 text-green-500 mr-2" />
                   <span>{tag}</span>
-                      </li>
-                    ))}
-                  </ul>
-                    </div>
-                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
 
         <div className="lg:col-span-1">
           <div className="sticky top-8 bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
             <img 
-              src={course.image} 
+              src={course.image_url || "/placeholder.svg"} 
               alt={course.title} 
               className="w-full h-48 object-cover rounded-lg mb-4"
             />
             
             <div className="mb-4">
-              {course.salePrice ? (
-                    <div className="flex items-center">
-                  <span className="text-2xl font-bold">${course.salePrice}</span>
+              {course.discount ? (
+                <div className="flex items-center">
+                  <span className="text-2xl font-bold">${course.price - course.discount}</span>
                   <span className="text-gray-500 line-through ml-2">${course.price}</span>
                 </div>
               ) : (
                 <span className="text-2xl font-bold">${course.price}</span>
               )}
-                    </div>
+            </div>
 
-            <button className="w-full bg-[#a435f0] text-white py-3 rounded-lg font-medium mb-4 hover:bg-[#8710d8] transition-colors">
+            <Button className="w-full bg-[#a435f0] text-white py-3 rounded-lg font-medium mb-4 hover:bg-[#8710d8] transition-colors">
               <ShoppingCart className="h-5 w-5 inline-block mr-2" />
-              Add to Cart
-            </button>
+              Ajouter au panier
+            </Button>
             
             <div className="text-sm text-gray-600">
-              <p>30-Day Money-Back Guarantee</p>
-              <p>Full Lifetime Access</p>
-              <p>Access on mobile and TV</p>
-              <p>Certificate of Completion</p>
+              <p>Garantie de remboursement de 30 jours</p>
+              <p>Accès à vie</p>
+              <p>Accès sur mobile et TV</p>
+              <p>Certificat de complétion</p>
             </div>
           </div>
         </div>
