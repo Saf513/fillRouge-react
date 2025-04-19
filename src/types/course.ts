@@ -32,7 +32,7 @@ export interface Lesson {
   title: string;
   description?: string;
   content_type: "video" | "article" | "quiz" | "assignment" | "pdf";
-  content_url?: string | File;
+  content_url?: string;
   duration: string;
   order: number;
   videoUrl?: string;
@@ -61,57 +61,34 @@ export interface Instructor {
 }
 
 export interface Course {
-  id: number;
+  id: string;
   title: string;
-  subtitle: string | null;
+  subtitle: string;
   description: string;
-  slug: string | null;
-  instructor_id: number;
+  category_id: string;
+  subcategory: string;
   level: string;
   language: string;
-  image_url: string | null;
-  video_url: string | null;
-  price: string;
-  discount: string;
-  published_date: string | null;
-  last_updated: string | null;
+  price: number;
+  salePrice?: number;
+  image_url: string;
+  instructor_id: number;
   status: string;
-  requirements: string | null;
-  what_you_will_learn: string | null;
-  target_audience: string | null;
-  average_rating: string;
-  total_reviews: number;
-  total_students: number;
-  has_certificate: boolean;
   created_at: string;
   updated_at: string;
-  category_id: number | null;
-  categories: Category[];
-  tags: Tag[];
+  sections: Section[];
+  tags: string[];
+  what_you_will_learn: string[];
+  requirements: string[];
   instructor: {
     id: number;
-    firstName: string;
-    lastName: string;
+    first_name: string;
+    last_name: string;
     email: string;
-    email_verified_at: string | null;
-    lastLogin: string | null;
-    isActive: boolean;
-    role: string;
-    created_at: string;
-    updated_at: string;
-    is_approved: boolean;
+    avatar_url: string;
+    bio: string;
   };
-  sections: {
-    id: number;
-    course_id: number;
-    title: string;
-    description: string;
-    order: number;
-    is_published: boolean;
-    created_at: string;
-    updated_at: string;
-    lessons: Lesson[];
-  }[];
+  discount: number;
 }
 
 export interface tag {
