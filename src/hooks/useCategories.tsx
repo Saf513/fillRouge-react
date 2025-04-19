@@ -1,22 +1,22 @@
-import { useState, useEffect, useCallback } from 'react';
-import axiosClient from '../api/axios';
-import { AxiosError } from 'axios';
+import { useState, useEffect, useCallback } from "react";
+import axiosClient from "../api/axios";
+import { AxiosError } from "axios";
 
 interface ErrorResponse {
-    message: string;
+  message: string;
 }
 
 interface Category {
+  id: string;
+  title: string;
+  description: string;
+  image_url: string;
+  subcategories: Array<{
     id: string;
     title: string;
     description: string;
     image_url: string;
-    subcategories: Array<{
-        id: string;
-        title: string;
-        description: string;
-        image_url: string;
-    }>;
+  }>;
 }
 
 export default function useCategories() {
@@ -26,12 +26,17 @@ export default function useCategories() {
 
   const fetchCategories = useCallback(async () => {
     try {
-      const response = await axiosClient.get('http://localhost:8000/api/categories');
+      const response = await axiosClient.get(
+        "http://localhost:8000/api/categories"
+      );
       setCategories(response.data.data);
       setLoading(false);
     } catch (err) {
       const error = err as AxiosError<ErrorResponse>;
-      setError(error.response?.data?.message || 'Une erreur est survenue lors de la récupération des catégories');
+      setError(
+        error.response?.data?.message ||
+          "Une erreur est survenue lors de la récupération des catégories"
+      );
       setLoading(false);
     }
   }, []);
@@ -39,6 +44,6 @@ export default function useCategories() {
   useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);
-
+  console.log("categories :", categories);
   return { categories, loading, error };
 }
