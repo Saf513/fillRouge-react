@@ -8,9 +8,12 @@ export const courseService = {
   async createCourse(courseData: Partial<Course>): Promise<Course> {
     try {
       const token = localStorage.getItem('token');
-      const response = await axiosClient.post('/courses' ,courseData, {
+      const response = await axiosClient.post('api/courses' ,courseData, {
+        withCredentials: true,
         headers: {
           Authorization: `Bearer ${token}`,
+          'Accept': 'application/json',
+
           
         }
       });
@@ -46,7 +49,7 @@ export const courseService = {
     try {
       const token = localStorage.getItem('token');
       const response = await axiosClient.post(
-        `/courses/${courseId}/sections`, 
+        `api/courses/${courseId}/sections`, 
         sectionData,
         {
           headers: {
@@ -87,7 +90,7 @@ export const courseService = {
     try {
       const token = localStorage.getItem('token');
       const response = await axiosClient.post(
-        `/courses/${courseId}/sections/${sectionId}/lessons`, 
+        `api/courses/${courseId}/sections/${sectionId}/lessons`, 
         lessonData,
         {
             withCredentials: true,
