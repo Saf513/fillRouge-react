@@ -14,6 +14,7 @@ import useCategories from "@/hooks/useCategories";
 import { courseService } from "@/services/courseService";
 import { Lesson } from "@/types/course";
 import { Section } from "@/types/course";
+import { FileUpload } from "@/services/uploadService";
 import { Course } from "@/types/course";
 import {
   BookOpen,
@@ -62,7 +63,7 @@ import {
   Draggable,
   type DropResult,
 } from "react-beautiful-dnd";
-import { json } from "stream/consumers";
+
 
 const CourseCreationForm = () => {
   const navigate = useNavigate();
@@ -104,7 +105,7 @@ const CourseCreationForm = () => {
       avatar_url: "",
       bio: "",
     },
-    discount: 0
+    discount: 0,
   });
 
   //les states pour les lessons et les coures
@@ -129,70 +130,121 @@ const CourseCreationForm = () => {
   // les states pour aploading
   const [fileUploading, setFileUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedContentFile, setSelectedContentFile] = useState<File | null>(
+    null
+  );
 
   // handler la selection de file
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    
     if (e.target.files && e.target.files[0] && currentLesson) {
-      const file = e.target.files[0];
-      const fileUrl = URL.createObjectURL(file);
-      
-      // Mise à jour de la leçon avec les bonnes valeurs
-      setCurrentLesson({
-        ...currentLesson,
-        content_type: "pdf" as const, // Utilisation de "as const" pour le type littéral
-        content_url: fileUrl,
-        duration: "0", // Valeur par défaut pour la durée
-        pdf_url: fileUrl // Stockage de l'URL du PDF
-      });
+      const fileInput = document.getElementById('pdf-upload') as HTMLInputElement;
+      const file = fileInput.files?.[0];
+    console.log(file)
+      // Utilisation de la fonction upload du service course pour uploader le fichier
+      try {
+        const response = await courseService.uploadFile('lesson', file);
+       console.log(response)
+        const contentUrl = response.path;
+        // Stockage de l'URL du fichier et non du fichier lui-même
+        setSelectedContentFile(null);
+
+        // Mise à jour de la leçon avec les bonnes valeurs
+        setCurrentLesson({
+          ...currentLesson,
+          content_type: "pdf" as const, // Utilisation de "as const" pour le type littéral
+          content_url:file, // URL pour l'affichage temporaire
+          duration: "0", // Valeur par défaut pour la durée
+          pdf_url: contentUrl, // Stockage de l'URL du PDF pour l'affichage
+        });
+      } catch (error) {
+        console.error('Erreur lors de l\'upload du fichier:', error);
+      }
     }
+  
   };
+  // const handleSaveLesson = async () => {
+  //   if (!currentSection || !currentLesson) return;
 
-  const handleFileUpload = async (lessonId: string) => {
-    if (!selectedFile || !currentLesson) return;
+  //   // Validation
+  //   if (currentLesson.title.trim() === "") {
+  //     toast({
+  //       title: "Erreur",
+  //       description: "Le titre de la leçon est requis",
+  //       variant: "destructive",
+  //     });
+  //     return;
+  //   }
 
-    try {
-      setFileUploading(true);
+  //   try {
+  //     let contentUrl = currentLesson.content_url;
 
-      const fileType = selectedFile.type.includes("pdf") ? "pdf" : "other";
-      const response = await courseService.uploadAttachment(
-        selectedFile,
-        lessonId
-      );
+  //     // Si un fichier est sélectionné (PDF ou vidéo)
+  //     if (selectedContentFile) {
+  //       setFileUploading(true);
 
-      // Update the current lesson with the new attachment
-      const newAttachment = {
-        name: selectedFile.name,
-        url: response.url,
-        size: `${Math.round(selectedFile.size / 1024)} KB`,
-        type: fileType,
-      };
+  //       const formData = new FormData();
+  //       formData.append("file", selectedContentFile);
+  //       formData.append("lessonId", currentLesson.id);
+  //       formData.append("contentType", currentLesson.content_type);
 
-      const updatedAttachments = currentLesson.attachments
-        ? [...currentLesson.attachments, newAttachment]
-        : [newAttachment];
+  //       // Upload vers votre API Laravel
+  //       const uploadResponse = await axios.post("/api/upload", formData, {
+  //         headers: {
+  //           "Content-Type": "multipart/form-data",
+  //           Authorization: `Bearer ${localStorage.getItem("token")}`,
+  //         },
+  //       });
 
-      setCurrentLesson({
-        ...currentLesson,
-        attachments: updatedAttachments,
-      });
+  //       contentUrl = uploadResponse.data.url;
+  //       setFileUploading(false);
+  //     }
 
-      toast({
-        title: "File uploaded successfully",
-        description: `${selectedFile.name} has been attached to this lesson.`,
-      });
+  //     // Préparer la leçon avec l'URL mise à jour
+  //     const updatedLesson = {
+  //       ...currentLesson,
+  //       content_url: contentUrl,
+  //       duration: currentLesson.duration || "0:00",
+  //       // Conserver la référence au fichier pour plus tard
+  //       contentFile: selectedContentFile,
+  //     };
 
-      setSelectedFile(null);
-    } catch (error) {
-      toast({
-        title: "Upload failed",
-        description: ` There was an error uploading your file. Please try again${error}`,
-        variant: "destructive",
-      });
-    } finally {
-      setFileUploading(false);
-    }
-  };
+  //     // Mise à jour de la section
+  //     const updatedLessons = currentSection.lessons.some(
+  //       (l) => l.id === currentLesson.id
+  //     )
+  //       ? currentSection.lessons.map((l) =>
+  //           l.id === currentLesson.id ? updatedLesson : l
+  //         )
+  //       : [...currentSection.lessons, updatedLesson];
 
+  //     const updatedSection = {
+  //       ...currentSection,
+  //       lessons: updatedLessons,
+  //     };
+
+  //     // Mise à jour du cours
+  //     setCourse({
+  //       ...course,
+  //       sections:
+  //         course.sections?.map((s) =>
+  //           s.id === updatedSection.id ? updatedSection : s
+  //         ) || [],
+  //     });
+
+  //     setShowLessonDialog(false);
+  //     setCurrentLesson(null);
+  //     setCurrentSection(null);
+  //     setSelectedContentFile(null);
+  //   } catch (error) {
+  //     setFileUploading(false);
+  //     toast({
+  //       title: "Upload failed",
+  //       description: "Failed to upload file. Please try again.",
+  //       variant: "destructive",
+  //     });
+  //   }
+  // };
   // Toggle section expand/collapse
   const toggleSection = (sectionId: string) => {
     if (expandedSections.includes(sectionId)) {
@@ -308,8 +360,10 @@ const CourseCreationForm = () => {
       ...currentLesson,
       duration: durationInSeconds.toString(),
       content_type: currentLesson.content_type,
-      content_url: currentLesson.pdf_url || currentLesson.content_url || "",
-      section_id: parseInt(currentSection.id)
+      content_url: currentLesson.content_url || "",
+      section_id: parseInt(currentSection.id),
+      // Ajout d'une référence au fichier réel
+      contentFile: selectedContentFile,
     };
 
     const isEditing = currentSection.lessons.some(
@@ -342,6 +396,7 @@ const CourseCreationForm = () => {
     setShowLessonDialog(false);
     setCurrentLesson(null);
     setCurrentSection(null);
+    setSelectedContentFile(null);
   };
 
   // Edit lesson
@@ -564,7 +619,7 @@ const CourseCreationForm = () => {
     }
 
     const authDataString = localStorage.getItem("auth-storage");
-
+    
     if (!authDataString) {
       toast({
         title: "Erreur d'authentification",
@@ -574,10 +629,10 @@ const CourseCreationForm = () => {
       setIsSubmitting(false);
       return;
     }
-
+   
     const authData = JSON.parse(authDataString);
     const userId = authData?.state?.user?.id;
-
+    
     if (!userId) {
       toast({
         title: "Erreur d'authentification",
@@ -615,26 +670,50 @@ const CourseCreationForm = () => {
           order: section.order,
         });
         console.log("section :", createdSection);
-        
+
         // Ajouter les leçons de la section
         for (const lesson of section.lessons) {
+          let contentUrl = lesson.content_url;
+
+          // Si c'est un PDF ou une autre ressource avec un fichier physique
+          if (
+            lesson.content_url &&
+            (lesson.content_type === "pdf" || lesson.content_type === "video")
+          ) {
+            // Utiliser FormData pour envoyer le fichier
+            const formData = new FormData();
+            formData.append("file", lesson.content_url);
+
+            try {
+              // Uploader le fichier et obtenir son URL
+              const uploadResponse = await courseService.uploadFile(
+                "lessonContent", formData.get("file")
+              );
+              contentUrl = uploadResponse.fileUrl || "";
+            } catch (error) {
+              console.error("Error uploading file:", error);
+              // Continue avec l'URL précédente si l'upload échoue
+            }
+          }
+
           const lessonData = {
             title: lesson.title,
             description: lesson.description,
             content_type: lesson.content_type,
             duration: lesson.duration,
-            content_url: lesson.content_url,
+            content_url: contentUrl,
             order: lesson.order,
-          }
-          console.log(lessonData)
-          await courseService.addLesson(courseId, createdSection,lessonData);
+          };
+          console.log(lessonData);
+          await courseService.addLesson(courseId, createdSection, lessonData);
         }
       }
 
       // 3. Ajouter les tags
       if (course.tags && course.tags.length > 0) {
         for (const tag of course.tags) {
-          await courseService.addTag(tag);
+          await courseService.addTag(courseId , tag);
+
         }
       }
 
@@ -1040,20 +1119,26 @@ const CourseCreationForm = () => {
                                                     <div
                                                       className={`mr-3 flex h-7 w-7 items-center justify-center rounded-full
                                                     ${
-                                                      lesson.content_type === "video"
+                                                      lesson.content_type ===
+                                                      "video"
                                                         ? "bg-blue-100 text-blue-600"
-                                                        : lesson.content_type === "article"
+                                                        : lesson.content_type ===
+                                                          "article"
                                                         ? "bg-purple-100 text-purple-600"
-                                                        : lesson.content_type === "quiz"
+                                                        : lesson.content_type ===
+                                                          "quiz"
                                                         ? "bg-green-100 text-green-600"
                                                         : "bg-amber-100 text-amber-600"
                                                     }`}
                                                     >
-                                                      {lesson.content_type === "video" ? (
+                                                      {lesson.content_type ===
+                                                      "video" ? (
                                                         <Video className="h-3.5 w-3.5" />
-                                                      ) : lesson.content_type === "article" ? (
+                                                      ) : lesson.content_type ===
+                                                        "article" ? (
                                                         <FileText className="h-3.5 w-3.5" />
-                                                      ) : lesson.content_type === "quiz" ? (
+                                                      ) : lesson.content_type ===
+                                                        "quiz" ? (
                                                         <CheckCircle2 className="h-3.5 w-3.5" />
                                                       ) : (
                                                         <PenTool className="h-3.5 w-3.5" />
@@ -1217,22 +1302,22 @@ const CourseCreationForm = () => {
                     <div className="flex flex-wrap gap-2">
                       {course.tags &&
                         course.tags.map((tag) => (
-                          <Badge
-                            key={tag}
-                            variant="secondary"
-                            className="text-sm"
+                        <Badge
+                          key={tag}
+                          variant="secondary"
+                          className="text-sm"
+                        >
+                          {tag}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-4 w-4 ml-1"
+                            onClick={() => handleRemoveTag(tag)}
                           >
-                            {tag}
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-4 w-4 ml-1"
-                              onClick={() => handleRemoveTag(tag)}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </Badge>
-                        ))}
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </Badge>
+                      ))}
                       {course.tags && course.tags.length === 0 && (
                         <p className="text-sm text-muted-foreground">
                           No tags added yet
@@ -1272,30 +1357,30 @@ const CourseCreationForm = () => {
                   <div className="space-y-4">
                     {course.what_you_will_learn &&
                       course.what_you_will_learn.map((item, index) => (
-                        <div key={index} className="flex items-start gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5" />
-                          <div className="flex-1">
-                            <div className="flex gap-2">
-                              <p className="flex-1">{item}</p>
-                              <Button
-                                variant="ghost"
-                                size="icon"
+                      <div key={index} className="flex items-start gap-2">
+                        <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5" />
+                        <div className="flex-1">
+                          <div className="flex gap-2">
+                            <p className="flex-1">{item}</p>
+                            <Button
+                              variant="ghost"
+                              size="icon"
                                 onClick={() =>
                                   handleRemoveLearningOutcome(index)
                                 }
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
                         </div>
-                      ))}
+                      </div>
+                    ))}
                     {course.what_you_will_learn &&
                       course.what_you_will_learn.length === 0 && (
-                        <p className="text-sm text-muted-foreground">
-                          No learning outcomes added yet
-                        </p>
-                      )}
+                      <p className="text-sm text-muted-foreground">
+                        No learning outcomes added yet
+                      </p>
+                    )}
                     <div className="flex gap-2">
                       <Input
                         placeholder="Add a learning outcome"
@@ -1493,10 +1578,10 @@ const CourseCreationForm = () => {
                     <div className="flex flex-wrap gap-2 mt-1">
                       {course.tags &&
                         course.tags.map((tag) => (
-                          <Badge key={tag} variant="secondary">
-                            {tag}
-                          </Badge>
-                        ))}
+                        <Badge key={tag} variant="secondary">
+                          {tag}
+                        </Badge>
+                      ))}
                       {course.tags && course.tags.length === 0 && (
                         <p>No tags added</p>
                       )}
@@ -1540,6 +1625,10 @@ const CourseCreationForm = () => {
         return null;
     }
   };
+
+  function handleFileUpload(id: string): void {
+    throw new Error("Function not implemented.");
+  }
 
   return (
     <div className="container mx-auto py-6 max-w-4xl">
@@ -1817,24 +1906,60 @@ const CourseCreationForm = () => {
                     <div className="mx-auto mb-4 rounded-full bg-gray-100 p-3 w-fit">
                       <input
                         type="file"
-                        className="h-6 w-6 text-muted-foreground"
+                        accept="video/*"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                        id="video-upload"
                       />
+                      <Label htmlFor="video-upload">
+                        <Upload className="h-6 w-6 text-muted-foreground cursor-pointer" />
+                      </Label>
                     </div>
                     <h3 className="text-lg font-medium mb-2">
-                      Télécharger une vidéo
+                      {selectedContentFile
+                        ? "Vidéo sélectionnée"
+                        : "Télécharger une vidéo"}
                     </h3>
                     <p className="text-muted-foreground mb-4">
-                      Vous pourrez télécharger votre vidéo après avoir créé le
-                      cours
+                      {selectedContentFile
+                        ? selectedContentFile.name
+                        : "Formats supportés: MP4, MOV, AVI"}
                     </p>
-                    <Button disabled>Parcourir les fichiers</Button>
+                    {selectedContentFile && (
+                      <div className="flex gap-2 justify-center">
+                        <Button
+                          onClick={() => handleFileUpload(currentLesson.id)}
+                          disabled={fileUploading}
+                        >
+                          {fileUploading
+                            ? "Envoi en cours..."
+                            : "Envoyer la vidéo"}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => setSelectedContentFile(null)}
+                        >
+                          Annuler
+                        </Button>
+                      </div>
+                    )}
                     <p className="text-xs text-muted-foreground mt-4">
-                      Formats supportés : MP4, MOV, AVI (Taille maximale : 2GB)
+                      Taille maximale : 100MB
                     </p>
                   </div>
+
+                  {/* Aperçu si vidéo déjà uploadée */}
+                  {currentLesson.content_url && !selectedContentFile && (
+                    <div className="mt-4">
+                      <video
+                        controls
+                        className="w-full rounded-lg border"
+                        src={currentLesson.content_url}
+                      />
                 </div>
               )}
-
+                </div>
+              )}
               {currentLesson?.content_type === "pdf" && (
                 <div className="border rounded-lg p-6">
                   <div className="text-lg font-medium mb-4">PDF Upload</div>
@@ -1843,21 +1968,66 @@ const CourseCreationForm = () => {
                       <input
                         type="file"
                         accept=".pdf"
-                        className="h-6 w-6 text-muted-foreground"
                         onChange={handleFileSelect}
+                        className="hidden"
+                        id="pdf-upload"
                       />
+                      <Label htmlFor="pdf-upload">
+                        <Upload className="h-6 w-6 text-muted-foreground cursor-pointer" />
+                      </Label>
                     </div>
                     <h3 className="text-lg font-medium mb-2">
-                      Télécharger un PDF
+                      {selectedContentFile
+                        ? "Fichier sélectionné"
+                        : "Télécharger un PDF"}
                     </h3>
                     <p className="text-muted-foreground mb-4">
-                      Vous pourrez télécharger votre PDF après avoir créé le cours
+                      {selectedContentFile
+                        ? selectedContentFile.name
+                        : "Glissez-déposez ou cliquez pour sélectionner"}
                     </p>
-                    <Button disabled>Parcourir les fichiers</Button>
+                    {selectedContentFile && (
+                      <div className="flex gap-2 justify-center">
+                        <Button
+                          onClick={() => handleFileUpload(currentLesson.id)}
+                          disabled={fileUploading}
+                        >
+                          {fileUploading
+                            ? "Envoi en cours..."
+                            : "Envoyer le PDF"}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => setSelectedContentFile(null)}
+                        >
+                          Annuler
+                        </Button>
+                      </div>
+                    )}
                     <p className="text-xs text-muted-foreground mt-4">
-                      Format supporté : PDF (Taille maximale : 2GB)
+                      Format supporté : PDF (Max 20MB)
                     </p>
                   </div>
+
+                  {/* Aperçu si PDF déjà uploadé */}
+                  {currentLesson.pdf_url && !selectedContentFile && (
+                    <div className="mt-4 p-4 border rounded-lg bg-gray-50">
+                      <div className="flex items-center gap-2">
+                        <File className="h-5 w-5 text-red-500" />
+                        <span>PDF déjà attaché</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            // Ouvrir le PDF dans un nouvel onglet
+                            window.open(currentLesson.pdf_url, "_blank");
+                          }}
+                        >
+                          Voir
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -2025,6 +2195,31 @@ const CourseCreationForm = () => {
               className="bg-purple-600 hover:bg-purple-700"
             >
               Save Lesson
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogDescription>
+              {itemToDelete?.type === "section"
+                ? "Are you sure you want to delete this section and all its lessons? This action cannot be undone."
+                : "Are you sure you want to delete this lesson? This action cannot be undone."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteConfirm(false)}
+            >
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete}>
+              Delete
             </Button>
           </DialogFooter>
         </DialogContent>
