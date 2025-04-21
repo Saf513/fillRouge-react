@@ -61,6 +61,9 @@ export  const  router = createBrowserRouter([
           ,{
             path : '/course' , 
             element : <CoursePlayer/>
+          },
+          {path : '/checkout',
+            element :  <checkout/>
           }
           
 ])
