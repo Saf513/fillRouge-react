@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom"
 import useCategories from "../../hooks/useCategories"
 import { useCourses } from "../../hooks/useCourses"
 import { Course as CourseType } from "../../types/course"
+import { useEnrollmentStore } from "../../hooks/useEnrollmentStore"
+import { useAuthStore } from "../../hooks/useAuthStore"
 
 import {
   Search,
@@ -91,13 +93,22 @@ export default function CoursesExplorer() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
-  
+
   const { categories, loading: categoriesLoading, error: categoriesError } = useCategories();
   const { courses, loading, error } = useCourses();
+  const { isAuthenticated } = useAuthStore();
+  const { enrolledCourses, isEnrolled, fetchEnrolledCourses, enrollInCourse, purchaseCourse } = useEnrollmentStore();
 
   // Vérifier que courses est un tableau et extraire les données
   const coursesData = Array.isArray(courses) ? courses : [];
-  
+
+  // Charger les cours auxquels l'utilisateur est inscrit au chargement du composant
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchEnrolledCourses();
+    }
+  }, [isAuthenticated, fetchEnrolledCourses]);
+
 
   // Calculer la pagination
   const totalPages = Math.ceil(coursesData.length / itemsPerPage);
@@ -671,17 +682,34 @@ console.log(coursesData)
                           )}
                         </div>
 
-                        <div className="flex gap-2">
-                          <button className="p-1.5 bg-[#a435f0] text-white text-sm font-medium rounded-lg hover:bg-[#8710d8] transition-colors">
-                            <ShoppingCart className="h-4 w-4" />
-                          </button>
+                        {isEnrolled(course.id) ? (
+                          // Si l'utilisateur est inscrit, afficher le bouton "Suivre le cours"
                           <button 
-                            onClick={() => navigate(`/course/${course.id}`)}
-                            className="p-1.5 bg-[#a435f0] text-white text-sm font-medium rounded-lg hover:bg-[#8710d8] transition-colors"
+                            onClick={() => navigate(`/course/player/${course.id}`)}
+                            className="px-3 py-1.5 bg-[#a435f0] text-white text-sm font-medium rounded-lg hover:bg-[#8710d8] transition-colors flex items-center"
                           >
-                            <BookOpen className="h-4 w-4" />
+                            <Play className="h-4 w-4 mr-1" />
+                            Suivre le cours
                           </button>
-                        </div>
+                        ) : (
+                          // Si l'utilisateur n'est pas inscrit, afficher les boutons "Acheter" et "Voir les détails"
+                          <div className="flex gap-2">
+                            <button 
+                              onClick={() => purchaseCourse(course.id)}
+                              className="px-3 py-1.5 bg-[#a435f0] text-white text-sm font-medium rounded-lg hover:bg-[#8710d8] transition-colors flex items-center"
+                            >
+                              <ShoppingCart className="h-4 w-4 mr-1" />
+                              Acheter
+                            </button>
+                            <button 
+                              onClick={() => navigate(`/course/${course.id}`)}
+                              className="px-3 py-1.5 bg-white border border-[#a435f0] text-[#a435f0] text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors flex items-center"
+                            >
+                              <BookOpen className="h-4 w-4 mr-1" />
+                              Détails
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </motion.div>
@@ -863,4 +891,3 @@ console.log(coursesData)
     </div>
   )
 }
-
