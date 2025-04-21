@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
 import useCategories from "../../hooks/useCategories"
 import { useCourses } from "../../hooks/useCourses"
-import { Course } from "../../types/course"
+import { Course as CourseType } from "../../types/course"
 
 import {
   Search,
@@ -12,7 +12,6 @@ import {
   Clock,
   Users,
   BookOpen,
-  Heart,
   BarChart3,
   ChevronRight,             
   ChevronLeft,
@@ -35,8 +34,32 @@ interface PaginationData {
 }
 
 interface ApiResponse {
-  data: Course[];
+  data: CourseType[];
   courses: PaginationData;
+}
+
+// Modifier l'interface Course pour correspondre à la structure de l'API
+interface Course {
+  id: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  category_id: string;
+  subcategory: string;
+  level: string;
+  language: string;
+  price: number;
+  image_url: string;
+  instructor: {
+    first_name: string;
+    last_name: string;
+    avatar_url: string;
+  };
+  total_students: number;
+  average_rating: number;
+  total_reviews: number;
+  created_at: string;
+  discount: number;
 }
 
 export default function CoursesExplorer() {
@@ -74,12 +97,10 @@ export default function CoursesExplorer() {
 
   // Vérifier que courses est un tableau et extraire les données
   const coursesData = Array.isArray(courses) ? courses : [];
+  
 
   // Calculer la pagination
   const totalPages = Math.ceil(coursesData.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedCourses = coursesData.slice(startIndex, endIndex);
 
   // Déplacer les hooks useCallback en dehors des conditions
   const getActiveCategoryName = useCallback(() => {
@@ -113,23 +134,23 @@ export default function CoursesExplorer() {
   if (error) {
     return <div>Erreur: {error}</div>;
   }
-
+console.log(coursesData)
   // Filter courses based on search, category, and other filters
-  const filteredCourses = coursesData.filter((course: Course) => {
+  const filteredCourses = coursesData.filter((course: CourseType) => {
     const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (course.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
-    const matchesCategory = !selectedCategory || course.category === selectedCategory;
+    const matchesCategory = !selectedCategory || course.category_id === selectedCategory;
     const matchesSubcategory = !selectedSubcategory || course.subcategory === selectedSubcategory;
     const matchesLevel = !selectedLevels.length || (course.level && selectedLevels.includes(course.level));
     const matchesLanguage = !selectedLanguages.length || (course.language && selectedLanguages.includes(course.language));
-    const matchesRating = !selectedRating || (course.rating ?? 0) >= selectedRating;
+    const matchesRating = !selectedRating || (course.average_rating ?? 0) >= selectedRating;
     const matchesPrice = !selectedPrice || (
       course.price >= selectedPrice.min && course.price <= selectedPrice.max
     );
 
     return matchesSearch && matchesCategory && matchesSubcategory && 
            matchesLevel && matchesLanguage && matchesRating && matchesPrice;
-  }).sort((a: Course, b: Course) => {
+  }).sort((a: CourseType, b: CourseType) => {
     const aPrice = Number(a.price) || 0;
     const bPrice = Number(b.price) || 0;
     const aDiscountedPrice = Number(a.discount) > 0 ? aPrice * (1 - Number(a.discount) / 100) : aPrice;
@@ -139,7 +160,7 @@ export default function CoursesExplorer() {
       case "popular":
         return (b.total_students ?? 0) - (a.total_students ?? 0);
       case "highest-rated":
-        return (b.rating ?? 0) - (a.rating ?? 0);
+        return (b.average_rating ?? 0) - (a.average_rating ?? 0);
       case "newest":
         return new Date(b.created_at ?? "").getTime() - new Date(a.created_at ?? "").getTime();
       case "price-low":
@@ -183,11 +204,6 @@ export default function CoursesExplorer() {
     setSelectedRating(rating === selectedRating ? null : rating)
   }
 
-  // Handle price range change
-  const handlePriceRangeChange = (value: [number, number]) => {
-    setSelectedPrice({ min: value[0], max: value[1] })
-  }
-
   // Reset all filters
   const resetFilters = () => {
     setSelectedCategory(null)
@@ -215,22 +231,6 @@ export default function CoursesExplorer() {
       </div>
     )
   }
-
-  // Render instructor name
-  const renderInstructorName = (instructor: string) => {
-    const [firstName, lastName] = instructor.split(" ");
-    return `${firstName} ${lastName}`;
-  };
-
-  // Render rating
-  const renderRating = (rating: number | undefined) => {
-    return rating ?? 0;
-  };
-
-  // Render review count
-  const renderReviewCount = (reviews: number | undefined) => {
-    return reviews ?? 0;
-  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -573,7 +573,7 @@ export default function CoursesExplorer() {
             </div>
 
             {/* Courses */}
-            {filteredCourses.length === 0 ? (
+            {coursesData.length === 0 ? (
               <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
                 <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                   <Search className="h-8 w-8 text-gray-400" />
@@ -590,42 +590,24 @@ export default function CoursesExplorer() {
                 </button>
               </div>
             ) : (
-              <div
-                className={
-                  viewMode === "grid"
-                    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-                    : "space-y-6"
-                }
-              >
-                {paginatedCourses.map((course: Course) => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {coursesData.map((course) => (
                   <motion.div
                     key={course.id}
-                    className={`bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow ${
-                      viewMode === "list" ? "flex flex-col md:flex-row" : ""
-                    }`}
-                    onMouseEnter={() => setHoveredCourse(course.id.toString())}
+                    className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                    onMouseEnter={() => setHoveredCourse(course.id)}
                     onMouseLeave={() => setHoveredCourse(null)}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <div className={`relative ${viewMode === "list" ? "md:w-64 flex-shrink-0" : ""}`}>
+                    <div className="relative">
                       <img
                         src={course.image_url || "/placeholder.svg"}
                         alt={course.title}
                         className="w-full h-48 object-cover"
                       />
-                      {course.bestseller && (
-                        <div className="absolute top-3 left-3 bg-yellow-400 text-xs font-bold px-2 py-1 rounded">
-                          BESTSELLER
-                        </div>
-                      )}
-                      {course.new && (
-                        <div className="absolute top-3 left-3 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded">
-                          NEW
-                        </div>
-                      )}
-                      {hoveredCourse === course.id.toString() && (
+                      {hoveredCourse === course.id && (
                         <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center">
                           <div className="bg-white p-2 rounded-full">
                             <Play className="h-8 w-8 text-[#a435f0]" />
@@ -634,27 +616,34 @@ export default function CoursesExplorer() {
                       )}
                     </div>
 
-                    <div className="p-4 flex flex-col flex-grow">
-                      <div className="flex items-start justify-between mb-2">
-                        <h3 className="font-bold text-lg line-clamp-2">{course.title}</h3>
-                        <button className="flex-shrink-0 ml-2 text-gray-400 hover:text-[#a435f0]">
-                          <Heart className="h-5 w-5" />
-                        </button>
-                      </div>
-
+                    <div className="p-4">
+                      <h3 className="font-bold text-lg line-clamp-2">{course.title}</h3>
                       <p className="text-sm text-gray-600 mb-2">
-                        {course.instructor.firstName} {course.instructor.lastName}
+                        {course.instructor.first_name} {course.instructor.last_name}
                       </p>
 
                       <div className="flex items-center mb-2">
-                        {renderStarRating(Number(course.average_rating))}
-                        <span className="text-xs text-gray-500 ml-1">({course.total_reviews})</span>
+                        <div className="flex items-center">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`h-4 w-4 ${
+                                star <= Math.round(course.average_rating)
+                                  ? "text-yellow-400 fill-yellow-400"
+                                  : "text-gray-300"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-xs text-gray-500 ml-1">
+                          ({course.total_reviews})
+                        </span>
                       </div>
 
                       <div className="flex items-center text-xs text-gray-600 space-x-3 mb-3">
                         <div className="flex items-center">
                           <Clock className="h-3 w-3 mr-1" />
-                          <span>{course.duration}</span>
+                          <span>{course.level}</span>
                         </div>
                         <div className="flex items-center">
                           <Users className="h-3 w-3 mr-1" />
@@ -662,27 +651,23 @@ export default function CoursesExplorer() {
                         </div>
                         <div className="flex items-center">
                           <BookOpen className="h-3 w-3 mr-1" />
-                          <span>{course.level}</span>
+                          <span>{course.language}</span>
                         </div>
                       </div>
 
-                      {viewMode === "list" && (
-                        <p className="text-sm text-gray-600 mb-4 line-clamp-2">{course.description}</p>
-                      )}
-
                       <div className="mt-auto flex items-center justify-between">
                         <div className="flex items-center">
-                          {Number(course.discount) > 0 ? (
+                          {course.discount > 0 ? (
                             <>
                               <span className="text-lg font-bold">
-                                ${(Number(course.price) * (1 - Number(course.discount) / 100)).toFixed(2)}
+                                ${(course.price * (1 - course.discount / 100)).toFixed(2)}
                               </span>
                               <span className="text-sm text-gray-500 line-through ml-2">
-                                ${Number(course.price).toFixed(2)}
+                                ${course.price}
                               </span>
                             </>
                           ) : (
-                            <span className="text-lg font-bold">${Number(course.price).toFixed(2)}</span>
+                            <span className="text-lg font-bold">${course.price}</span>
                           )}
                         </div>
 
