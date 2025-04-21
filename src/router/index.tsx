@@ -11,6 +11,8 @@ import AdminDashboard from '../pages/adminDashboard'
 import StudentProfilePage from '../pages/profile/studentProfile'
 import CoursesExplorer from '../pages/course/courseExplore'
 import CourseDetails from '../pages/course/courseDetails'
+import LessonViewer from '@/components/course/LessonViewer'
+import CoursePlayer from '@/components/course/coursePLayer'
 
 export  const  router = createBrowserRouter([
     {
@@ -55,6 +57,10 @@ export  const  router = createBrowserRouter([
           {
             path : '/logout',
             element : <Navigate to="/login" replace />
+          }
+          ,{
+            path : '/course' , 
+            element : <CoursePlayer/>
           }
           
 ])
