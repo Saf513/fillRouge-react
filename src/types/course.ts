@@ -32,7 +32,7 @@ export interface Lesson {
   title: string;
   description?: string;
   content_type: "video" | "article" | "quiz" | "assignment" | "pdf";
-  content_url?: string;
+  content_url?: File;
   duration: string;
   order: number;
   videoUrl?: string;
@@ -89,6 +89,9 @@ export interface Course {
     bio: string;
   };
   discount: number;
+  average_rating: number;
+  total_reviews: number;
+  total_students: number;
 }
 
 export interface tag {
@@ -123,4 +126,44 @@ export interface Assignment {
   submission_type: "text" | "file" | "both";
   allowed_file_types?: string[];
   max_file_size?: number; // en MB
+}
+
+export interface ApiCourse {
+  id: number;
+  title: string;
+  subtitle: string | null;
+  description: string;
+  category_id: number | null;
+  subcategory: string | null;
+  level: string;
+  language: string;
+  price: string;
+  image_url: string | null;
+  instructor_id: number;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  sections: Section[];
+  tags: Tag[];
+  what_you_will_learn: string[] | null;
+  requirements: string[] | null;
+  instructor: {
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    email_verified_at: string | null;
+    avatar_url: string | null;
+    bio: string | null;
+  };
+  discount: string;
+  average_rating: string;
+  total_reviews: number;
+  total_students: number;
+  duration: string | null;
+  video_url: string | null;
+  has_certificate: boolean;
+  published_date: string | null;
+  last_updated: string | null;
+  slug: string | null;
 }
