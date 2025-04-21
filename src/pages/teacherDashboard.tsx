@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useEffect } from "react"
 import {
   BarChart3,
@@ -33,9 +31,11 @@ import {
 import TeacherProfile from "./teacher/profile/teacherProfile"
 import TeacherSettings from "./teacher/settings/teacherSettings"
 import CourseCreationForm from "../components/forms/createCourse"
+import { Course } from "@/types/course"
+import useTeacherDashboardData from "@/hooks/useDashboardTeacher"
+import { useUsers } from "@/hooks/useUsers"
 import { useAuth } from "../hooks/useAuth"
-import { useNavigate } from "react-router-dom"
-
+import { data, useNavigate } from "react-router-dom"
 export default function TeacherDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard")
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -45,8 +45,21 @@ export default function TeacherDashboard() {
   const [showNewCourseModal, setShowNewCourseModal] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [windowWidth, setWindowWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 0)
+  const { data: dashboardData, loading: apiLoading } = useTeacherDashboardData();
+
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const { logout } = useAuth()
   const navigate = useNavigate()
+  const user = JSON.parse(localStorage.getItem('auth-storage') || '{}').state?.user;
+
+  useEffect(() => {
+    if (dashboardData?.courses) {
+      setCourses(dashboardData.courses as Course[]);
+    }
+  }, [dashboardData]);
 
   const handleLogout = async () => {
     try {
@@ -114,6 +127,27 @@ export default function TeacherDashboard() {
       setShowMobileMenu(false)
     }
   }
+
+  useEffect(()=>{
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        console.log("fetchDashboardData");
+        // Utiliser les données réelles de l'API si disponibles
+        if (dashboardData) {
+          // Mettre à jour les états avec les données de l'API
+          setCourses(dashboardData.courses || []);
+          setStudents(dashboardData.certificates || []);
+      
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("Erreur lors du chargement des données:", error);
+        setError("Failed to load dashboard data");
+        setLoading(false);
+      }
+    };
+  })
 
         return (
     <div className="flex min-h-screen bg-[#f7f7f8] font-sans text-[#262626]">
@@ -429,7 +463,7 @@ export default function TeacherDashboard() {
           <div className="space-y-6">
               <div className="flex flex-col justify-between md:flex-row md:items-center">
                 <div>
-                  <h1 className="text-2xl font-bold md:text-3xl">Welcome back, John!</h1>
+                  <h1 className="text-2xl font-bold md:text-3xl">Bienvenue, {user.firstName} _{user.lastName}</h1>
                   <p className="text-[#4c4c4d]">Here's what's happening with your courses today.</p>
                       </div>
                 <div className="mt-4 flex flex-wrap gap-2 md:mt-0">
@@ -761,172 +795,58 @@ export default function TeacherDashboard() {
                   Archived (1)
                 </button>
               </div>
-
               {/* Course List */}
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {/* Course Card 1 */}
-                <div className="overflow-hidden rounded-lg border border-[#f1f1f3] bg-white">
-                  <div className="relative h-40 bg-[#f7f7f8]">
-                    <img
-                      src="/placeholder.svg?height=160&width=320"
-                      alt="UI/UX Design Fundamentals"
-                      className="h-full w-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black/40 p-4">
-                      <span className="rounded-md bg-green-500 px-2 py-1 text-xs font-medium text-white">
-                        Published
-                      </span>
-              </div>
-                  </div>
-                  <div className="p-4">
-                    <h3 className="mb-1 text-lg font-bold">UI/UX Design Fundamentals</h3>
-                    <div className="mb-3 flex items-center text-sm text-[#4c4c4d]">
-                      <Clock className="mr-1 h-4 w-4" />
-                      <span>6 weeks • Intermediate</span>
-                    </div>
-                    <div className="mb-4 flex items-center justify-between">
-                      <div className="flex items-center">
-                        <Users className="mr-1 h-4 w-4 text-[#4c4c4d]" />
-                        <span className="text-sm text-[#4c4c4d]">458 students</span>
-                      </div>
-                      <div className="flex items-center">
-                        <Star className="mr-1 h-4 w-4 fill-[#ff9500] text-[#ff9500]" />
-                        <span className="text-sm font-medium">4.9</span>
+                {courses.map((course) => (
+                  <div key={course.id} className="overflow-hidden rounded-lg border border-[#f1f1f3] bg-white">
+                    <div className="relative h-40 bg-[#f7f7f8]">
+                      <img
+                        src="/placeholder.svg?height=160&width=320"
+                        alt="UI/UX Design Fundamentals"
+                        className="h-full w-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/40 p-4">
+                        <span className="rounded-md bg-green-500 px-2 py-1 text-xs font-medium text-white">
+                          Published
+                        </span>
                       </div>
                     </div>
-                    <div className="flex justify-between">
-                      <button className="rounded-md border border-[#f1f1f3] bg-white px-3 py-1.5 text-sm font-medium text-[#4c4c4d] hover:bg-[#f1f1f3]">
-                        View Course
-                      </button>
-                      <button className="rounded-md border border-[#f1f1f3] bg-white px-3 py-1.5 text-sm font-medium text-[#4c4c4d] hover:bg-[#f1f1f3]">
-                        <MoreVertical className="h-4 w-4" />
-                      </button>
+                    <div className="p-4">
+                      <h3 className="mb-1 text-lg font-bold">{course.title}</h3>
+                      <div className="mb-3 flex items-center text-sm text-[#4c4c4d]">
+                        <Clock className="mr-1 h-4 w-4" />
+                        <span>{course.duration} • {course.level}</span>
+                      </div>
+                      <div className="mb-4 flex items-center justify-between">
+                        <div className="flex items-center">
+                          <Users className="mr-1 h-4 w-4 text-[#4c4c4d]" />
+                          <span className="text-sm text-[#4c4c4d]">458 students</span>
+                        </div>
+                        <div className="flex items-center">
+                          <Star className="mr-1 h-4 w-4 fill-[#ff9500] text-[#ff9500]" />
+                          <span className="text-sm font-medium">4.9</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between">
+                        <button className="rounded-md border border-[#f1f1f3] bg-white px-3 py-1.5 text-sm font-medium text-[#4c4c4d] hover:bg-[#f1f1f3]">
+                          View Course
+                        </button>
+                        <button className="rounded-md border border-[#f1f1f3] bg-white px-3 py-1.5 text-sm font-medium text-[#4c4c4d] hover:bg-[#f1f1f3]">
+                          <MoreVertical className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
+                ))}
               </div>
+              </div>
+          )};
+           
 
-                {/* Course Card 2 */}
-                <div className="overflow-hidden rounded-lg border border-[#f1f1f3] bg-white">
-                  <div className="relative h-40 bg-[#f7f7f8]">
-                    <img
-                      src="/placeholder.svg?height=160&width=320"
-                      alt="Advanced JavaScript"
-                      className="h-full w-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black/40 p-4">
-                      <span className="rounded-md bg-green-500 px-2 py-1 text-xs font-medium text-white">
-                        Published
-                      </span>
-              </div>
-                    </div>
-                  <div className="p-4">
-                    <h3 className="mb-1 text-lg font-bold">Advanced JavaScript</h3>
-                    <div className="mb-3 flex items-center text-sm text-[#4c4c4d]">
-                      <Clock className="mr-1 h-4 w-4" />
-                      <span>8 weeks • Advanced</span>
-                  </div>
-                    <div className="mb-4 flex items-center justify-between">
-                      <div className="flex items-center">
-                        <Users className="mr-1 h-4 w-4 text-[#4c4c4d]" />
-                        <span className="text-sm text-[#4c4c4d]">372 students</span>
-                </div>
-                      <div className="flex items-center">
-                        <Star className="mr-1 h-4 w-4 fill-[#ff9500] text-[#ff9500]" />
-                        <span className="text-sm font-medium">4.8</span>
-                      </div>
-                    </div>
-                    <div className="flex justify-between">
-                      <button className="rounded-md border border-[#f1f1f3] bg-white px-3 py-1.5 text-sm font-medium text-[#4c4c4d] hover:bg-[#f1f1f3]">
-                        View Course
-                      </button>
-                      <button className="rounded-md border border-[#f1f1f3] bg-white px-3 py-1.5 text-sm font-medium text-[#4c4c4d] hover:bg-[#f1f1f3]">
-                        <MoreVertical className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Course Card 3 */}
-                <div className="overflow-hidden rounded-lg border border-[#f1f1f3] bg-white">
-                  <div className="relative h-40 bg-[#f7f7f8]">
-                    <img
-                      src="/placeholder.svg?height=160&width=320"
-                      alt="Web Design Fundamentals"
-                      className="h-full w-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black/40 p-4">
-                      <span className="rounded-md bg-green-500 px-2 py-1 text-xs font-medium text-white">
-                        Published
-                      </span>
-                </div>
-                </div>
-                  <div className="p-4">
-                    <h3 className="mb-1 text-lg font-bold">Web Design Fundamentals</h3>
-                    <div className="mb-3 flex items-center text-sm text-[#4c4c4d]">
-                      <Clock className="mr-1 h-4 w-4" />
-                      <span>4 weeks • Beginner</span>
-                    </div>
-                    <div className="mb-4 flex items-center justify-between">
-                      <div className="flex items-center">
-                        <Users className="mr-1 h-4 w-4 text-[#4c4c4d]" />
-                        <span className="text-sm text-[#4c4c4d]">512 students</span>
-                      </div>
-                      <div className="flex items-center">
-                        <Star className="mr-1 h-4 w-4 fill-[#ff9500] text-[#ff9500]" />
-                        <span className="text-sm font-medium">4.7</span>
-                      </div>
-                    </div>
-                    <div className="flex justify-between">
-                      <button className="rounded-md border border-[#f1f1f3] bg-white px-3 py-1.5 text-sm font-medium text-[#4c4c4d] hover:bg-[#f1f1f3]">
-                        View Course
-                      </button>
-                      <button className="rounded-md border border-[#f1f1f3] bg-white px-3 py-1.5 text-sm font-medium text-[#4c4c4d] hover:bg-[#f1f1f3]">
-                        <MoreVertical className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Course Card 4 - Draft */}
-                <div className="overflow-hidden rounded-lg border border-[#f1f1f3] bg-white">
-                  <div className="relative h-40 bg-[#f7f7f8]">
-                    <img
-                      src="/placeholder.svg?height=160&width=320"
-                      alt="Mobile App Development"
-                      className="h-full w-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black/40 p-4">
-                      <span className="rounded-md bg-yellow-500 px-2 py-1 text-xs font-medium text-white">Draft</span>
-                    </div>
-                  </div>
-                  <div className="p-4">
-                    <h3 className="mb-1 text-lg font-bold">Mobile App Development</h3>
-                    <div className="mb-3 flex items-center text-sm text-[#4c4c4d]">
-                      <Clock className="mr-1 h-4 w-4" />
-                      <span>10 weeks • Intermediate</span>
-                    </div>
-                    <div className="mb-4 flex items-center justify-between">
-                      <div className="flex items-center">
-                        <Users className="mr-1 h-4 w-4 text-[#4c4c4d]" />
-                        <span className="text-sm text-[#4c4c4d]">Not published</span>
-                      </div>
-                      <div className="flex items-center">
-                        <span className="text-sm font-medium text-[#4c4c4d]">60% complete</span>
-                      </div>
-                    </div>
-                    <div className="flex justify-between">
-                      <button className="rounded-md border border-[#f1f1f3] bg-white px-3 py-1.5 text-sm font-medium text-[#4c4c4d] hover:bg-[#f1f1f3]">
-                        Edit Course
-                      </button>
-                      <button className="rounded-md border border-[#f1f1f3] bg-white px-3 py-1.5 text-sm font-medium text-[#4c4c4d] hover:bg-[#f1f1f3]">
-                        <MoreVertical className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-                </div>
-              )}
+              
+             
+             
+              
 
           {/* Profile Tab */}
           {activeTab === "profile" && <TeacherProfile />}
