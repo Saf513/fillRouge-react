@@ -69,7 +69,90 @@ const AdminDashboard = () => {
   }
 
   // Données simulées pour le dashboard
-  const stats = [
+  const handleSaveLesson = async () => {
+    if (!currentSection || !currentLesson) return;
+
+    if (currentLesson.title.trim() === "") {
+      toast({
+        title: "Erreur",
+        description: "Le titre de la leçon est requis",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setFileUploading(true);
+
+      let contentUrl = currentLesson.content_url;
+
+      // Upload the file if a file is selected
+      if (selectedFile) {
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+        formData.append("content_type", currentLesson.content_type);
+
+        const response = await axiosClient.post("/api/upload", formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        });
+
+        if (response.data && response.data.url) {
+          contentUrl = response.data.url; // Update content_url with the uploaded file URL
+        }
+      }
+
+      const lessonData = {
+        ...currentLesson,
+        duration: currentLesson.duration.toString(),
+        content_type: currentLesson.content_type,
+        content_url: contentUrl, // Ensure content_url is updated
+        section_id: parseInt(currentSection.id),
+      };
+
+      console.log("Données de la leçon:", lessonData);
+
+      const isEditing = currentSection.lessons.some(
+        (lesson) => lesson.id === currentLesson.id
+      );
+
+      let updatedLessons;
+      if (isEditing) {
+        updatedLessons = currentSection.lessons.map((lesson) =>
+          lesson.id === currentLesson.id ? lessonData : lesson
+        );
+      } else {
+        updatedLessons = [...currentSection.lessons, lessonData];
+      }
+
+      const updatedSection = {
+        ...currentSection,
+        lessons: updatedLessons,
+      };
+
+      const updatedSections = course.sections?.map((section) =>
+        section.id === updatedSection.id ? updatedSection : section
+      );
+
+      setCourse({
+        ...course,
+        sections: updatedSections,
+      });
+
+      setShowLessonDialog(false);
+      setCurrentLesson(null);
+      setCurrentSection(null);
+    } catch (error) {
+      toast({
+        title: "Error creating lesson",
+        description: `There was an error creating your lesson. Please try again. ${error}`,
+        variant: "destructive",
+      });
+    } finally {
+      setFileUploading(false);
+    }
+  };const stats = [
     { title: "Utilisateurs Totaux", value: `${users.length}`, change: "+12%", icon: <Users className="h-5 w-5" /> },
     { title: "Cours Actifs", value: `${courses.filter(course => course.status === 'active').length}`, change: "+8%", icon: <BookOpen className="h-5 w-5" /> },
     { title: "Revenus Mensuels", value: `€${courses.reduce((acc, course) => acc + course.price, 0)}`, change: "+15%", icon: <DollarSign className="h-5 w-5" /> },
@@ -298,74 +381,74 @@ const AdminDashboard = () => {
                       <TableBody>
                          
                           {courses.filter(course => course.status === 'pending').map((course) => (
-                            <TableRow key={course.id}>
-                              <TableCell className="font-medium">{course.title}</TableCell>
+                          <TableRow key={course.id}>
+                            <TableCell className="font-medium">{course.title}</TableCell>
                               <TableCell>{course.instructor?.firstName} {course.instructor?.lastName}</TableCell>
                               <TableCell>{course.submitted ? new Date(course.submitted).toLocaleDateString() : 'Non spécifié'}</TableCell>
-                              <TableCell>
-                                <Dialog>
-                                  <DialogTrigger asChild>
-                                    <Button variant="outline" size="sm" onClick={() => setSelectedCourse(course)}>
-                                      Réviser
-                                    </Button>
-                                  </DialogTrigger>
-                                  <DialogContent>
-                                    <DialogHeader>
-                                      <DialogTitle>Révision du Cours</DialogTitle>
-                                      <DialogDescription>
-                                        Examinez les détails du cours avant de l'approuver ou de le rejeter.
-                                      </DialogDescription>
-                                    </DialogHeader>
-                                    {selectedCourse && (
-                                      <div className="space-y-4 py-4">
-                                        <div className="space-y-2">
-                                          <h3 className="font-semibold">{selectedCourse.title}</h3>
+                            <TableCell>
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button variant="outline" size="sm" onClick={() => setSelectedCourse(course)}>
+                                    Réviser
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                  <DialogHeader>
+                                    <DialogTitle>Révision du Cours</DialogTitle>
+                                    <DialogDescription>
+                                      Examinez les détails du cours avant de l'approuver ou de le rejeter.
+                                    </DialogDescription>
+                                  </DialogHeader>
+                                  {selectedCourse && (
+                                    <div className="space-y-4 py-4">
+                                      <div className="space-y-2">
+                                        <h3 className="font-semibold">{selectedCourse.title}</h3>
                                           <p className="text-sm text-gray-500">Par {selectedCourse.instructor.first_name}</p>
                                           <Badge>{categories.find(category => category.id === selectedCourse.category_id)?.name}</Badge>
+                                      </div>
+                                      <div className="space-y-2">
+                                        <h4 className="text-sm font-medium">Description du cours</h4>
+                                        <p className="text-sm">
+                                          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam in dui mauris.
+                                          Vivamus hendrerit arcu sed erat molestie vehicula.
+                                        </p>
+                                      </div>
+                                      <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                          <h4 className="text-sm font-medium">Durée</h4>
+                                          <p className="text-sm">8 heures</p>
                                         </div>
-                                        <div className="space-y-2">
-                                          <h4 className="text-sm font-medium">Description du cours</h4>
-                                          <p className="text-sm">
-                                            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam in dui mauris.
-                                            Vivamus hendrerit arcu sed erat molestie vehicula.
-                                          </p>
+                                        <div>
+                                          <h4 className="text-sm font-medium">Niveau</h4>
+                                          <p className="text-sm">Intermédiaire</p>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-4">
-                                          <div>
-                                            <h4 className="text-sm font-medium">Durée</h4>
-                                            <p className="text-sm">8 heures</p>
-                                          </div>
-                                          <div>
-                                            <h4 className="text-sm font-medium">Niveau</h4>
-                                            <p className="text-sm">Intermédiaire</p>
-                                          </div>
-                                          <div>
-                                            <h4 className="text-sm font-medium">Prix</h4>
-                                            <p className="text-sm">€49.99</p>
-                                          </div>
-                                          <div>
-                                            <h4 className="text-sm font-medium">Langue</h4>
-                                            <p className="text-sm">Français</p>
-                                          </div>
+                                        <div>
+                                          <h4 className="text-sm font-medium">Prix</h4>
+                                          <p className="text-sm">€49.99</p>
+                                        </div>
+                                        <div>
+                                          <h4 className="text-sm font-medium">Langue</h4>
+                                          <p className="text-sm">Français</p>
                                         </div>
                                       </div>
-                                    )}
-                                    <DialogFooter>
-                                      <Button
-                                        variant="outline"
-                                        onClick={() => handleCourseApproval(selectedCourse?.id, "reject")}
-                                      >
-                                        Rejeter
-                                      </Button>
-                                      <Button onClick={() => handleCourseApproval(selectedCourse?.id, "approve")}>
-                                        Approuver
-                                      </Button>
-                                    </DialogFooter>
-                                  </DialogContent>
-                                </Dialog>
-                              </TableCell>
-                            </TableRow>
-                          ))}
+                                    </div>
+                                  )}
+                                  <DialogFooter>
+                                    <Button
+                                      variant="outline"
+                                      onClick={() => handleCourseApproval(selectedCourse?.id, "reject")}
+                                    >
+                                      Rejeter
+                                    </Button>
+                                    <Button onClick={() => handleCourseApproval(selectedCourse?.id, "approve")}>
+                                      Approuver
+                                    </Button>
+                                  </DialogFooter>
+                                </DialogContent>
+                              </Dialog>
+                            </TableCell>
+                          </TableRow>
+                        ))}
                         {users.filter(user => new Date(user.created_at) > new Date()).map((user) => (
                           <TableRow key={user.id}>
                             <TableCell className="font-medium">
@@ -475,43 +558,43 @@ const AdminDashboard = () => {
               ) : coursesError ? (
                 <div className="text-red-500 text-center">{coursesError}</div>
               ) : (
-                <Card>
-                  <CardContent className="p-0">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Titre du Cours</TableHead>
-                          <TableHead>Instructeur</TableHead>
-                          <TableHead>Catégorie</TableHead>
+              <Card>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Titre du Cours</TableHead>
+                        <TableHead>Instructeur</TableHead>
+                        <TableHead>Catégorie</TableHead>
                           <TableHead>Date de soumission</TableHead>
-                          <TableHead>Statut</TableHead>
-                          <TableHead>Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
+                        <TableHead>Statut</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                         {courses.map((course: Course) => (
-                          <TableRow key={course.id}>
-                            <TableCell className="font-medium">{course.title}</TableCell>
+                        <TableRow key={course.id}>
+                          <TableCell className="font-medium">{course.title}</TableCell>
                             <TableCell>{course.instructor ? `${course.instructor.firstName} ${course.instructor.lastName}` : 'Non spécifié'}</TableCell>
                             <TableCell>{categories.find((category) => category.id === course.category_id)?.title || 'Non spécifié'}</TableCell>
                             <TableCell>{course.created_at ? new Date(course.created_at).toLocaleDateString() : 'Non spécifié'}</TableCell>
-                            <TableCell>{renderStatusBadge(course.status)}</TableCell>
-                            <TableCell>
-                              <div className="flex space-x-2">
+                          <TableCell>{renderStatusBadge(course.status)}</TableCell>
+                          <TableCell>
+                            <div className="flex space-x-2">
                                 <Button variant="ghost" size="icon" onClick={() => handleEditCourse(course)}>
-                                  <Edit className="h-4 w-4" />
-                                </Button>
+                                <Edit className="h-4 w-4" />
+                              </Button>
                                 <Button variant="ghost" size="icon" onClick={() => handleDeleteCourse(course.id)}>
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
               )}
             </div>
           )}
@@ -540,43 +623,43 @@ const AdminDashboard = () => {
               ) : usersError ? (
                 <div className="text-red-500 text-center">{usersError}</div>
               ) : (
-                <Card>
-                  <CardContent className="p-0">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Nom</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Rôle</TableHead>
+              <Card>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nom</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Rôle</TableHead>
                           <TableHead>Date d'inscription</TableHead>
-                          <TableHead>Statut</TableHead>
-                          <TableHead>Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
+                        <TableHead>Statut</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                         {users.map((user: User) => (
-                          <TableRow key={user.id}>
+                        <TableRow key={user.id}>
                             <TableCell className="font-medium">{user.name}</TableCell>
-                            <TableCell>{user.email}</TableCell>
+                          <TableCell>{user.email}</TableCell>
                             <TableCell>{user.role}</TableCell>
                             <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
-                            <TableCell>{renderStatusBadge(user.status)}</TableCell>
-                            <TableCell>
-                              <div className="flex space-x-2">
+                          <TableCell>{renderStatusBadge(user.status)}</TableCell>
+                          <TableCell>
+                            <div className="flex space-x-2">
                                 <Button variant="ghost" size="icon" onClick={() => handleEditUser(user)}>
-                                  <Edit className="h-4 w-4" />
-                                </Button>
+                                <Edit className="h-4 w-4" />
+                              </Button>
                                 <Button variant="ghost" size="icon" onClick={() => handleDeleteUser(user.id)}>
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
               )}
             </div>
           )}
