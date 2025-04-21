@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { useCourses } from '@/hooks/useCourses'
@@ -21,7 +19,9 @@ export default function CourseDetails() {
 
   useEffect(() => {
     if (courses && id) {
+     
       const foundCourse = courses.find(c => String(c.id) === id)
+    
       if (foundCourse) {
         setCourse(foundCourse)
       }
@@ -53,7 +53,7 @@ export default function CourseDetails() {
       </div>
     )
   }
-
+console.log("course:" , course)
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -89,7 +89,7 @@ export default function CourseDetails() {
               {course.tags?.map((tag, index) => (
                 <li key={index} className="flex items-center">
                   <Play className="h-4 w-4 text-green-500 mr-2" />
-                  <span>{tag}</span>
+                  <span>{tag.title}</span>
                 </li>
               ))}
             </ul>
