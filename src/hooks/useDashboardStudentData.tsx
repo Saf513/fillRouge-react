@@ -52,6 +52,7 @@ interface DashboardData {
     email: string;
     avatar: string;
   };
+  progress : number;
 }
 
 export default function useStudentDashboardData() {
@@ -65,7 +66,8 @@ export default function useStudentDashboardData() {
       try {
         setLoading(true);
         console.log("Début de la requête API...");
-        const token = "6|hRhV49YbcWYyFsPM4C4S7eI9pdiVgiTA2j8nE3p318ea7a26"
+        const token =JSON.parse(localStorage.getItem('auth-storage') || '{}').state?.token;
+
         console.log("Token utilisé:", token ? "Token présent" : "Token absent");
         
 
