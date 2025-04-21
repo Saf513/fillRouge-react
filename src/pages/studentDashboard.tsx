@@ -67,6 +67,7 @@ export default function StudentDashboard() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [progress, setProgress] = useState<number>(0);
   const [userProfile, setUserProfile] = useState<{
     name: string;
     email: string;
@@ -198,6 +199,8 @@ export default function StudentDashboard() {
           setCertificates(dashboardData.certificates || []);
           setNotifications(dashboardData.notifications || []);
           setUserProfile(dashboardData.userProfile || {});
+         
+          setProgress(dashboardData.progress)
           setLoading(false);
           //     } else {
           //       // Fallback sur les données de démonstration si l'API n'a pas encore répondu
@@ -910,7 +913,7 @@ export default function StudentDashboard() {
                       <TrendingUp className="h-5 w-5 text-[#FF9500]" />
                     </div>
                   </div>
-                  <p className="mt-4 text-3xl font-bold">62%</p>
+                  <p className="mt-4 text-3xl font-bold">{progress}</p>
                   <div className="mt-2 text-sm text-gray-600">
                     Overall course completion
                   </div>
