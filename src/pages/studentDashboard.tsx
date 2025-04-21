@@ -1,5 +1,4 @@
-import type React from "react";
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import {
   BookOpen,
@@ -36,7 +35,7 @@ import {
 
 import StudentProfile from "./student/profile/studentProfile";
 import StudentSettings from "./student/settings/studentSettings";
-// import { useAuth } from '../hooks/useAuth'
+import NotificationsComponent from "../components/notification/notification";
 import { Course, Certificate, Notification } from "../types/dashboard";
 import useStudentDashboardData from "../hooks/useDashboardStudentData";
 import type { Category } from "../hooks/courseExplore";
@@ -45,7 +44,6 @@ export default function StudentDashboard() {
   const [activeTab, setActiveTab] = useState("my-learning");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [selectedView, setSelectedView] = useState("all");
-  const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [windowWidth, setWindowWidth] = useState(
@@ -59,11 +57,9 @@ export default function StudentDashboard() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [progressFilter, setProgressFilter] = useState("all");
   const [showArchived, setShowArchived] = useState(false);
-  const notificationsRef = useRef<HTMLDivElement>(null);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // const { user } = useAuth()
   const [courses, setCourses] = useState<Course[]>([]);
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -102,12 +98,6 @@ export default function StudentDashboard() {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
-        notificationsRef.current &&
-        !notificationsRef.current.contains(event.target as Node)
-      ) {
-        setShowNotifications(false);
-      }
-      if (
         profileMenuRef.current &&
         !profileMenuRef.current.contains(event.target as Node)
       ) {
@@ -127,23 +117,12 @@ export default function StudentDashboard() {
     setShowMobileMenu(!showMobileMenu);
     // Close other menus when mobile menu is opened
     if (!showMobileMenu) {
-      setShowNotifications(false);
-      setShowProfileMenu(false);
-    }
-  };
-
-  const toggleNotifications = () => {
-    setShowNotifications(!showNotifications);
-    if (!showNotifications) {
       setShowProfileMenu(false);
     }
   };
 
   const toggleProfileMenu = () => {
     setShowProfileMenu(!showProfileMenu);
-    if (!showProfileMenu) {
-      setShowNotifications(false);
-    }
   };
 
   const handleTabChange = (tab: string) => {
@@ -199,7 +178,7 @@ export default function StudentDashboard() {
           setCertificates(dashboardData.certificates || []);
           setNotifications(dashboardData.notifications || []);
           setUserProfile(dashboardData.userProfile || {});
-         
+
           setProgress(dashboardData.progress)
           setLoading(false);
           //     } else {
@@ -287,64 +266,64 @@ export default function StudentDashboard() {
   }
 
   // Sample categories for filtering
-  // const categories: Category[] = [
-  //   {
-  //     id: "all",
-  //     title: "All Categories",
-  //     description: "All available categories",
-  //     image_url: "/placeholder.svg?height=400&width=600",
-  //     subcategories: []
-  //   },
-  //   {
-  //     id: "web-development",
-  //     title: "Web Development",
-  //     description: "Learn web development technologies",
-  //     image_url: "/placeholder.svg?height=400&width=600",
-  //     subcategories: []
-  //   },
-  //   {
-  //     id: "programming",
-  //     title: "Programming",
-  //     description: "Learn programming languages and concepts",
-  //     image_url: "/placeholder.svg?height=400&width=600",
-  //     subcategories: []
-  //   },
-  //   {
-  //     id: "marketing",
-  //     title: "Marketing",
-  //     description: "Learn digital marketing strategies",
-  //     image_url: "/placeholder.svg?height=400&width=600",
-  //     subcategories: []
-  //   },
-  //   {
-  //     id: "design",
-  //     title: "Design",
-  //     description: "Learn design principles and tools",
-  //     image_url: "/placeholder.svg?height=400&width=600",
-  //     subcategories: []
-  //   },
-  //   {
-  //     id: "data-science",
-  //     title: "Data Science",
-  //     description: "Learn data science and analytics",
-  //     image_url: "/placeholder.svg?height=400&width=600",
-  //     subcategories: []
-  //   },
-  //   {
-  //     id: "mobile-development",
-  //     title: "Mobile Development",
-  //     description: "Learn mobile app development",
-  //     image_url: "/placeholder.svg?height=400&width=600",
-  //     subcategories: []
-  //   },
-  //   {
-  //     id: "database",
-  //     title: "Database",
-  //     description: "Learn database management systems",
-  //     image_url: "/placeholder.svg?height=400&width=600",
-  //     subcategories: []
-  //   }
-  // ]
+  const categories = [
+    {
+      id: "all",
+      title: "All Categories",
+      description: "All available categories",
+      image_url: "/placeholder.svg?height=400&width=600",
+      subcategories: []
+    },
+    {
+      id: "web-development",
+      title: "Web Development",
+      description: "Learn web development technologies",
+      image_url: "/placeholder.svg?height=400&width=600",
+      subcategories: []
+    },
+    {
+      id: "programming",
+      title: "Programming",
+      description: "Learn programming languages and concepts",
+      image_url: "/placeholder.svg?height=400&width=600",
+      subcategories: []
+    },
+    {
+      id: "marketing",
+      title: "Marketing",
+      description: "Learn digital marketing strategies",
+      image_url: "/placeholder.svg?height=400&width=600",
+      subcategories: []
+    },
+    {
+      id: "design",
+      title: "Design",
+      description: "Learn design principles and tools",
+      image_url: "/placeholder.svg?height=400&width=600",
+      subcategories: []
+    },
+    {
+      id: "data-science",
+      title: "Data Science",
+      description: "Learn data science and analytics",
+      image_url: "/placeholder.svg?height=400&width=600",
+      subcategories: []
+    },
+    {
+      id: "mobile-development",
+      title: "Mobile Development",
+      description: "Learn mobile app development",
+      image_url: "/placeholder.svg?height=400&width=600",
+      subcategories: []
+    },
+    {
+      id: "database",
+      title: "Database",
+      description: "Learn database management systems",
+      image_url: "/placeholder.svg?height=400&width=600",
+      subcategories: []
+    }
+  ];
 
   // Filter and sort courses
   const filteredCourses = courses
@@ -708,65 +687,7 @@ export default function StudentDashboard() {
             </button>
 
             <div className="relative">
-              <button
-                onClick={toggleNotifications}
-                className="relative rounded-full p-2 text-gray-500 hover:bg-gray-100"
-              >
-                {notifications.some((n) => !n.read) && (
-                  <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-[#FF9500]"></span>
-                )}
-                <Bell className="h-5 w-5" />
-              </button>
-
-              {showNotifications && (
-                <div
-                  ref={notificationsRef}
-                  className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-md border border-gray-200 bg-white p-4 shadow-lg"
-                >
-                  <div className="mb-4 flex items-center justify-between">
-                    <h3 className="font-medium">Notifications</h3>
-                    <button className="text-xs text-[#FF9500]">
-                      Mark all as read
-                    </button>
-                  </div>
-                  <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-                    {notifications.map((notification) => (
-                      <div
-                        key={notification.id}
-                        className={`flex gap-3 ${
-                          notification.read ? "opacity-75" : ""
-                        }`}
-                      >
-                        <div className="h-10 w-10 flex-shrink-0 rounded-full bg-[#f7f9fa]">
-                          {React.createElement(notification.icon, {
-                            className: "h-full w-full p-2 text-[#FF9500]",
-                          })}
-                        </div>
-                        <div>
-                          <p className="text-sm">
-                            <span className="font-medium">
-                              {notification.title}
-                            </span>{" "}
-                            in{" "}
-                            <span className="font-medium">
-                              {notification.course}
-                            </span>
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {notification.time}
-                          </p>
-                        </div>
-                        {!notification.read && (
-                          <div className="ml-auto h-2 w-2 flex-shrink-0 rounded-full bg-[#FF9500]"></div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  <button className="mt-4 w-full rounded-md border border-gray-200 py-2 text-center text-sm text-gray-700 hover:bg-gray-100">
-                    View All Notifications
-                  </button>
-                </div>
-              )}
+              <NotificationsComponent />
             </div>
 
             <div className="relative">
@@ -913,7 +834,7 @@ export default function StudentDashboard() {
                       <TrendingUp className="h-5 w-5 text-[#FF9500]" />
                     </div>
                   </div>
-                  <p className="mt-4 text-3xl font-bold">{progress}</p>
+                  <p className="mt-4 text-3xl font-bold">{progress} %</p>
                   <div className="mt-2 text-sm text-gray-600">
                     Overall course completion
                   </div>
@@ -1482,7 +1403,7 @@ export default function StudentDashboard() {
                           src={
                             courses[selectedCourse].image || "/placeholder.svg"
                           } 
-                          
+
                           alt={courses[selectedCourse].title}
                           className="h-full w-full object-cover"
                         />
@@ -1533,7 +1454,7 @@ export default function StudentDashboard() {
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-gray-500">Completion</span>
                             <span className="font-medium">
-                              {courses[selectedCourse].progress}%
+                              {progress}%
                             </span>
                           </div>
                           <div className="mt-1 h-2 w-full rounded-full bg-white">
@@ -1779,6 +1700,9 @@ export default function StudentDashboard() {
               </p>
             </div>
           )}
+           <div className="relative">
+            < NotificationsComponent />
+          </div>
 
           {/* Mobile App Promotion */}
           <div className="mt-8 rounded-lg border border-gray-200 bg-[#f7f9fa] p-6">
@@ -1811,6 +1735,11 @@ export default function StudentDashboard() {
               </div>
             </div>
           </div>
+
+          {/* Notifications */}
+          {/* <div className="relative">
+            < NotificationsComponent />
+          </div> */}
         </main>
 
         {/* Footer */}
