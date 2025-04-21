@@ -13,6 +13,7 @@ import CoursesExplorer from '../pages/course/courseExplore'
 import CourseDetails from '../pages/course/courseDetails'
 import LessonViewer from '@/components/course/LessonViewer'
 import CoursePlayer from '@/components/course/coursePLayer'
+import Checkout from '@/components/checkout/checkout'
 
 export  const  router = createBrowserRouter([
     {
@@ -63,7 +64,7 @@ export  const  router = createBrowserRouter([
             element : <CoursePlayer/>
           },
           {path : '/checkout',
-            element :  <checkout/>
+            element :  <Checkout/>
           }
           
 ])
