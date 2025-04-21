@@ -8,13 +8,11 @@ export const courseService = {
   async createCourse(courseData: Partial<Course>): Promise<Course> {
     try {
       const token = localStorage.getItem('token');
-      const response = await axiosClient.post('api/courses' ,courseData, {
+      const response = await axiosClient.post('api/courses', courseData, {
         withCredentials: true,
         headers: {
           Authorization: `Bearer ${token}`,
           'Accept': 'application/json',
-
-          
         }
       });
       return response.data;
@@ -84,18 +82,16 @@ export const courseService = {
       throw error;
     }
   },
-  
-  // Lesson APIs
-  async addLesson(courseId: string, sectionId: string, lessonData: Partial<Lesson>): Promise<Lesson> {
+  async addLesson(courseId: string, sectionId: string, lessonData: Partial<Lesson>, token: string): Promise<Lesson> {
     try {
-      const token = localStorage.getItem('token');
       const response = await axiosClient.post(
-        `api/courses/${courseId}/sections/${sectionId}/lessons`, 
+        `api/courses/${courseId}/sections/${sectionId}/lessons`,
         lessonData,
         {
-            withCredentials: true,
+          withCredentials: true,
           headers: {
-            Authorization: `Bearer ${token}`
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
           }
         }
       );
@@ -161,32 +157,53 @@ export const courseService = {
   },
   
   async addTag(courseId: string, tagName: string): Promise<Tag> {
+    const token = localStorage.getItem('token');
+  
     try {
-      const token = localStorage.getItem('token');
+      // Étape 1 : Créer (ou récupérer) le tag
       const response = await axiosClient.post(
-        `${API_URL}/courses/${courseId}/tags`, 
+        `${API_URL}/api/courses/${courseId}/tags`,
         { name: tagName },
         {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
-      return response.data;
+  
+      const tagId = response.data.tag.id;
+  
+      // Étape 2 : Attacher le tag au cours
+      const result =await axiosClient.post(
+        `${API_URL}/api/courses/${courseId}/tags/${tagId}`,
+        {}, // ← corps vide (sinon Laravel ne comprend pas bien parfois)
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+  
+      console.log(response , result);
+  
     } catch (error) {
-      console.error('Erreur lors de l\'ajout du tag:', error);
+      console.error("Erreur lors de l'ajout du tag:", error);
       throw error;
     }
   },
+  
   
   // File upload API
   async uploadAttachment(file: File, lessonId: string): Promise<{ url: string }> {
     try {
       const formData = new FormData();
-      formData.append('file', file);
+      if (file) {
+        formData.append('file', file);
+        formData.append('type', 'lesson');
+      }
       
       const response = await axiosClient.post(
-        `${API_URL}/lessons/${lessonId}/attachments`, 
+        `api/lessons/${lessonId}/attachments`, 
         formData,
         {
           headers: {
@@ -223,5 +240,31 @@ export const courseService = {
       console.error('Error uploading course image:', error);
       throw error;
     }
-  }
+  },
+  
+  async uploadFile (type: string, file: File) {
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('type', type);
+
+        const response = await axiosClient.post(
+            'http://localhost:8000/api/upload',
+            formData,
+            {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            }
+        );
+        return response.data;
+    } catch (error) {
+        console.error('Erreur lors du téléchargement du fichier:', error);
+        throw error;
+    }
+},
+  
 };
