@@ -38,7 +38,6 @@ import StudentSettings from "./student/settings/studentSettings";
 import NotificationsComponent from "../components/notification/notification";
 import { Course, Certificate, Notification } from "../types/dashboard";
 import useStudentDashboardData from "../hooks/useDashboardStudentData";
-import type { Category } from "../hooks/courseExplore";
 import Wishlist from "../components/wishList/wishList";
 
 export default function StudentDashboard() {
@@ -74,6 +73,7 @@ export default function StudentDashboard() {
     email: "",
     avatar: "",
   });
+  const [wishlists, setWishlists] = useState<any[]>([]);
   const { data: dashboardData, loading: apiLoading } =
     useStudentDashboardData();
 
@@ -179,6 +179,22 @@ export default function StudentDashboard() {
           setCertificates(dashboardData.certificates || []);
           setNotifications(dashboardData.notifications || []);
           setUserProfile(dashboardData.userProfile || {});
+          setWishlists(dashboardData.wishlists || [])
+
+          // Log wishlist data before setting state
+          console.log("Wishlists from dashboard data:", dashboardData.wishlists);
+
+          if (dashboardData.wishlists) {
+            console.log("Number of wishlists in dashboard data:", dashboardData.wishlists.length);
+            if (dashboardData.wishlists.length > 0) {
+              console.log("First wishlist item structure:", dashboardData.wishlists[0]);
+            }
+          } else {
+            console.log("No wishlists found in dashboard data");
+          }
+
+          // Set wishlist state
+          setWishlists(dashboardData.wishlists || []);
 
           setProgress(dashboardData.progress)
           setLoading(false);
@@ -1267,7 +1283,7 @@ export default function StudentDashboard() {
                   Gérez les cours que vous souhaitez suivre plus tard
                 </p>
               </div>
-              <Wishlist />
+              <Wishlist dashboardWishlists={wishlists} />
             </div>
           )}
 
