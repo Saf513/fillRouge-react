@@ -14,6 +14,7 @@ import CourseDetails from '../pages/course/courseDetails'
 import LessonViewer from '@/components/course/LessonViewer'
 import CoursePlayer from '@/components/course/coursePLayer'
 import Checkout from '@/components/checkout/checkout'
+import Wishlist from '../components/wishList/wishList.tsx'
 
 export  const  router = createBrowserRouter([
     {
@@ -65,6 +66,9 @@ export  const  router = createBrowserRouter([
           },
           {path : '/checkout',
             element :  <Checkout/>
+          },
+          { path : '/wishlist',
+            element : <Wishlist/> // Correction du chemin de WishList
           }
           
 ])
