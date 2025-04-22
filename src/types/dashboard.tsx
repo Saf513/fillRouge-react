@@ -65,6 +65,43 @@ export interface PopularCourse {
   imageUrl: string;
 }
 
+export interface Wishlist {
+  id: number;
+  user_id: number;
+  course_id: number;
+  has_notifications: boolean;
+  added_at: string;
+  created_at: string;
+  updated_at: string;
+  course: {
+    id: number;
+    title: string;
+    subtitle: string | null;
+    description: string;
+    slug: string | null;
+    instructor_id: number;
+    level: string;
+    language: string;
+    image_url: string | null;
+    video_url: string | null;
+    price: string;
+    discount: string | null;
+    published_date: string | null;
+    last_updated: string | null;
+    status: string;
+    requirements: any | null;
+    what_you_will_learn: any | null;
+    target_audience: any | null;
+    average_rating: string;
+    total_reviews: number;
+    total_students: number;
+    has_certificate: boolean;
+    created_at: string;
+    updated_at: string;
+    category_id: number | null;
+  };
+}
+
 export interface DashboardData {
   stats: DashboardStats;
   courses: Course[];
@@ -84,5 +121,5 @@ export interface DashboardData {
     labels: string[];
     data: number[];
   };
+  wishlists?: Wishlist[];
 } 
-
