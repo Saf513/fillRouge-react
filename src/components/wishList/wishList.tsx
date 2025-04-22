@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react"
 import { Link } from "react-router-dom"
 import { useWishlistStore } from "@/hooks/useWishlistStore"
-import { useCourses } from "@/hooks/useCourses"
 import {
   Heart,
   ShoppingCart,
@@ -69,154 +68,57 @@ interface Course {
 }
 
 // Sample data
-const sampleWishlistCourses: Course[] = [
-  {
-    id: "react-masterclass",
-    title: "React Masterclass: Construisez des Applications Web Modernes",
-    instructor: {
-      id: 1,
-      first_name: "Sophie",
-      last_name: "Martin",
-      email: "sophie.martin@example.com",
-      avatar_url: "/placeholder.svg?height=50&width=50&text=SM",
-      bio: "Sophie is a passionate developer with a focus on React and JavaScript.",
-    },
-    thumbnail: "/placeholder.svg?height=200&width=400&text=React+Masterclass",
-    rating: 4.8,
-    reviewCount: 4752,
-    originalPrice: 89.99,
-    currentPrice: 14.99,
-    discount: 83,
-    discountEnds: "2 jours restants",
-    addedDate: "2023-10-15",
-    lastUpdated: "2023-09-30",
-    level: "Tous niveaux",
-    duration: "42h",
-    category: "Développement Web",
-    tags: ["React", "JavaScript", "Frontend"],
-    hasNotifications: true,
-    inCart: false,
-  },
-  {
-    id: "python-data-science",
-    title: "Python pour la Data Science et l'Intelligence Artificielle",
-    instructor: {
-      id: 2,
-      first_name: "Thomas",
-      last_name: "Dubois",
-      email: "thomas.dubois@example.com",
-      avatar_url: "/placeholder.svg?height=50&width=50&text=TD",
-      bio: "Thomas is an expert in data science and machine learning.",
-    },
-    thumbnail: "/placeholder.svg?height=200&width=400&text=Python+Data+Science",
-    rating: 4.9,
-    reviewCount: 8521,
-    originalPrice: 129.99,
-    currentPrice: 19.99,
-    discount: 85,
-    discountEnds: "5 jours restants",
-    addedDate: "2023-10-10",
-    lastUpdated: "2023-10-05",
-    level: "Intermédiaire",
-    duration: "38h",
-    category: "Data Science",
-    tags: ["Python", "Machine Learning", "Data Analysis"],
-    hasNotifications: false,
-    inCart: false,
-  },
-  {
-    id: "ux-ui-design",
-    title: "UX/UI Design: Créez des Interfaces Utilisateur Exceptionnelles",
-    instructor: {
-      id: 3,
-      first_name: "Emma",
-      last_name: "Laurent",
-      email: "emma.laurent@example.com",
-      avatar_url: "/placeholder.svg?height=50&width=50&text=EL",
-      bio: "Emma is a UX/UI designer with a passion for creating beautiful and intuitive designs.",
-    },
-    thumbnail: "/placeholder.svg?height=200&width=400&text=UX/UI+Design",
-    rating: 4.7,
-    reviewCount: 3254,
-    originalPrice: 99.99,
-    currentPrice: 16.99,
-    discount: 83,
-    discountEnds: "1 jour restant",
-    addedDate: "2023-10-05",
-    lastUpdated: "2023-09-15",
-    level: "Débutant",
-    duration: "28h",
-    category: "Design",
-    tags: ["UX", "UI", "Figma", "Adobe XD"],
-    hasNotifications: true,
-    inCart: true,
-  },
-  {
-    id: "node-backend",
-    title: "Node.js: Développement Backend Complet avec Express et MongoDB",
-    instructor: {
-      id: 4,
-      first_name: "Lucas",
-      last_name: "Bernard",
-      email: "lucas.bernard@example.com",
-      avatar_url: "/placeholder.svg?height=50&width=50&text=LB",
-      bio: "Lucas is a backend developer with experience in Node.js and MongoDB.",
-    },
-    thumbnail: "/placeholder.svg?height=200&width=400&text=Node.js+Backend",
-    rating: 4.6,
-    reviewCount: 2187,
-    originalPrice: 94.99,
-    currentPrice: 13.99,
-    discount: 85,
-    discountEnds: "3 jours restants",
-    addedDate: "2023-09-28",
-    lastUpdated: "2023-09-10",
-    level: "Intermédiaire",
-    duration: "35h",
-    category: "Développement Web",
-    tags: ["Node.js", "Express", "MongoDB", "Backend"],
-    hasNotifications: false,
-    inCart: false,
-  },
-  {
-    id: "flutter-mobile",
-    title: "Flutter: Développement d'Applications Mobiles Multi-plateformes",
-    instructor: {
-      id: 5,
-      first_name: "Camille",
-      last_name: "Roux",
-      email: "camille.roux@example.com",
-      avatar_url: "/placeholder.svg?height=50&width=50&text=CR",
-      bio: "Camille is a mobile developer with expertise in Flutter and Dart.",
-    },
-    thumbnail: "/placeholder.svg?height=200&width=400&text=Flutter+Mobile",
-    rating: 4.8,
-    reviewCount: 1856,
-    originalPrice: 109.99,
-    currentPrice: 17.99,
-    discount: 84,
-    discountEnds: "4 jours restants",
-    addedDate: "2023-09-20",
-    lastUpdated: "2023-09-05",
-    level: "Tous niveaux",
-    duration: "45h",
-    category: "Développement Mobile",
-    tags: ["Flutter", "Dart", "iOS", "Android"],
-    hasNotifications: true,
-    inCart: false,
-  },
-]
 
-const Wishlist = () => {
-  const { courses, loading: coursesLoading } = useCourses()
+
+interface WishlistProps {
+  dashboardWishlists?: Array<{
+    id: number;
+    user_id: number;
+    course_id: number;
+    has_notifications: boolean;
+    added_at: string;
+    created_at: string;
+    updated_at: string;
+    course: {
+      id: number;
+      title: string;
+      subtitle: string | null;
+      description: string;
+      slug: string | null;
+      instructor_id: number;
+      level: string;
+      language: string;
+      image_url: string | null;
+      video_url: string | null;
+      price: string;
+      discount: string | null;
+      published_date: string | null;
+      last_updated: string | null;
+      status: string;
+      requirements: any | null;
+      what_you_will_learn: any | null;
+      target_audience: any | null;
+      average_rating: string;
+      total_reviews: number;
+      total_students: number;
+      has_certificate: boolean;
+      created_at: string;
+      updated_at: string;
+      category_id: number | null;
+    };
+  }>;
+}
+
+const Wishlist = ({ dashboardWishlists }: WishlistProps) => {
   const { 
-    wishlistedCourses, 
+    wishlistItems, 
     isLoading: wishlistLoading, 
     error,
     toggleWishlist,
     removeFromWishlist,
     clearWishlist: clearWishlistStore,
-    fetchWishlistedCourses
+    fetchWishlistedCourses,
+    toggleNotification
   } = useWishlistStore()
 
   const [filteredCourses, setFilteredCourses] = useState<Course[]>([])
@@ -228,22 +130,109 @@ const Wishlist = () => {
   const [showDiscountedOnly, setShowDiscountedOnly] = useState(false)
   const [showPriceAlerts, setShowPriceAlerts] = useState(true)
 
-  // Get actual wishlist courses from all courses
+  console.log('dashboardWishlists received in Wishlist component:', dashboardWishlists);
+  console.log('wishlist store items:', wishlistItems);
+
+  // Log the length of dashboardWishlists if it exists
+  if (dashboardWishlists) {
+    console.log('Number of items in dashboardWishlists:', dashboardWishlists.length);
+
+    // Log the first item in dashboardWishlists to inspect its structure
+    if (dashboardWishlists.length > 0) {
+      console.log('First item in dashboardWishlists:', dashboardWishlists[0]);
+      console.log('Course in first wishlist item:', dashboardWishlists[0].course);
+    }
+  }
+
+  // Convert dashboard wishlist items to the Course format if available
+  const dashboardWishlistCourses = useMemo(() => {
+    if (!dashboardWishlists || dashboardWishlists.length === 0) {
+      console.log('No dashboard wishlists available for conversion');
+      return null;
+    }
+
+    console.log('Converting dashboard wishlists to Course format');
+
+    try {
+      return dashboardWishlists.map(item => {
+        console.log('Processing wishlist item:', item);
+
+        if (!item.course) {
+          console.error('Course data missing in wishlist item:', item);
+          return null;
+        }
+
+        const course = item.course;
+        console.log('Processing course:', course);
+
+        const convertedCourse = {
+          id: course.id.toString(),
+          title: course.title || "Untitled Course",
+          instructor: {
+            id: course.instructor_id || 0,
+            first_name: "Instructor", // Default value as we don't have the actual name
+            last_name: "",
+            email: "",
+            avatar_url: "/placeholder.svg?height=50&width=50&text=IN",
+            bio: "",
+          },
+          thumbnail: course.image_url || "/placeholder.svg",
+          rating: parseFloat(course.average_rating) || 0,
+          reviewCount: course.total_reviews || 0,
+          originalPrice: parseFloat(course.price) || 0,
+          currentPrice: course.discount ? parseFloat(course.price) * (1 - parseFloat(course.discount) / 100) : parseFloat(course.price) || 0,
+          discount: course.discount ? parseFloat(course.discount) : 0,
+          discountEnds: null,
+          addedDate: item.added_at || new Date().toISOString(),
+          lastUpdated: course.last_updated || course.updated_at || new Date().toISOString(),
+          level: course.level || "Beginner",
+          duration: "N/A", // Not available in the API response
+          category: course.category_id ? course.category_id.toString() : "Uncategorized",
+          tags: course.what_you_will_learn ? (Array.isArray(course.what_you_will_learn) ? course.what_you_will_learn : []) : [],
+          hasNotifications: item.has_notifications || false,
+          inCart: false, // We don't have this information
+        } as Course;
+
+        console.log('Converted course:', convertedCourse);
+        return convertedCourse;
+      }).filter(Boolean); // Remove any null items
+    } catch (error) {
+      console.error('Error converting dashboard wishlists to Course format:', error);
+      return null;
+    }
+  }, [dashboardWishlists]);
+
+  // Use dashboard wishlist items if available, otherwise use store items
   const wishlistCourses = useMemo(() => {
-    return courses
-      ? courses.filter(course => wishlistedCourses.includes(String(course.id)))
-      : []
-  }, [courses, wishlistedCourses])
+    if (dashboardWishlistCourses) {
+      console.log('Using dashboard wishlist courses:', dashboardWishlistCourses);
+      return dashboardWishlistCourses;
+    }
+    console.log('Using wishlist store items:', wishlistItems);
+    return wishlistItems || [];
+  }, [dashboardWishlistCourses, wishlistItems]);
 
-  // Fetch wishlist courses when component mounts
+  // Log the final wishlist courses that will be displayed
   useEffect(() => {
-    fetchWishlistedCourses()
-  }, [fetchWishlistedCourses])
+    console.log('Final wishlist courses to display:', wishlistCourses);
+    console.log('Number of wishlist courses to display:', wishlistCourses.length);
+  }, [wishlistCourses]);
 
-  // Update loading state based on courses and wishlist loading
+  // Fetch wishlist courses when component mounts, but only if dashboard wishlist is not provided
   useEffect(() => {
-    setIsLoading(coursesLoading || wishlistLoading)
-  }, [coursesLoading, wishlistLoading])
+    if (!dashboardWishlists) {
+      fetchWishlistedCourses();
+    }
+  }, [fetchWishlistedCourses, dashboardWishlists])
+
+  // Update loading state based on wishlist loading or dashboard data
+  useEffect(() => {
+    if (dashboardWishlists) {
+      setIsLoading(false);
+    } else {
+      setIsLoading(wishlistLoading);
+    }
+  }, [wishlistLoading, dashboardWishlists])
 
   // Filter and sort courses
   useEffect(() => {
