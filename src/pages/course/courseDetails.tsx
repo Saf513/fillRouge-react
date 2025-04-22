@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { useCourses } from '@/hooks/useCourses'
+import { useWishlistStore } from '@/hooks/useWishlistStore'
 import { Course } from '@/types/course'
 import {
   Play,
@@ -9,19 +10,40 @@ import {
   Star,
   BookOpen,
   ShoppingCart,
+  Heart,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import  {Button} from "@/components/ui/button"
 
 export default function CourseDetails() {
   const { id } = useParams()
   const { courses, loading } = useCourses()
+  const { 
+    wishlistedCourses, 
+    toggleWishlist: toggleWishlistStore,
+    fetchWishlistedCourses
+  } = useWishlistStore()
   const [course, setCourse] = useState<Course | null>(null)
+
+  // Check if course is in wishlist
+  const isInWishlist = id ? wishlistedCourses.includes(id) : false
+
+  // Function to toggle wishlist status
+  const toggleWishlist = () => {
+    if (id) {
+      toggleWishlistStore(id)
+    }
+  }
+
+  // Fetch wishlist courses when component mounts
+  useEffect(() => {
+    fetchWishlistedCourses()
+  }, [fetchWishlistedCourses])
 
   useEffect(() => {
     if (courses && id) {
-     
+
       const foundCourse = courses.find(c => String(c.id) === id)
-    
+
       if (foundCourse) {
         setCourse(foundCourse)
       }
@@ -60,7 +82,7 @@ console.log("course:" , course)
         <div className="lg:col-span-2">
           <h1 className="text-3xl font-bold mb-4">{course.title}</h1>
           <p className="text-gray-600 mb-6">{course.description}</p>
-          
+
           <div className="flex flex-wrap gap-4 mb-8">
             <div className="flex items-center">
               <Clock className="h-5 w-5 text-gray-500 mr-2" />
@@ -103,7 +125,7 @@ console.log("course:" , course)
               alt={course.title} 
               className="w-full h-48 object-cover rounded-lg mb-4"
             />
-            
+
             <div className="mb-4">
               {course.discount ? (
                 <div className="flex items-center">
@@ -115,11 +137,24 @@ console.log("course:" , course)
               )}
             </div>
 
-            <Button className="w-full bg-[#a435f0] text-white py-3 rounded-lg font-medium mb-4 hover:bg-[#8710d8] transition-colors">
-              <ShoppingCart className="h-5 w-5 inline-block mr-2" />
-              Ajouter au panier
-            </Button>
-            
+            <div className="flex gap-2 mb-4">
+              <Button className="flex-1 bg-[#a435f0] text-white py-3 rounded-lg font-medium hover:bg-[#8710d8] transition-colors" onClick={() => window.location.href = '/checkout'}>
+                <ShoppingCart className="h-5 w-5 inline-block mr-2" />
+                Ajouter au panier
+              </Button>
+
+              <Button 
+                className={`px-3 py-3 rounded-lg font-medium transition-colors ${
+                  isInWishlist 
+                    ? "bg-red-100 text-red-500 hover:bg-red-200" 
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`} 
+                onClick={toggleWishlist}
+              >
+                <Heart className={`h-5 w-5 ${isInWishlist ? "fill-red-500 text-red-500" : ""}`} />
+              </Button>
+            </div>
+
             <div className="text-sm text-gray-600">
               <p>Garantie de remboursement de 30 jours</p>
               <p>Accès à vie</p>
@@ -132,4 +167,3 @@ console.log("course:" , course)
     </div>
   )
 }
-
