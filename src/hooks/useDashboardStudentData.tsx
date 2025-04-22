@@ -52,7 +52,43 @@ interface DashboardData {
     email: string;
     avatar: string;
   };
-  progress : number;
+  progress: number;
+  wishlists?: Array<{
+    id: number;
+    user_id: number;
+    course_id: number;
+    has_notifications: boolean;
+    added_at: string;
+    created_at: string;
+    updated_at: string;
+    course: {
+      id: number;
+      title: string;
+      subtitle: string | null;
+      description: string;
+      slug: string | null;
+      instructor_id: number;
+      level: string;
+      language: string;
+      image_url: string | null;
+      video_url: string | null;
+      price: string;
+      discount: string | null;
+      published_date: string | null;
+      last_updated: string | null;
+      status: string;
+      requirements: any | null;
+      what_you_will_learn: any | null;
+      target_audience: any | null;
+      average_rating: string;
+      total_reviews: number;
+      total_students: number;
+      has_certificate: boolean;
+      created_at: string;
+      updated_at: string;
+      category_id: number | null;
+    };
+  }>;
 }
 
 export default function useStudentDashboardData() {
@@ -69,7 +105,7 @@ export default function useStudentDashboardData() {
         const token =JSON.parse(localStorage.getItem('auth-storage') || '{}').state?.token;
 
         console.log("Token utilisé:", token ? "Token présent" : "Token absent");
-        
+
 
         // Utiliser l'URL relative pour bénéficier du proxy Vite
         const response = await axiosClient.get('/api/dashboard-student', {
@@ -77,27 +113,42 @@ export default function useStudentDashboardData() {
             Authorization: `Bearer ${token}`
           }
         });
-        
+
         console.log("Réponse API reçue:", response);
         console.log("Structure complète de la réponse:", JSON.stringify(response.data, null, 2));
-        
+
         // Vérifier si la structure de la réponse est correcte
         if (response.data && response.data.data) {
           console.log("Données du tableau de bord:", response.data.data);
           console.log("Cours:", response.data.data.courses);
           console.log("Certificats:", response.data.data.certificates);
           console.log("Profil:", response.data.data.profile);
-          
+
           // Vérifier si les tableaux sont vides
           if (response.data.data.courses && response.data.data.courses.length === 0) {
             console.log("Aucun cours trouvé dans la réponse");
           }
-          
+
           if (response.data.data.certificates && response.data.data.certificates.length === 0) {
             console.log("Aucun certificat trouvé dans la réponse");
           }
-          
-          setData(response.data.data);
+
+          // Vérifier si les wishlists sont présentes
+          if (response.data.data.wishlists) {
+            console.log("Wishlists trouvées dans la réponse:", response.data.data.wishlists);
+            console.log("Nombre de wishlists:", response.data.data.wishlists.length);
+          } else {
+            console.log("Aucune wishlist trouvée dans la réponse");
+          }
+
+          // Fix the " progress" property (with a space) in the API response
+          const cleanedData = { ...response.data.data };
+          if (cleanedData[" progress"] !== undefined) {
+            cleanedData.progress = cleanedData[" progress"];
+            delete cleanedData[" progress"];
+          }
+
+          setData(cleanedData);
           setError(null);
         } else {
           console.error("Structure de réponse incorrecte:", response.data);
