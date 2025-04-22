@@ -68,6 +68,18 @@ export default function CoursesExplorer() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false)
   const [hoveredCourse, setHoveredCourse] = useState<number | null>(null)
+  const [wishlistedCourses, setWishlistedCourses] = useState<number[]>([])
+
+  // Function to toggle wishlist status
+  const toggleWishlist = (courseId: number, event: React.MouseEvent) => {
+    event.stopPropagation() // Prevent triggering other click events
+    setWishlistedCourses(prev => 
+      prev.includes(courseId) 
+        ? prev.filter(id => id !== courseId) 
+        : [...prev, courseId]
+    )
+    // Here you would typically call an API to update the wishlist
+  }
 
   // Handle scroll for sticky header
   useEffect(() => {
@@ -997,8 +1009,12 @@ export default function CoursesExplorer() {
                     <div className="p-4 flex flex-col flex-grow">
                       <div className="flex items-start justify-between mb-2">
                         <h3 className="font-bold text-lg line-clamp-2">{course.title}</h3>
-                        <button className="flex-shrink-0 ml-2 text-gray-400 hover:text-[#a435f0]">
-                          <Heart className="h-5 w-5" />
+                        <button 
+                          className={`flex-shrink-0 ml-2 ${wishlistedCourses.includes(course.id) ? 'text-red-500' : 'text-gray-400 hover:text-[#a435f0]'}`}
+                          onClick={(e) => toggleWishlist(course.id, e)}
+                          aria-label={wishlistedCourses.includes(course.id) ? "Retirer de la liste de souhaits" : "Ajouter à la liste de souhaits"}
+                        >
+                          <Heart className={`h-5 w-5 ${wishlistedCourses.includes(course.id) ? 'fill-red-500' : ''}`} />
                         </button>
                       </div>
 
@@ -1206,4 +1222,3 @@ export default function CoursesExplorer() {
     </div>
   )
 }
-
