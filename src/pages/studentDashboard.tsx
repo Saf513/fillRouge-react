@@ -39,6 +39,7 @@ import NotificationsComponent from "../components/notification/notification";
 import { Course, Certificate, Notification } from "../types/dashboard";
 import useStudentDashboardData from "../hooks/useDashboardStudentData";
 import type { Category } from "../hooks/courseExplore";
+import Wishlist from "../components/wishList/wishList";
 
 export default function StudentDashboard() {
   const [activeTab, setActiveTab] = useState("my-learning");
@@ -1252,6 +1253,21 @@ export default function StudentDashboard() {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Wishlist Tab */}
+          {activeTab === "wishlist" && (
+            <div className="space-y-6">
+              <div>
+                <h1 className="text-2xl font-bold md:text-3xl">
+                  Ma Liste de Souhaits
+                </h1>
+                <p className="text-gray-600">
+                  Gérez les cours que vous souhaitez suivre plus tard
+                </p>
+              </div>
+              <Wishlist />
             </div>
           )}
 
