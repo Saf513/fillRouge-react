@@ -103,9 +103,9 @@ export const useWishlistStore = create<WishlistState>((set, get) => ({
         }));
       }
     } catch (error) {
-      console.error('Erreur lors de la mise à jour de la liste de souhaits:', error);
+      console.error('Erreur lors de la modification de la liste de souhaits:', error);
       set({ 
-        error: 'Impossible de mettre à jour votre liste de souhaits. Veuillez réessayer.',
+        error: 'Impossible de modifier votre liste de souhaits. Veuillez réessayer.',
         isLoading: false 
       });
     }
