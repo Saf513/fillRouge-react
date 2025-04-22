@@ -37,79 +37,14 @@ import {Switch} from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import {Tooltip ,TooltipProvider ,TooltipTrigger , TooltipContent} from "@/components/ui/tooltip"
 import { Skeleton } from "@/components/ui/skeleton"
-
-// Types
-interface Course {
-  id: string | number;
-  title: string;
-  instructor: {
-    id: number;
-    first_name: string;
-    last_name: string;
-    email: string;
-    avatar_url: string;
-    bio: string;
-  };
-  thumbnail: string;
-  rating: number;
-  reviewCount: number;
-  originalPrice: number;
-  currentPrice: number;
-  discount: number;
-  discountEnds?: string;
-  addedDate: string;
-  lastUpdated: string;
-  level: string;
-  duration: string;
-  category: string;
-  tags: string[];
-  hasNotifications: boolean;
-  inCart: boolean;
-}
+import { Course } from "@/types/course"
+import  {Wishlist } from "@/types/dashboard"
 
 // Sample data
 
 
-interface WishlistProps {
-  dashboardWishlists?: Array<{
-    id: number;
-    user_id: number;
-    course_id: number;
-    has_notifications: boolean;
-    added_at: string;
-    created_at: string;
-    updated_at: string;
-    course: {
-      id: number;
-      title: string;
-      subtitle: string | null;
-      description: string;
-      slug: string | null;
-      instructor_id: number;
-      level: string;
-      language: string;
-      image_url: string | null;
-      video_url: string | null;
-      price: string;
-      discount: string | null;
-      published_date: string | null;
-      last_updated: string | null;
-      status: string;
-      requirements: any | null;
-      what_you_will_learn: any | null;
-      target_audience: any | null;
-      average_rating: string;
-      total_reviews: number;
-      total_students: number;
-      has_certificate: boolean;
-      created_at: string;
-      updated_at: string;
-      category_id: number | null;
-    };
-  }>;
-}
 
-const Wishlist = ({ dashboardWishlists }: WishlistProps) => {
+const Wishlist = ({ dashboardWishlists }: Wishlist) => {
   const { 
     wishlistItems, 
     isLoading: wishlistLoading, 
@@ -121,6 +56,16 @@ const Wishlist = ({ dashboardWishlists }: WishlistProps) => {
     toggleNotification
   } = useWishlistStore()
 
+  // Create a local copy of dashboardWishlists that we can modify
+  const [localWishlists, setLocalWishlists] = useState(dashboardWishlists || []);
+
+  // Update local wishlists when dashboardWishlists changes
+  useEffect(() => {
+    if (dashboardWishlists) {
+      setLocalWishlists(dashboardWishlists);
+    }
+  }, [dashboardWishlists]);
+
   const [filteredCourses, setFilteredCourses] = useState<Course[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [sortOption, setSortOption] = useState("recently-added")
@@ -130,40 +75,22 @@ const Wishlist = ({ dashboardWishlists }: WishlistProps) => {
   const [showDiscountedOnly, setShowDiscountedOnly] = useState(false)
   const [showPriceAlerts, setShowPriceAlerts] = useState(true)
 
-  console.log('dashboardWishlists received in Wishlist component:', dashboardWishlists);
-  console.log('wishlist store items:', wishlistItems);
-
-  // Log the length of dashboardWishlists if it exists
-  if (dashboardWishlists) {
-    console.log('Number of items in dashboardWishlists:', dashboardWishlists.length);
-
-    // Log the first item in dashboardWishlists to inspect its structure
-    if (dashboardWishlists.length > 0) {
-      console.log('First item in dashboardWishlists:', dashboardWishlists[0]);
-      console.log('Course in first wishlist item:', dashboardWishlists[0].course);
-    }
-  }
+  // Use dashboardWishlists if provided
 
   // Convert dashboard wishlist items to the Course format if available
   const dashboardWishlistCourses = useMemo(() => {
-    if (!dashboardWishlists || dashboardWishlists.length === 0) {
-      console.log('No dashboard wishlists available for conversion');
+    if (!localWishlists || localWishlists.length === 0) {
       return null;
     }
 
-    console.log('Converting dashboard wishlists to Course format');
-
     try {
-      return dashboardWishlists.map(item => {
-        console.log('Processing wishlist item:', item);
-
+      return localWishlists.map(item => {
         if (!item.course) {
           console.error('Course data missing in wishlist item:', item);
           return null;
         }
 
         const course = item.course;
-        console.log('Processing course:', course);
 
         const convertedCourse = {
           id: course.id.toString(),
@@ -193,30 +120,22 @@ const Wishlist = ({ dashboardWishlists }: WishlistProps) => {
           inCart: false, // We don't have this information
         } as Course;
 
-        console.log('Converted course:', convertedCourse);
         return convertedCourse;
       }).filter(Boolean); // Remove any null items
     } catch (error) {
-      console.error('Error converting dashboard wishlists to Course format:', error);
+      console.error('Error converting local wishlists to Course format:', error);
       return null;
     }
-  }, [dashboardWishlists]);
+  }, [localWishlists]);
 
   // Use dashboard wishlist items if available, otherwise use store items
   const wishlistCourses = useMemo(() => {
     if (dashboardWishlistCourses) {
-      console.log('Using dashboard wishlist courses:', dashboardWishlistCourses);
       return dashboardWishlistCourses;
     }
-    console.log('Using wishlist store items:', wishlistItems);
     return wishlistItems || [];
   }, [dashboardWishlistCourses, wishlistItems]);
 
-  // Log the final wishlist courses that will be displayed
-  useEffect(() => {
-    console.log('Final wishlist courses to display:', wishlistCourses);
-    console.log('Number of wishlist courses to display:', wishlistCourses.length);
-  }, [wishlistCourses]);
 
   // Fetch wishlist courses when component mounts, but only if dashboard wishlist is not provided
   useEffect(() => {
@@ -287,17 +206,38 @@ const Wishlist = ({ dashboardWishlists }: WishlistProps) => {
 
   // Remove course from wishlist
   const removeCourse = (courseId: string) => {
-    removeFromWishlist(courseId)
+    // If we're using dashboard wishlists, we need to update the UI locally
+    // since we're not using the store for data
+    if (dashboardWishlists) {
+      // Update the local wishlists to remove the course
+      setLocalWishlists(prev => prev.filter(item => item.course_id.toString() !== courseId));
+
+      // In a real implementation, you would also make an API call to remove the course
+      // from the wishlist on the server
+    } else {
+      // Use the store function if we're not using dashboard wishlists
+      removeFromWishlist(courseId);
+    }
   }
 
   // Toggle notification for a course
   const handleToggleNotification = (courseId: string) => {
-    // Use the toggleNotification function from the hook
-    toggleNotification(courseId)
+    if (dashboardWishlists) {
+      // Update the notification status in local wishlists
+      setLocalWishlists(prev => 
+        prev.map(item => 
+          item.course_id.toString() === courseId 
+            ? { ...item, has_notifications: !item.has_notifications } 
+            : item
+        )
+      );
 
-    // Note: In this implementation, the UI won't update immediately since we're not storing
-    // notification state in the wishlistedCourses array. In a complete implementation,
-    // you would store more information about each wishlisted course.
+      // In a real implementation, you would also make an API call to update the notification
+      // status on the server
+    } else {
+      // Use the store function if we're not using dashboard wishlists
+      toggleNotification(courseId);
+    }
   }
 
   // Add course to cart
@@ -311,7 +251,16 @@ const Wishlist = ({ dashboardWishlists }: WishlistProps) => {
 
   // Remove all courses from wishlist
   const clearWishlist = () => {
-    clearWishlistStore()
+    if (dashboardWishlists) {
+      // Clear the local wishlists
+      setLocalWishlists([]);
+
+      // In a real implementation, you would also make an API call to clear the wishlist
+      // on the server
+    } else {
+      // Use the store function if we're not using dashboard wishlists
+      clearWishlistStore();
+    }
   }
 
   // Get unique categories for filter
