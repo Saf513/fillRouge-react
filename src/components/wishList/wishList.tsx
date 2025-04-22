@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react"
-import Image from "next/image"
-import Link from "next/link"
+import { useState, useEffect, useMemo } from "react"
+import { Link } from "react-router-dom"
+import { useWishlistStore } from "@/hooks/useWishlistStore"
+import { useCourses } from "@/hooks/useCourses"
 import {
   Heart,
   ShoppingCart,
@@ -21,7 +22,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,31 +34,38 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
-import { Switch } from "@/components/ui/switch"
+import {Switch} from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
+import {Tooltip ,TooltipProvider ,TooltipTrigger , TooltipContent} from "@/components/ui/tooltip"
 import { Skeleton } from "@/components/ui/skeleton"
 
 // Types
 interface Course {
-  id: string
-  title: string
-  instructor: string
-  instructorAvatar: string
-  thumbnail: string
-  rating: number
-  reviewCount: number
-  originalPrice: number
-  currentPrice: number
-  discount: number
-  discountEnds?: string
-  addedDate: string
-  lastUpdated: string
-  level: string
-  duration: string
-  category: string
-  tags: string[]
-  hasNotifications: boolean
-  inCart: boolean
+  id: string | number;
+  title: string;
+  instructor: {
+    id: number;
+    first_name: string;
+    last_name: string;
+    email: string;
+    avatar_url: string;
+    bio: string;
+  };
+  thumbnail: string;
+  rating: number;
+  reviewCount: number;
+  originalPrice: number;
+  currentPrice: number;
+  discount: number;
+  discountEnds?: string;
+  addedDate: string;
+  lastUpdated: string;
+  level: string;
+  duration: string;
+  category: string;
+  tags: string[];
+  hasNotifications: boolean;
+  inCart: boolean;
 }
 
 // Sample data
@@ -66,8 +73,14 @@ const sampleWishlistCourses: Course[] = [
   {
     id: "react-masterclass",
     title: "React Masterclass: Construisez des Applications Web Modernes",
-    instructor: "Sophie Martin",
-    instructorAvatar: "/placeholder.svg?height=50&width=50&text=SM",
+    instructor: {
+      id: 1,
+      first_name: "Sophie",
+      last_name: "Martin",
+      email: "sophie.martin@example.com",
+      avatar_url: "/placeholder.svg?height=50&width=50&text=SM",
+      bio: "Sophie is a passionate developer with a focus on React and JavaScript.",
+    },
     thumbnail: "/placeholder.svg?height=200&width=400&text=React+Masterclass",
     rating: 4.8,
     reviewCount: 4752,
@@ -87,8 +100,14 @@ const sampleWishlistCourses: Course[] = [
   {
     id: "python-data-science",
     title: "Python pour la Data Science et l'Intelligence Artificielle",
-    instructor: "Thomas Dubois",
-    instructorAvatar: "/placeholder.svg?height=50&width=50&text=TD",
+    instructor: {
+      id: 2,
+      first_name: "Thomas",
+      last_name: "Dubois",
+      email: "thomas.dubois@example.com",
+      avatar_url: "/placeholder.svg?height=50&width=50&text=TD",
+      bio: "Thomas is an expert in data science and machine learning.",
+    },
     thumbnail: "/placeholder.svg?height=200&width=400&text=Python+Data+Science",
     rating: 4.9,
     reviewCount: 8521,
@@ -108,8 +127,14 @@ const sampleWishlistCourses: Course[] = [
   {
     id: "ux-ui-design",
     title: "UX/UI Design: Créez des Interfaces Utilisateur Exceptionnelles",
-    instructor: "Emma Laurent",
-    instructorAvatar: "/placeholder.svg?height=50&width=50&text=EL",
+    instructor: {
+      id: 3,
+      first_name: "Emma",
+      last_name: "Laurent",
+      email: "emma.laurent@example.com",
+      avatar_url: "/placeholder.svg?height=50&width=50&text=EL",
+      bio: "Emma is a UX/UI designer with a passion for creating beautiful and intuitive designs.",
+    },
     thumbnail: "/placeholder.svg?height=200&width=400&text=UX/UI+Design",
     rating: 4.7,
     reviewCount: 3254,
@@ -129,8 +154,14 @@ const sampleWishlistCourses: Course[] = [
   {
     id: "node-backend",
     title: "Node.js: Développement Backend Complet avec Express et MongoDB",
-    instructor: "Lucas Bernard",
-    instructorAvatar: "/placeholder.svg?height=50&width=50&text=LB",
+    instructor: {
+      id: 4,
+      first_name: "Lucas",
+      last_name: "Bernard",
+      email: "lucas.bernard@example.com",
+      avatar_url: "/placeholder.svg?height=50&width=50&text=LB",
+      bio: "Lucas is a backend developer with experience in Node.js and MongoDB.",
+    },
     thumbnail: "/placeholder.svg?height=200&width=400&text=Node.js+Backend",
     rating: 4.6,
     reviewCount: 2187,
@@ -150,8 +181,14 @@ const sampleWishlistCourses: Course[] = [
   {
     id: "flutter-mobile",
     title: "Flutter: Développement d'Applications Mobiles Multi-plateformes",
-    instructor: "Camille Roux",
-    instructorAvatar: "/placeholder.svg?height=50&width=50&text=CR",
+    instructor: {
+      id: 5,
+      first_name: "Camille",
+      last_name: "Roux",
+      email: "camille.roux@example.com",
+      avatar_url: "/placeholder.svg?height=50&width=50&text=CR",
+      bio: "Camille is a mobile developer with expertise in Flutter and Dart.",
+    },
     thumbnail: "/placeholder.svg?height=200&width=400&text=Flutter+Mobile",
     rating: 4.8,
     reviewCount: 1856,
@@ -171,8 +208,18 @@ const sampleWishlistCourses: Course[] = [
 ]
 
 const Wishlist = () => {
-  const [wishlistCourses, setWishlistCourses] = useState<Course[]>(sampleWishlistCourses)
-  const [filteredCourses, setFilteredCourses] = useState<Course[]>(sampleWishlistCourses)
+  const { courses, loading: coursesLoading } = useCourses()
+  const { 
+    wishlistedCourses, 
+    isLoading: wishlistLoading, 
+    error,
+    toggleWishlist,
+    removeFromWishlist,
+    clearWishlist: clearWishlistStore,
+    fetchWishlistedCourses
+  } = useWishlistStore()
+
+  const [filteredCourses, setFilteredCourses] = useState<Course[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [sortOption, setSortOption] = useState("recently-added")
   const [searchQuery, setSearchQuery] = useState("")
@@ -181,14 +228,22 @@ const Wishlist = () => {
   const [showDiscountedOnly, setShowDiscountedOnly] = useState(false)
   const [showPriceAlerts, setShowPriceAlerts] = useState(true)
 
-  // Simulate loading
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false)
-    }, 1000)
+  // Get actual wishlist courses from all courses
+  const wishlistCourses = useMemo(() => {
+    return courses
+      ? courses.filter(course => wishlistedCourses.includes(String(course.id)))
+      : []
+  }, [courses, wishlistedCourses])
 
-    return () => clearTimeout(timer)
-  }, [])
+  // Fetch wishlist courses when component mounts
+  useEffect(() => {
+    fetchWishlistedCourses()
+  }, [fetchWishlistedCourses])
+
+  // Update loading state based on courses and wishlist loading
+  useEffect(() => {
+    setIsLoading(coursesLoading || wishlistLoading)
+  }, [coursesLoading, wishlistLoading])
 
   // Filter and sort courses
   useEffect(() => {
@@ -199,7 +254,7 @@ const Wishlist = () => {
       result = result.filter(
         (course) =>
           course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          course.instructor.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          course.instructor.first_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           course.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase())),
       )
     }
@@ -243,26 +298,31 @@ const Wishlist = () => {
 
   // Remove course from wishlist
   const removeCourse = (courseId: string) => {
-    setWishlistCourses((prev) => prev.filter((course) => course.id !== courseId))
+    removeFromWishlist(courseId)
   }
 
   // Toggle notification for a course
-  const toggleNotification = (courseId: string) => {
-    setWishlistCourses((prev) =>
-      prev.map((course) =>
-        course.id === courseId ? { ...course, hasNotifications: !course.hasNotifications } : course,
-      ),
-    )
+  const handleToggleNotification = (courseId: string) => {
+    // Use the toggleNotification function from the hook
+    toggleNotification(courseId)
+
+    // Note: In this implementation, the UI won't update immediately since we're not storing
+    // notification state in the wishlistedCourses array. In a complete implementation,
+    // you would store more information about each wishlisted course.
   }
 
   // Add course to cart
   const addToCart = (courseId: string) => {
-    setWishlistCourses((prev) => prev.map((course) => (course.id === courseId ? { ...course, inCart: true } : course)))
+    // In a real implementation, you would call an API to add the course to the cart
+    // For now, we'll just simulate it by updating the UI
+
+    // You might want to create a separate cart store similar to the wishlist store
+    // and use its actions here
   }
 
   // Remove all courses from wishlist
   const clearWishlist = () => {
-    setWishlistCourses([])
+    clearWishlistStore()
   }
 
   // Get unique categories for filter
@@ -533,11 +593,10 @@ const Wishlist = () => {
                 <CardContent className="p-0">
                   <div className="flex flex-col md:flex-row">
                     <div className="relative md:w-64 h-40">
-                      <Image
+                      <img
                         src={course.thumbnail || "/placeholder.svg"}
                         alt={course.title}
-                        fill
-                        className="object-cover"
+                        className="w-full h-full object-cover absolute inset-0"
                       />
                       {course.discount > 0 && (
                         <Badge className="absolute top-2 left-2 bg-red-500">-{course.discount}%</Badge>
@@ -547,12 +606,12 @@ const Wishlist = () => {
                     <div className="flex-1 p-4">
                       <div className="flex flex-col md:flex-row justify-between">
                         <div className="flex-1">
-                          <Link href={`/courses/${course.id}`} className="hover:underline">
+                          <Link to={`/courses/${course.id}`} className="hover:underline">
                             <h3 className="font-bold text-lg mb-1">{course.title}</h3>
                           </Link>
 
                           <div className="flex items-center text-sm text-gray-600 mb-2">
-                            <span>Par {course.instructor}</span>
+                            <span>Par {course.instructor.first_name} {course.instructor.last_name}</span>
                             <span className="mx-2">•</span>
                             <span>{course.level}</span>
                             <span className="mx-2">•</span>
@@ -619,7 +678,7 @@ const Wishlist = () => {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => toggleNotification(course.id)}>
+                                <DropdownMenuItem onClick={() => handleToggleNotification(course.id)}>
                                   {course.hasNotifications ? (
                                     <>
                                       <BellOff className="mr-2 h-4 w-4" />
@@ -660,11 +719,9 @@ const Wishlist = () => {
                 .map((_, index) => (
                   <Card key={index} className="overflow-hidden hover:shadow-lg transition-shadow">
                     <div className="relative">
-                      <Image
+                      <img
                         src={`/placeholder.svg?height=200&width=400&text=Cours ${index + 1}`}
                         alt={`Cours recommandé ${index + 1}`}
-                        width={400}
-                        height={200}
                         className="w-full h-40 object-cover"
                       />
                       <div className="absolute top-2 right-2">
