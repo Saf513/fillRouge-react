@@ -38,13 +38,15 @@ import { Label } from "@/components/ui/label"
 import {Tooltip ,TooltipProvider ,TooltipTrigger , TooltipContent} from "@/components/ui/tooltip"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Course } from "@/types/course"
-import  {Wishlist } from "@/types/dashboard"
+import  {Wishlist as WishlistType } from "@/types/dashboard"
 
 // Sample data
 
+interface WishlistProps {
+  dashboardWishlists?: WishlistType[];
+}
 
-
-const Wishlist = ({ dashboardWishlists }: Wishlist) => {
+const Wishlist = ({ dashboardWishlists }: WishlistProps) => {
   const { 
     wishlistItems, 
     isLoading: wishlistLoading, 
@@ -97,7 +99,7 @@ const Wishlist = ({ dashboardWishlists }: Wishlist) => {
           title: course.title || "Untitled Course",
           instructor: {
             id: course.instructor_id || 0,
-            first_name: "Instructor", // Default value as we don't have the actual name
+            first_name: "Instructor", // Valeur par défaut car nous n'avons pas le nom réel
             last_name: "",
             email: "",
             avatar_url: "/placeholder.svg?height=50&width=50&text=IN",
@@ -113,12 +115,12 @@ const Wishlist = ({ dashboardWishlists }: Wishlist) => {
           addedDate: item.added_at || new Date().toISOString(),
           lastUpdated: course.last_updated || course.updated_at || new Date().toISOString(),
           level: course.level || "Beginner",
-          duration: "N/A", // Not available in the API response
+          duration: "N/A", // Non disponible dans la réponse de l'API
           category: course.category_id ? course.category_id.toString() : "Uncategorized",
           tags: course.what_you_will_learn ? (Array.isArray(course.what_you_will_learn) ? course.what_you_will_learn : []) : [],
           hasNotifications: item.has_notifications || false,
-          inCart: false, // We don't have this information
-        } as Course;
+          inCart: false, // Nous n'avons pas cette information
+        } as unknown as Course;
 
         return convertedCourse;
       }).filter(Boolean); // Remove any null items
