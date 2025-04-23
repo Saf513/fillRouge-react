@@ -36,7 +36,7 @@ import {
 import StudentProfile from "./student/profile/studentProfile";
 import StudentSettings from "./student/settings/studentSettings";
 import NotificationsComponent from "../components/notification/notification";
-import { Course, Certificate, Notification } from "../types/dashboard";
+import { Course, Certificate, Notification, Wishlist as WishlistType } from "../types/dashboard";
 import useStudentDashboardData from "../hooks/useDashboardStudentData";
 import Wishlist from "../components/wishList/wishList";
 
@@ -73,7 +73,7 @@ export default function StudentDashboard() {
     email: "",
     avatar: "",
   });
-  const [wishlists, setWishlists] = useState<any[]>([]);
+  const [wishlists, setWishlists] = useState<WishlistType[]>([]);
   const { data: dashboardData, loading: apiLoading } =
     useStudentDashboardData();
 
@@ -174,14 +174,14 @@ export default function StudentDashboard() {
         console.log("fetchDashboardData");
         // Utiliser les données réelles de l'API si disponibles
         if (dashboardData) {
-          // Mettre à jour les états avec les données de l'API
+          // Mettre à jour les états favoris avec les données de l'API
           setCourses(dashboardData.courses || []);
           setCertificates(dashboardData.certificates || []);
           setNotifications(dashboardData.notifications || []);
           setUserProfile(dashboardData.userProfile || {});
-          setWishlists(dashboardData.wishlists || [])
+          setWishlists(dashboardData.wishlists || []);
 
-          // Log wishlist data before setting state
+          // Log wishlist data after setting state
           console.log("Wishlists from dashboard data:", dashboardData.wishlists);
 
           if (dashboardData.wishlists) {
@@ -192,9 +192,6 @@ export default function StudentDashboard() {
           } else {
             console.log("No wishlists found in dashboard data");
           }
-
-          // Set wishlist state
-          setWishlists(dashboardData.wishlists || []);
 
           setProgress(dashboardData.progress)
           setLoading(false);
@@ -283,64 +280,6 @@ export default function StudentDashboard() {
   }
 
   // Sample categories for filtering
-  const categories = [
-    {
-      id: "all",
-      title: "All Categories",
-      description: "All available categories",
-      image_url: "/placeholder.svg?height=400&width=600",
-      subcategories: []
-    },
-    {
-      id: "web-development",
-      title: "Web Development",
-      description: "Learn web development technologies",
-      image_url: "/placeholder.svg?height=400&width=600",
-      subcategories: []
-    },
-    {
-      id: "programming",
-      title: "Programming",
-      description: "Learn programming languages and concepts",
-      image_url: "/placeholder.svg?height=400&width=600",
-      subcategories: []
-    },
-    {
-      id: "marketing",
-      title: "Marketing",
-      description: "Learn digital marketing strategies",
-      image_url: "/placeholder.svg?height=400&width=600",
-      subcategories: []
-    },
-    {
-      id: "design",
-      title: "Design",
-      description: "Learn design principles and tools",
-      image_url: "/placeholder.svg?height=400&width=600",
-      subcategories: []
-    },
-    {
-      id: "data-science",
-      title: "Data Science",
-      description: "Learn data science and analytics",
-      image_url: "/placeholder.svg?height=400&width=600",
-      subcategories: []
-    },
-    {
-      id: "mobile-development",
-      title: "Mobile Development",
-      description: "Learn mobile app development",
-      image_url: "/placeholder.svg?height=400&width=600",
-      subcategories: []
-    },
-    {
-      id: "database",
-      title: "Database",
-      description: "Learn database management systems",
-      image_url: "/placeholder.svg?height=400&width=600",
-      subcategories: []
-    }
-  ];
 
   // Filter and sort courses
   const filteredCourses = courses

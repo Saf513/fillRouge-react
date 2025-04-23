@@ -15,6 +15,8 @@ import LessonViewer from '@/components/course/LessonViewer'
 import CoursePlayer from '@/components/course/coursePLayer'
 import Checkout from '@/components/checkout/checkout'
 import Wishlist from '../components/wishList/wishList.tsx'
+import AboutUs from '@/pages/about.tsx'
+import ContactPage from '@/pages/contact.tsx'
 
 export  const  router = createBrowserRouter([
     {
@@ -38,6 +40,14 @@ export  const  router = createBrowserRouter([
             {
                 path:'/course/:id', element : <CourseDetails/>
             },
+            {
+              path : '/about',
+              element : <AboutUs/>
+            },
+            {
+              path : '/contact',
+              element :<ContactPage/>
+            }
         
         ]},
         {
