@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { profileService } from '../services/profileService';
 import { ProfileResponse, UserSettings, NotificationSettings, PaymentMethod } from '../types/profile';
+import { Profile } from '../types/dashboard';
 
-export const useProfile = () => {
+export const useProfile = (dashboardData?: Profile | null) => {
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -11,9 +12,15 @@ export const useProfile = () => {
   const fetchProfile = async () => {
     try {
       setLoading(true);
-      const data = await profileService.getProfile();
-      setProfile(data);
-      setError(null);
+      // If dashboardData is provided, use it instead of fetching from API
+      if (dashboardData) {
+        setProfile(dashboardData as unknown as ProfileResponse);
+        setError(null);
+      } else {
+        const data = await profileService.getProfile();
+        setProfile(data);
+        setError(null);
+      }
     } catch (err) {
       setError('Erreur lors du chargement du profil');
       console.error('Erreur:', err);
@@ -73,10 +80,10 @@ export const useProfile = () => {
     }
   };
 
-  // Charger le profil au montage du composant
+  // Charger le profil au montage du composant ou quand dashboardData change
   useEffect(() => {
     fetchProfile();
-  }, []);
+  }, [dashboardData]);
 
   return {
     profile,

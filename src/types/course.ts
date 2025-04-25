@@ -37,7 +37,7 @@ export interface Lesson {
   order: number;
   videoUrl?: string;
   pdf_url?: string;
-  attachments?: Attachment[];
+  attachments?: Resource[];
   quiz?: Quiz;
   assignment?: Assignment;
   preview?: boolean;
@@ -59,7 +59,18 @@ export interface Instructor {
   avatar_url?: string;
   bio?: string;
 }
+export interface Resource{
+  id : number ;
+  lesson_id : number ;
+  title : string ;
+  type : string;
+  file_url : File ;
+  file_size : number ;
+  is_downloadable : boolean ;
 
+
+
+}
 export interface Course {
   id: string;
   title: string;
@@ -92,6 +103,7 @@ export interface Course {
   average_rating: number;
   total_reviews: number;
   total_students: number;
+  resources : Resource[];
 }
 
 export interface tag {
@@ -166,4 +178,7 @@ export interface ApiCourse {
   published_date: string | null;
   last_updated: string | null;
   slug: string | null;
+  resources : [Resource];
 }
+
+

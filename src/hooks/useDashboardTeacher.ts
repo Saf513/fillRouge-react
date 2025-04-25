@@ -8,28 +8,12 @@ interface ErrorResponse {
   message: string;
 }
 
+// Import des interfaces depuis le fichier types
+import { DashboardCourse, Profile } from '@/types/dashboard';
+
 // Définir l'interface pour les données du tableau de bord
-interface DashboardData {
-  courses: Array<{
-    id: number;
-    title: string;
-    instructor: string;
-    progress: number;
-    image: string;
-    lastViewed: string;
-    rating: number;
-    reviews: number;
-    totalLessons: number;
-    completedLessons: number;
-    category: string;
-    level: string;
-    description: string;
-    bookmarked: boolean;
-    isArchived: boolean;
-    estimatedTimeLeft: string;
-    lastSection: string;
-    lastLesson: string;
-  }>;
+export interface DashboardData {
+  courses: DashboardCourse[];
   student: Array<{
     id: number;
     first_name: string;
@@ -38,7 +22,9 @@ interface DashboardData {
     enrollment_date: string;
     progress: number;
   }>;
+  profile: Profile | null;
 }
+
 
 export default function useTeacherDashboardData() {
   const [data, setData] = useState<DashboardData | null>(null);
@@ -53,26 +39,27 @@ export default function useTeacherDashboardData() {
         console.log("Début de la requête API...");
         const token =JSON.parse(localStorage.getItem('auth-storage') || '{}').state?.token;
         const teacherId= JSON.parse(localStorage.getItem('auth-storage') || '{}').state?.user?.id;
-  
+
 
         console.log("Token utilisé:", token ? "Token présent" : "Token absent");
-        
+
 
         // Utiliser l'URL relative pour bénéficier du proxy Vite
-        const response = await axiosClient.get(`http://localhost:8000/api/dashboard-teacher/${teacherId}`, {
+        const response = await axiosClient.get(`api/dashboard-teacher/${teacherId}`, {
           headers: {
             Authorization: `Bearer ${token}`
           }
         });
-        
+
         console.log("Réponse API reçue:", response);
         console.log("Structure complète de la réponse:", JSON.stringify(response.data, null, 2));
-        
+
         // La réponse est directement dans response.data, pas dans response.data.data
         if (response.data) {
           setData({
             courses: response.data.courses || [],
-            student: response.data.student || []
+            student: response.data.student || [],
+            profile: response.data.profile && response.data.profile.length > 0 ? response.data.profile[0] : null
           });
           setError(null);
         } else {

@@ -244,11 +244,7 @@ const Wishlist = ({ dashboardWishlists }: WishlistProps) => {
 
   // Add course to cart
   const addToCart = (courseId: string) => {
-    // In a real implementation, you would call an API to add the course to the cart
-    // For now, we'll just simulate it by updating the UI
-
-    // You might want to create a separate cart store similar to the wishlist store
-    // and use its actions here
+  
   }
 
   // Remove all courses from wishlist

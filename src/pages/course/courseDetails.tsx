@@ -26,7 +26,10 @@ export default function CourseDetails() {
 
   // Check if course is in wishlist
   const isInWishlist = id ? wishlistedCourses.includes(id) : false
-
+  const addCheckout = ()=>{
+    console.log(course?.id);
+  
+    } 
   // Function to toggle wishlist status
   const toggleWishlist = () => {
     if (id) {
@@ -138,7 +141,7 @@ console.log("course:" , course)
             </div>
 
             <div className="flex gap-2 mb-4">
-              <Button className="flex-1 bg-[#a435f0] text-white py-3 rounded-lg font-medium hover:bg-[#8710d8] transition-colors" onClick={() => window.location.href = '/checkout'}>
+              <Button className="flex-1 bg-[#a435f0] text-white py-3 rounded-lg font-medium hover:bg-[#8710d8] transition-colors" onClick={addCheckout}>
                 <ShoppingCart className="h-5 w-5 inline-block mr-2" />
                 Ajouter au panier
               </Button>

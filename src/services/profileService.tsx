@@ -5,7 +5,8 @@ export const profileService = {
   // Récupérer le profil
   getProfile: async (): Promise<ProfileResponse> => {
     try {
-      const response = await axiosClient.get<ProfileResponse>('http://localhost:8000/api/profile');
+      const user_id = JSON.parse(localStorage.getItem('auth-storage') || '{}').state?.user?.id;
+      const response = await axiosClient.get<ProfileResponse>(`api/profile/${user_id}`);
       return response.data;
     } catch (error) {
       console.error('Erreur lors de la récupération du profil:', error);
@@ -17,7 +18,7 @@ export const profileService = {
   updateProfile: async (data: Partial<UserSettings>): Promise<ProfileResponse> => {
     try {
       const formData = new FormData();
-      
+
       // Ajouter les champs au FormData
       Object.entries(data).forEach(([key, value]) => {
         if (key === 'avatar' && value instanceof File) {
@@ -29,7 +30,7 @@ export const profileService = {
         }
       });
 
-      const response = await axiosClient.put<ProfileResponse>('http://localhost:8000/api/profile', formData, {
+      const response = await axiosClient.put<ProfileResponse>('api/profile', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -44,7 +45,7 @@ export const profileService = {
   // Mettre à jour uniquement les paramètres de notification
   updateNotificationSettings: async (settings: NotificationSettings): Promise<ProfileResponse> => {
     try {
-      const response = await axiosClient.patch<ProfileResponse>('http://localhost:8000/api/profile/notifications', {
+      const response = await axiosClient.patch<ProfileResponse>('api/profile/notifications', {
         notification_settings: settings,
       });
       return response.data;
@@ -57,7 +58,7 @@ export const profileService = {
   // Mettre à jour uniquement les méthodes de paiement
   updatePaymentMethods: async (methods: PaymentMethod[]): Promise<ProfileResponse> => {
     try {
-      const response = await axiosClient.patch<ProfileResponse>('http://localhost:8000/api/profile/payment-methods', {
+      const response = await axiosClient.patch<ProfileResponse>('api/profile/payment-methods', {
         payment_methods: methods,
       });
       return response.data;

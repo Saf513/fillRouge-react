@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect } from "react";
+import UserProfile from "../components/shared/user-profile";
 import {
   BarChart3,
   BookOpen,
@@ -27,153 +28,180 @@ import {
   Bell,
   Code,
   Layout,
-} from "lucide-react"
-import TeacherProfile from "./teacher/profile/teacherProfile"
-import TeacherSettings from "./teacher/settings/teacherSettings"
-import CourseCreationForm from "../components/forms/createCourse"
-import { Course } from "@/types/course"
-import useTeacherDashboardData from "@/hooks/useDashboardTeacher"
-import { useUsers } from "@/hooks/useUsers"
-import { useAuth } from "../hooks/useAuth"
-import { data, useNavigate } from "react-router-dom"
+} from "lucide-react";
+import TeacherProfile from "./teacher/profile/teacherProfile";
+import TeacherSettings from "./teacher/settings/teacherSettings";
+import CourseCreationForm from "../components/forms/createCourse";
+import { DashboardCourse, Profile } from "@/types/dashboard";
+import { useProfile } from "@/hooks/useProfile";
+import useTeacherDashboardData, {
+  DashboardData,
+} from "@/hooks/useDashboardTeacher";
+import { useUsers } from "@/hooks/useUsers";
+import { useAuth } from "../hooks/useAuth";
+import { data, useNavigate } from "react-router-dom";
 export default function TeacherDashboard() {
-  const [activeTab, setActiveTab] = useState("dashboard")
-  const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [selectedCourse, setSelectedCourse] = useState<number | null>(null)
-  const [showNotifications, setShowNotifications] = useState(false)
-  const [showProfileMenu, setShowProfileMenu] = useState(false)
-  const [showNewCourseModal, setShowNewCourseModal] = useState(false)
-  const [showMobileMenu, setShowMobileMenu] = useState(false)
-  const [windowWidth, setWindowWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 0)
-  const { data: dashboardData, loading: apiLoading } = useTeacherDashboardData();
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [selectedCourse, setSelectedCourse] = useState<number | null>(null);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showNewCourseModal, setShowNewCourseModal] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(
+    typeof window !== "undefined" ? window.innerWidth : 0
+  );
+  const { data: dashboardData, loading: apiLoading } =
+    useTeacherDashboardData();
 
-  const [courses, setCourses] = useState<Course[]>([]);
+  const [courses, setCourses] = useState<DashboardCourse[]>([]);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const { logout } = useAuth()
-  const navigate = useNavigate()
-  const user = JSON.parse(localStorage.getItem('auth-storage') || '{}').state?.user;
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+  const user = JSON.parse(localStorage.getItem("auth-storage") || "{}").state
+    ?.user;
 
   useEffect(() => {
     if (dashboardData?.courses) {
-      setCourses(dashboardData.courses as Course[]);
+      setCourses(dashboardData.courses);
     }
+  }, [dashboardData]);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        if (dashboardData) {
+          setCourses(dashboardData.courses);
+          setProfile(dashboardData.profile);
+          setLoading(false);
+        }
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Une erreur est survenue"
+        );
+        setLoading(false);
+      }
+    };
+    fetchDashboardData();
   }, [dashboardData]);
 
   const handleLogout = async () => {
     try {
-      await logout()
-      navigate('/login')
+      await logout();
+      navigate("/login");
     } catch (error) {
-      console.error("Erreur lors de la déconnexion:", error)
+      console.error("Erreur lors de la déconnexion:", error);
     }
-  }
+  };
 
   // Handle window resize
   useEffect(() => {
     const handleResize = () => {
-      setWindowWidth(window.innerWidth)
+      setWindowWidth(window.innerWidth);
       if (window.innerWidth < 1024) {
-        setSidebarOpen(false)
-    } else {
-        setSidebarOpen(true)
-      }
-    }
-
-    // Set initial state
-    handleResize()
-
-    window.addEventListener("resize", handleResize)
-    return () => window.removeEventListener("resize", handleResize)
-  }, [])
-
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen)
-  }
-
-  const toggleMobileMenu = () => {
-    setShowMobileMenu(!showMobileMenu)
-    // Close other menus when mobile menu is opened
-    if (!showMobileMenu) {
-      setShowNotifications(false)
-      setShowProfileMenu(false)
-    }
-  }
-
-  const toggleNotifications = () => {
-    setShowNotifications(!showNotifications)
-    if (showNotifications) {
-      setShowProfileMenu(false)
-      setShowMobileMenu(false)
-    }
-  }
-
-  const toggleProfileMenu = () => {
-    setShowProfileMenu(!showProfileMenu)
-    if (showProfileMenu) {
-      setShowNotifications(false)
-      setShowMobileMenu(false)
-    }
-  }
-
-  const handleCourseClick = (index: number) => {
-    setSelectedCourse(selectedCourse === index ? null : index)
-  }
-
-  const handleTabChange = (tab: string) => {
-    setActiveTab(tab)
-    if (windowWidth < 1024) {
-      setShowMobileMenu(false)
-    }
-  }
-
-  useEffect(()=>{
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
-        console.log("fetchDashboardData");
-        // Utiliser les données réelles de l'API si disponibles
-        if (dashboardData) {
-          // Mettre à jour les états avec les données de l'API
-          setCourses(dashboardData.courses || []);
-          setStudents(dashboardData.certificates || []);
-      
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error("Erreur lors du chargement des données:", error);
-        setError("Failed to load dashboard data");
-        setLoading(false);
+        setSidebarOpen(false);
+      } else {
+        setSidebarOpen(true);
       }
     };
-  })
 
-        return (
+    // Set initial state
+    handleResize();
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
+
+  const toggleMobileMenu = () => {
+    setShowMobileMenu(!showMobileMenu);
+    // Close other menus when mobile menu is opened
+    if (!showMobileMenu) {
+      setShowNotifications(false);
+      setShowProfileMenu(false);
+    }
+  };
+
+  const toggleNotifications = () => {
+    setShowNotifications(!showNotifications);
+    if (showNotifications) {
+      setShowProfileMenu(false);
+      setShowMobileMenu(false);
+    }
+  };
+
+  const toggleProfileMenu = () => {
+    setShowProfileMenu(!showProfileMenu);
+    if (showProfileMenu) {
+      setShowNotifications(false);
+      setShowMobileMenu(false);
+    }
+  };
+
+  const handleCourseClick = (index: number) => {
+    setSelectedCourse(selectedCourse === index ? null : index);
+  };
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    if (windowWidth < 1024) {
+      setShowMobileMenu(false);
+    }
+  };
+
+  return (
     <div className="flex min-h-screen bg-[#f7f7f8] font-sans text-[#262626]">
       {/* Mobile Menu Overlay */}
-      {showMobileMenu && <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={toggleMobileMenu}></div>}
+      {showMobileMenu && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={toggleMobileMenu}
+        ></div>
+      )}
 
       {/* Sidebar */}
       <aside
         className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-white transition-all duration-300 ${
           sidebarOpen ? "w-64" : "w-20"
-        } ${showMobileMenu ? "translate-x-0" : "-translate-x-full lg:translate-x-0"} shadow-md`}
+        } ${
+          showMobileMenu
+            ? "translate-x-0"
+            : "-translate-x-full lg:translate-x-0"
+        } shadow-md`}
       >
         <div className="flex h-16 items-center justify-between border-b border-[#f1f1f3] px-4">
           <div className="flex items-center">
             <div className="flex h-10 w-10 items-center justify-center rounded-md bg-[#ff9500]">
               <BookOpen className="h-5 w-5 text-white" />
-              </div>
-            {sidebarOpen && <span className="ml-3 text-lg font-bold">EduTeach</span>}
+            </div>
+            {sidebarOpen && (
+              <span className="ml-3 text-lg font-bold">EduTeach</span>
+            )}
           </div>
-          <button onClick={toggleSidebar} className="rounded-md p-1 text-[#4c4c4d] hover:bg-[#f1f1f3] hidden lg:block">
-            <ChevronRight className={`h-5 w-5 transition-transform duration-300 ${sidebarOpen ? "rotate-180" : ""}`} />
+          <button
+            onClick={toggleSidebar}
+            className="rounded-md p-1 text-[#4c4c4d] hover:bg-[#f1f1f3] hidden lg:block"
+          >
+            <ChevronRight
+              className={`h-5 w-5 transition-transform duration-300 ${
+                sidebarOpen ? "rotate-180" : ""
+              }`}
+            />
           </button>
-          <button onClick={toggleMobileMenu} className="rounded-md p-1 text-[#4c4c4d] hover:bg-[#f1f1f3] lg:hidden">
+          <button
+            onClick={toggleMobileMenu}
+            className="rounded-md p-1 text-[#4c4c4d] hover:bg-[#f1f1f3] lg:hidden"
+          >
             <X className="h-5 w-5" />
           </button>
-              </div>
+        </div>
 
         <nav className="flex-1 overflow-y-auto p-4">
           <ul className="space-y-1">
@@ -181,7 +209,9 @@ export default function TeacherDashboard() {
               <button
                 onClick={() => handleTabChange("dashboard")}
                 className={`flex w-full items-center rounded-md px-3 py-2 ${
-                  activeTab === "dashboard" ? "bg-[#fff4e5] text-[#ff9500]" : "text-[#4c4c4d] hover:bg-[#f1f1f3]"
+                  activeTab === "dashboard"
+                    ? "bg-[#fff4e5] text-[#ff9500]"
+                    : "text-[#4c4c4d] hover:bg-[#f1f1f3]"
                 }`}
               >
                 <LayoutDashboard className="h-5 w-5" />
@@ -192,7 +222,9 @@ export default function TeacherDashboard() {
               <button
                 onClick={() => handleTabChange("courses")}
                 className={`flex w-full items-center rounded-md px-3 py-2 ${
-                  activeTab === "courses" ? "bg-[#fff4e5] text-[#ff9500]" : "text-[#4c4c4d] hover:bg-[#f1f1f3]"
+                  activeTab === "courses"
+                    ? "bg-[#fff4e5] text-[#ff9500]"
+                    : "text-[#4c4c4d] hover:bg-[#f1f1f3]"
                 }`}
               >
                 <BookOpen className="h-5 w-5" />
@@ -203,7 +235,9 @@ export default function TeacherDashboard() {
               <button
                 onClick={() => handleTabChange("students")}
                 className={`flex w-full items-center rounded-md px-3 py-2 ${
-                  activeTab === "students" ? "bg-[#fff4e5] text-[#ff9500]" : "text-[#4c4c4d] hover:bg-[#f1f1f3]"
+                  activeTab === "students"
+                    ? "bg-[#fff4e5] text-[#ff9500]"
+                    : "text-[#4c4c4d] hover:bg-[#f1f1f3]"
                 }`}
               >
                 <Users className="h-5 w-5" />
@@ -214,7 +248,9 @@ export default function TeacherDashboard() {
               <button
                 onClick={() => handleTabChange("messages")}
                 className={`flex w-full items-center rounded-md px-3 py-2 ${
-                  activeTab === "messages" ? "bg-[#fff4e5] text-[#ff9500]" : "text-[#4c4c4d] hover:bg-[#f1f1f3]"
+                  activeTab === "messages"
+                    ? "bg-[#fff4e5] text-[#ff9500]"
+                    : "text-[#4c4c4d] hover:bg-[#f1f1f3]"
                 }`}
               >
                 <MessageSquare className="h-5 w-5" />
@@ -225,7 +261,9 @@ export default function TeacherDashboard() {
               <button
                 onClick={() => handleTabChange("analytics")}
                 className={`flex w-full items-center rounded-md px-3 py-2 ${
-                  activeTab === "analytics" ? "bg-[#fff4e5] text-[#ff9500]" : "text-[#4c4c4d] hover:bg-[#f1f1f3]"
+                  activeTab === "analytics"
+                    ? "bg-[#fff4e5] text-[#ff9500]"
+                    : "text-[#4c4c4d] hover:bg-[#f1f1f3]"
                 }`}
               >
                 <BarChart3 className="h-5 w-5" />
@@ -236,7 +274,9 @@ export default function TeacherDashboard() {
               <button
                 onClick={() => handleTabChange("schedule")}
                 className={`flex w-full items-center rounded-md px-3 py-2 ${
-                  activeTab === "schedule" ? "bg-[#fff4e5] text-[#ff9500]" : "text-[#4c4c4d] hover:bg-[#f1f1f3]"
+                  activeTab === "schedule"
+                    ? "bg-[#fff4e5] text-[#ff9500]"
+                    : "text-[#4c4c4d] hover:bg-[#f1f1f3]"
                 }`}
               >
                 <Calendar className="h-5 w-5" />
@@ -247,7 +287,9 @@ export default function TeacherDashboard() {
               <button
                 onClick={() => handleTabChange("earnings")}
                 className={`flex w-full items-center rounded-md px-3 py-2 ${
-                  activeTab === "earnings" ? "bg-[#fff4e5] text-[#ff9500]" : "text-[#4c4c4d] hover:bg-[#f1f1f3]"
+                  activeTab === "earnings"
+                    ? "bg-[#fff4e5] text-[#ff9500]"
+                    : "text-[#4c4c4d] hover:bg-[#f1f1f3]"
                 }`}
               >
                 <DollarSign className="h-5 w-5" />
@@ -262,7 +304,9 @@ export default function TeacherDashboard() {
                 <button
                   onClick={() => handleTabChange("profile")}
                   className={`flex w-full items-center rounded-md px-3 py-2 ${
-                    activeTab === "profile" ? "bg-[#fff4e5] text-[#ff9500]" : "text-[#4c4c4d] hover:bg-[#f1f1f3]"
+                    activeTab === "profile"
+                      ? "bg-[#fff4e5] text-[#ff9500]"
+                      : "text-[#4c4c4d] hover:bg-[#f1f1f3]"
                   }`}
                 >
                   <User className="h-5 w-5" />
@@ -273,7 +317,9 @@ export default function TeacherDashboard() {
                 <button
                   onClick={() => handleTabChange("settings")}
                   className={`flex w-full items-center rounded-md px-3 py-2 ${
-                    activeTab === "settings" ? "bg-[#fff4e5] text-[#ff9500]" : "text-[#4c4c4d] hover:bg-[#f1f1f3]"
+                    activeTab === "settings"
+                      ? "bg-[#fff4e5] text-[#ff9500]"
+                      : "text-[#4c4c4d] hover:bg-[#f1f1f3]"
                   }`}
                 >
                   <Settings className="h-5 w-5" />
@@ -284,7 +330,9 @@ export default function TeacherDashboard() {
                 <button
                   onClick={() => handleTabChange("help")}
                   className={`flex w-full items-center rounded-md px-3 py-2 ${
-                    activeTab === "help" ? "bg-[#fff4e5] text-[#ff9500]" : "text-[#4c4c4d] hover:bg-[#f1f1f3]"
+                    activeTab === "help"
+                      ? "bg-[#fff4e5] text-[#ff9500]"
+                      : "text-[#4c4c4d] hover:bg-[#f1f1f3]"
                   }`}
                 >
                   <HelpCircle className="h-5 w-5" />
@@ -292,18 +340,18 @@ export default function TeacherDashboard() {
                 </button>
               </li>
             </ul>
-                </div>
+          </div>
         </nav>
 
         <div className="border-t border-[#f1f1f3] p-4">
-          <button 
-            onClick={handleLogout} 
+          <button
+            onClick={handleLogout}
             className="flex w-full items-center rounded-md px-3 py-2 text-[#4c4c4d] hover:bg-[#f1f1f3]"
           >
             <LogOut className="h-5 w-5" />
             {sidebarOpen && <span className="ml-3">Se déconnecter</span>}
           </button>
-                </div>
+        </div>
       </aside>
 
       {/* Main Content */}
@@ -311,7 +359,10 @@ export default function TeacherDashboard() {
         {/* Header */}
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[#f1f1f3] bg-white px-4 md:px-6">
           <div className="flex items-center">
-            <button onClick={toggleMobileMenu} className="rounded-md p-2 text-[#4c4c4d] hover:bg-[#f1f1f3] lg:hidden">
+            <button
+              onClick={toggleMobileMenu}
+              className="rounded-md p-2 text-[#4c4c4d] hover:bg-[#f1f1f3] lg:hidden"
+            >
               <Menu className="h-5 w-5" />
             </button>
             <button
@@ -321,9 +372,11 @@ export default function TeacherDashboard() {
               <Grid className="h-5 w-5" />
             </button>
             <div className="ml-4 lg:hidden">
-              <h1 className="text-lg font-bold">{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h1>
-                </div>
-              </div>
+              <h1 className="text-lg font-bold">
+                {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+              </h1>
+            </div>
+          </div>
 
           <div className="relative flex items-center gap-2 sm:gap-4">
             <div className="relative hidden md:block">
@@ -332,8 +385,8 @@ export default function TeacherDashboard() {
                 type="text"
                 placeholder="Search..."
                 className="h-10 w-40 rounded-md border border-[#f1f1f3] bg-[#f7f7f8] pl-10 pr-4 text-sm focus:border-[#ff9500] focus:outline-none focus:ring-1 focus:ring-[#ff9500] lg:w-60"
-                  />
-                </div>
+              />
+            </div>
 
             <button
               onClick={() => setShowNewCourseModal(true)}
@@ -363,67 +416,84 @@ export default function TeacherDashboard() {
                 <div className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-md border border-[#f1f1f3] bg-white p-4 shadow-lg">
                   <div className="mb-4 flex items-center justify-between">
                     <h3 className="font-medium">Notifications</h3>
-                    <button className="text-xs text-[#ff9500]">Mark all as read</button>
-              </div>
+                    <button className="text-xs text-[#ff9500]">
+                      Mark all as read
+                    </button>
+                  </div>
                   <div className="space-y-4 max-h-[60vh] overflow-y-auto">
                     <div className="flex gap-3">
                       <div className="h-10 w-10 flex-shrink-0 rounded-full bg-[#fff4e5]">
                         <User className="h-full w-full p-2 text-[#ff9500]" />
-                                  </div>
-                                    <div>
+                      </div>
+                      <div>
                         <p className="text-sm">
-                          <span className="font-medium">Sarah Johnson</span> asked a question in{" "}
-                          <span className="font-medium">UI/UX Design Fundamentals</span>
+                          <span className="font-medium">Sarah Johnson</span>{" "}
+                          asked a question in{" "}
+                          <span className="font-medium">
+                            UI/UX Design Fundamentals
+                          </span>
                         </p>
                         <p className="text-xs text-[#4c4c4d]">10 minutes ago</p>
-                                    </div>
-                                  </div>
+                      </div>
+                    </div>
                     <div className="flex gap-3">
                       <div className="h-10 w-10 flex-shrink-0 rounded-full bg-[#fff4e5]">
                         <Star className="h-full w-full p-2 text-[#ff9500]" />
-                                </div>
+                      </div>
                       <div>
                         <p className="text-sm">
-                          <span className="font-medium">Michael Brown</span> left a 5-star review on{" "}
-                          <span className="font-medium">Advanced JavaScript</span>
+                          <span className="font-medium">Michael Brown</span>{" "}
+                          left a 5-star review on{" "}
+                          <span className="font-medium">
+                            Advanced JavaScript
+                          </span>
                         </p>
                         <p className="text-xs text-[#4c4c4d]">1 hour ago</p>
-                                </div>
-                              </div>
+                      </div>
+                    </div>
                     <div className="flex gap-3">
                       <div className="h-10 w-10 flex-shrink-0 rounded-full bg-[#fff4e5]">
                         <Users className="h-full w-full p-2 text-[#ff9500]" />
-                                                  </div>
+                      </div>
                       <div>
                         <p className="text-sm">
-                          <span className="font-medium">5 new students</span> enrolled in{" "}
-                          <span className="font-medium">Web Design Fundamentals</span>
+                          <span className="font-medium">5 new students</span>{" "}
+                          enrolled in{" "}
+                          <span className="font-medium">
+                            Web Design Fundamentals
+                          </span>
                         </p>
                         <p className="text-xs text-[#4c4c4d]">3 hours ago</p>
-                                                  </div>
-                                                    </div>
-                                                    </div>
+                      </div>
+                    </div>
+                  </div>
                   <button className="mt-4 w-full rounded-md border border-[#f1f1f3] py-2 text-center text-sm text-[#4c4c4d] hover:bg-[#f1f1f3]">
                     View All Notifications
                   </button>
-                                                  </div>
+                </div>
               )}
-                                                </div>
+            </div>
 
             <div className="relative">
               <button
                 onClick={toggleProfileMenu}
                 className="flex items-center rounded-full text-[#4c4c4d] hover:bg-[#f1f1f3]"
               >
-                <img src="/placeholder.svg?height=40&width=40" alt="Profile" className="h-10 w-10 rounded-full" />
+                <img
+                  src="/placeholder.svg?height=40&width=40"
+                  alt="Profile"
+                  className="h-10 w-10 rounded-full"
+                />
               </button>
 
               {showProfileMenu && (
                 <div className="absolute right-0 mt-2 w-56 rounded-md border border-[#f1f1f3] bg-white p-2 shadow-lg">
                   <div className="mb-2 border-b border-[#f1f1f3] pb-2">
-                    <div className="px-3 py-2 text-sm font-medium">John Smith</div>
-                    <div className="px-3 py-1 text-xs text-[#4c4c4d]">john.smith@example.com</div>
-                                                </div>
+                    <div className="px-3 py-2 text-sm font-medium"></div>
+                    <div className="px-3 py-1 text-xs text-[#4c4c4d]">
+                      user.email
+                    </div>
+                  </div>
                   <ul>
                     <li>
                       <button
@@ -445,27 +515,35 @@ export default function TeacherDashboard() {
                     </li>
                     <li className="mt-2 border-t border-[#f1f1f3] pt-2">
                       <button className="flex w-full items-center rounded-md px-3 py-2 text-sm text-[#4c4c4d] hover:bg-[#f1f1f3]">
-                        <img src="/logout-icon.svg" alt="Logout" className="mr-2 h-4 w-4" />
+                        <img
+                          src="/logout-icon.svg"
+                          alt="Logout"
+                          className="mr-2 h-4 w-4"
+                        />
                         Log Out
                       </button>
                     </li>
                   </ul>
-                                      </div>
-                                    )}
-                                </div>
-                            </div>
+                </div>
+              )}
+            </div>
+          </div>
         </header>
 
         {/* Main Content Area */}
         <main className="p-4 md:p-6">
           {/* Dashboard */}
           {activeTab === "dashboard" && (
-          <div className="space-y-6">
+            <div className="space-y-6">
               <div className="flex flex-col justify-between md:flex-row md:items-center">
                 <div>
-                  <h1 className="text-2xl font-bold md:text-3xl">Bienvenue, {user.firstName} _{user.lastName}</h1>
-                  <p className="text-[#4c4c4d]">Here's what's happening with your courses today.</p>
-                      </div>
+                  <h1 className="text-2xl font-bold md:text-3xl">
+                    Bienvenue, {user.first_name} {user.last_name}
+                  </h1>
+                  <p className="text-[#4c4c4d]">
+                    Here's what's happening with your courses today.
+                  </p>
+                </div>
                 <div className="mt-4 flex flex-wrap gap-2 md:mt-0">
                   <button className="rounded-md border border-[#f1f1f3] bg-white px-4 py-2 text-sm font-medium hover:bg-[#f1f1f3]">
                     Last 7 days
@@ -476,18 +554,20 @@ export default function TeacherDashboard() {
                   <button className="rounded-md border border-[#f1f1f3] bg-white px-4 py-2 text-sm font-medium hover:bg-[#f1f1f3]">
                     All time
                   </button>
-                    </div>
-                  </div>
+                </div>
+              </div>
 
               {/* Stats Cards */}
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="rounded-lg border border-[#f1f1f3] bg-white p-6">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-medium text-[#4c4c4d]">Total Students</h3>
+                    <h3 className="text-sm font-medium text-[#4c4c4d]">
+                      Total Students
+                    </h3>
                     <div className="rounded-full bg-[#fff4e5] p-2">
                       <Users className="h-5 w-5 text-[#ff9500]" />
                     </div>
-                    </div>
+                  </div>
                   <p className="mt-4 text-3xl font-bold">1,245</p>
                   <div className="mt-2 flex items-center text-sm">
                     <TrendingUp className="mr-1 h-4 w-4 text-green-500" />
@@ -498,37 +578,43 @@ export default function TeacherDashboard() {
 
                 <div className="rounded-lg border border-[#f1f1f3] bg-white p-6">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-medium text-[#4c4c4d]">Course Enrollments</h3>
+                    <h3 className="text-sm font-medium text-[#4c4c4d]">
+                      Course Enrollments
+                    </h3>
                     <div className="rounded-full bg-[#fff4e5] p-2">
                       <BookOpen className="h-5 w-5 text-[#ff9500]" />
-                          </div>
-                        </div>
+                    </div>
+                  </div>
                   <p className="mt-4 text-3xl font-bold">3,872</p>
                   <div className="mt-2 flex items-center text-sm">
                     <TrendingUp className="mr-1 h-4 w-4 text-green-500" />
                     <span className="font-medium text-green-500">+8.2%</span>
                     <span className="ml-1 text-[#4c4c4d]">from last month</span>
-                      </div>
-                    </div>
+                  </div>
+                </div>
 
                 <div className="rounded-lg border border-[#f1f1f3] bg-white p-6">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-medium text-[#4c4c4d]">Total Revenue</h3>
+                    <h3 className="text-sm font-medium text-[#4c4c4d]">
+                      Total Revenue
+                    </h3>
                     <div className="rounded-full bg-[#fff4e5] p-2">
                       <DollarSign className="h-5 w-5 text-[#ff9500]" />
-                          </div>
-                        </div>
+                    </div>
+                  </div>
                   <p className="mt-4 text-3xl font-bold">$24,568</p>
                   <div className="mt-2 flex items-center text-sm">
                     <TrendingUp className="mr-1 h-4 w-4 text-green-500" />
                     <span className="font-medium text-green-500">+18.3%</span>
                     <span className="ml-1 text-[#4c4c4d]">from last month</span>
-                      </div>
+                  </div>
                 </div>
 
                 <div className="rounded-lg border border-[#f1f1f3] bg-white p-6">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-medium text-[#4c4c4d]">Course Rating</h3>
+                    <h3 className="text-sm font-medium text-[#4c4c4d]">
+                      Course Rating
+                    </h3>
                     <div className="rounded-full bg-[#fff4e5] p-2">
                       <Star className="h-5 w-5 text-[#ff9500]" />
                     </div>
@@ -539,14 +625,20 @@ export default function TeacherDashboard() {
                       {[1, 2, 3, 4, 5].map((star) => (
                         <Star
                           key={star}
-                          className={`h-4 w-4 ${star <= 4 ? "fill-[#ff9500] text-[#ff9500]" : "text-[#f1f1f3]"}`}
+                          className={`h-4 w-4 ${
+                            star <= 4
+                              ? "fill-[#ff9500] text-[#ff9500]"
+                              : "text-[#f1f1f3]"
+                          }`}
                         />
                       ))}
                     </div>
-                    <span className="ml-1 text-[#4c4c4d]">from 256 reviews</span>
+                    <span className="ml-1 text-[#4c4c4d]">
+                      from 256 reviews
+                    </span>
                   </div>
-            </div>
-          </div>
+                </div>
+              </div>
 
               {/* Recent Activity & Performance */}
               <div className="grid gap-6 lg:grid-cols-2">
@@ -556,55 +648,68 @@ export default function TeacherDashboard() {
                     <h2 className="text-lg font-bold">Recent Activity</h2>
                     <button className="text-sm text-[#ff9500]">View All</button>
                   </div>
-          <div className="space-y-6">
+                  <div className="space-y-6">
                     <div className="flex gap-4">
                       <div className="h-10 w-10 flex-shrink-0 rounded-full bg-[#fff4e5]">
                         <User className="h-full w-full p-2 text-[#ff9500]" />
-                    </div>
-                    <div>
+                      </div>
+                      <div>
                         <p className="font-medium">New student enrolled</p>
-                        <p className="text-sm text-[#4c4c4d]">Emily Johnson enrolled in "UI/UX Design Fundamentals"</p>
-                        <p className="mt-1 text-xs text-[#4c4c4d]">10 minutes ago</p>
+                        <p className="text-sm text-[#4c4c4d]">
+                          Emily Johnson enrolled in "UI/UX Design Fundamentals"
+                        </p>
+                        <p className="mt-1 text-xs text-[#4c4c4d]">
+                          10 minutes ago
+                        </p>
+                      </div>
                     </div>
-                  </div>
                     <div className="flex gap-4">
                       <div className="h-10 w-10 flex-shrink-0 rounded-full bg-[#fff4e5]">
                         <MessageSquare className="h-full w-full p-2 text-[#ff9500]" />
-                  </div>
-                    <div>
+                      </div>
+                      <div>
                         <p className="font-medium">New question asked</p>
                         <p className="text-sm text-[#4c4c4d]">
-                          Michael Brown asked a question in "Advanced JavaScript"
+                          Michael Brown asked a question in "Advanced
+                          JavaScript"
                         </p>
-                        <p className="mt-1 text-xs text-[#4c4c4d]">1 hour ago</p>
-                    </div>
+                        <p className="mt-1 text-xs text-[#4c4c4d]">
+                          1 hour ago
+                        </p>
+                      </div>
                     </div>
                     <div className="flex gap-4">
                       <div className="h-10 w-10 flex-shrink-0 rounded-full bg-[#fff4e5]">
                         <Star className="h-full w-full p-2 text-[#ff9500]" />
-                    </div>
-                    <div>
+                      </div>
+                      <div>
                         <p className="font-medium">New course review</p>
                         <p className="text-sm text-[#4c4c4d]">
-                          Sarah Thompson left a 5-star review on "Web Design Fundamentals"
+                          Sarah Thompson left a 5-star review on "Web Design
+                          Fundamentals"
                         </p>
-                        <p className="mt-1 text-xs text-[#4c4c4d]">3 hours ago</p>
+                        <p className="mt-1 text-xs text-[#4c4c4d]">
+                          3 hours ago
+                        </p>
+                      </div>
                     </div>
-                  </div>
                     <div className="flex gap-4">
                       <div className="h-10 w-10 flex-shrink-0 rounded-full bg-[#fff4e5]">
                         <FileText className="h-full w-full p-2 text-[#ff9500]" />
-                    </div>
+                      </div>
                       <div>
                         <p className="font-medium">Assignment submitted</p>
                         <p className="text-sm text-[#4c4c4d]">
-                          David Wilson submitted an assignment in "Front-End Web Development"
+                          David Wilson submitted an assignment in "Front-End Web
+                          Development"
                         </p>
-                        <p className="mt-1 text-xs text-[#4c4c4d]">5 hours ago</p>
+                        <p className="mt-1 text-xs text-[#4c4c4d]">
+                          5 hours ago
+                        </p>
                       </div>
                     </div>
                   </div>
-                  </div>
+                </div>
 
                 {/* Performance Chart */}
                 <div className="rounded-lg border border-[#f1f1f3] bg-white p-6">
@@ -622,28 +727,41 @@ export default function TeacherDashboard() {
                     <div className="flex h-full flex-col items-center justify-center rounded-lg border border-dashed border-[#f1f1f3] bg-[#f7f7f8] p-6">
                       <BarChart3 className="mb-2 h-10 w-10 text-[#4c4c4d]" />
                       <p className="text-center text-sm text-[#4c4c4d]">
-                        Course performance chart showing enrollments, completions, and revenue over time
-                    </p>
-                  </div>
+                        Course performance chart showing enrollments,
+                        completions, and revenue over time
+                      </p>
                     </div>
                   </div>
                 </div>
+              </div>
 
               {/* Popular Courses */}
               <div className="rounded-lg border border-[#f1f1f3] bg-white p-6">
                 <div className="mb-6 flex items-center justify-between">
                   <h2 className="text-lg font-bold">Popular Courses</h2>
-                  <button className="text-sm text-[#ff9500]">View All Courses</button>
+                  <button className="text-sm text-[#ff9500]">
+                    View All Courses
+                  </button>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[600px] border-collapse">
                     <thead>
                       <tr className="border-b border-[#f1f1f3]">
-                        <th className="py-3 text-left text-sm font-medium text-[#4c4c4d]">Course</th>
-                        <th className="py-3 text-left text-sm font-medium text-[#4c4c4d]">Students</th>
-                        <th className="py-3 text-left text-sm font-medium text-[#4c4c4d]">Rating</th>
-                        <th className="py-3 text-left text-sm font-medium text-[#4c4c4d]">Revenue</th>
-                        <th className="py-3 text-left text-sm font-medium text-[#4c4c4d]">Status</th>
+                        <th className="py-3 text-left text-sm font-medium text-[#4c4c4d]">
+                          Course
+                        </th>
+                        <th className="py-3 text-left text-sm font-medium text-[#4c4c4d]">
+                          Students
+                        </th>
+                        <th className="py-3 text-left text-sm font-medium text-[#4c4c4d]">
+                          Rating
+                        </th>
+                        <th className="py-3 text-left text-sm font-medium text-[#4c4c4d]">
+                          Revenue
+                        </th>
+                        <th className="py-3 text-left text-sm font-medium text-[#4c4c4d]">
+                          Status
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -652,27 +770,37 @@ export default function TeacherDashboard() {
                           <div className="flex items-center">
                             <div className="h-10 w-10 flex-shrink-0 rounded bg-[#fff4e5]">
                               <PenTool className="h-full w-full p-2 text-[#ff9500]" />
-          </div>
+                            </div>
                             <div className="ml-3">
-                              <p className="font-medium">UI/UX Design Fundamentals</p>
-                              <p className="text-xs text-[#4c4c4d]">6 weeks • Intermediate</p>
-      </div>
-              </div>
+                              <p className="font-medium">
+                                UI/UX Design Fundamentals
+                              </p>
+                              <p className="text-xs text-[#4c4c4d]">
+                                6 weeks • Intermediate
+                              </p>
+                            </div>
+                          </div>
                         </td>
                         <td className="py-4">
                           <p className="font-medium">458</p>
-                          <p className="text-xs text-[#4c4c4d]">+28 this week</p>
+                          <p className="text-xs text-[#4c4c4d]">
+                            +28 this week
+                          </p>
                         </td>
                         <td className="py-4">
                           <div className="flex items-center">
                             <Star className="mr-1 h-4 w-4 fill-[#ff9500] text-[#ff9500]" />
                             <span className="font-medium">4.9</span>
-                            <span className="ml-1 text-xs text-[#4c4c4d]">(128)</span>
-            </div>
+                            <span className="ml-1 text-xs text-[#4c4c4d]">
+                              (128)
+                            </span>
+                          </div>
                         </td>
                         <td className="py-4">
                           <p className="font-medium">$8,245</p>
-                          <p className="text-xs text-green-500">+12.5% from last month</p>
+                          <p className="text-xs text-green-500">
+                            +12.5% from last month
+                          </p>
                         </td>
                         <td className="py-4">
                           <span className="rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-600">
@@ -685,27 +813,35 @@ export default function TeacherDashboard() {
                           <div className="flex items-center">
                             <div className="h-10 w-10 flex-shrink-0 rounded bg-[#fff4e5]">
                               <Code className="h-full w-full p-2 text-[#ff9500]" />
-        </div>
+                            </div>
                             <div className="ml-3">
                               <p className="font-medium">Advanced JavaScript</p>
-                              <p className="text-xs text-[#4c4c4d]">8 weeks • Advanced</p>
-        </div>
-      </div>
+                              <p className="text-xs text-[#4c4c4d]">
+                                8 weeks • Advanced
+                              </p>
+                            </div>
+                          </div>
                         </td>
                         <td className="py-4">
                           <p className="font-medium">372</p>
-                          <p className="text-xs text-[#4c4c4d]">+15 this week</p>
+                          <p className="text-xs text-[#4c4c4d]">
+                            +15 this week
+                          </p>
                         </td>
                         <td className="py-4">
                           <div className="flex items-center">
                             <Star className="mr-1 h-4 w-4 fill-[#ff9500] text-[#ff9500]" />
                             <span className="font-medium">4.8</span>
-                            <span className="ml-1 text-xs text-[#4c4c4d]">(95)</span>
-      </div>
+                            <span className="ml-1 text-xs text-[#4c4c4d]">
+                              (95)
+                            </span>
+                          </div>
                         </td>
                         <td className="py-4">
                           <p className="font-medium">$6,820</p>
-                          <p className="text-xs text-green-500">+8.3% from last month</p>
+                          <p className="text-xs text-green-500">
+                            +8.3% from last month
+                          </p>
                         </td>
                         <td className="py-4">
                           <span className="rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-600">
@@ -720,25 +856,35 @@ export default function TeacherDashboard() {
                               <Layout className="h-full w-full p-2 text-[#ff9500]" />
                             </div>
                             <div className="ml-3">
-                              <p className="font-medium">Web Design Fundamentals</p>
-                              <p className="text-xs text-[#4c4c4d]">4 weeks • Beginner</p>
+                              <p className="font-medium">
+                                Web Design Fundamentals
+                              </p>
+                              <p className="text-xs text-[#4c4c4d]">
+                                4 weeks • Beginner
+                              </p>
                             </div>
                           </div>
                         </td>
                         <td className="py-4">
                           <p className="font-medium">512</p>
-                          <p className="text-xs text-[#4c4c4d]">+32 this week</p>
+                          <p className="text-xs text-[#4c4c4d]">
+                            +32 this week
+                          </p>
                         </td>
                         <td className="py-4">
                           <div className="flex items-center">
                             <Star className="mr-1 h-4 w-4 fill-[#ff9500] text-[#ff9500]" />
                             <span className="font-medium">4.7</span>
-                            <span className="ml-1 text-xs text-[#4c4c4d]">(143)</span>
+                            <span className="ml-1 text-xs text-[#4c4c4d]">
+                              (143)
+                            </span>
                           </div>
                         </td>
                         <td className="py-4">
                           <p className="font-medium">$9,120</p>
-                          <p className="text-xs text-green-500">+15.2% from last month</p>
+                          <p className="text-xs text-green-500">
+                            +15.2% from last month
+                          </p>
                         </td>
                         <td className="py-4">
                           <span className="rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-600">
@@ -759,8 +905,10 @@ export default function TeacherDashboard() {
               <div className="flex flex-col justify-between md:flex-row md:items-center">
                 <div>
                   <h1 className="text-2xl font-bold md:text-3xl">My Courses</h1>
-                  <p className="text-[#4c4c4d]">Manage and monitor all your courses</p>
-            </div>
+                  <p className="text-[#4c4c4d]">
+                    Manage and monitor all your courses
+                  </p>
+                </div>
                 <div className="mt-4 flex flex-wrap gap-2 md:mt-0">
                   <div className="relative w-full sm:w-auto">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#4c4c4d]" />
@@ -768,8 +916,8 @@ export default function TeacherDashboard() {
                       type="text"
                       placeholder="Search courses..."
                       className="h-10 w-full rounded-md border border-[#f1f1f3] bg-white pl-10 pr-4 text-sm focus:border-[#ff9500] focus:outline-none focus:ring-1 focus:ring-[#ff9500] sm:w-60"
-              />
-            </div>
+                    />
+                  </div>
                   <button
                     onClick={() => setShowNewCourseModal(true)}
                     className="flex w-full items-center justify-center rounded-md bg-[#ff9500] px-4 py-2 text-sm font-medium text-white hover:bg-[#ff9500]/90 sm:w-auto"
@@ -798,7 +946,10 @@ export default function TeacherDashboard() {
               {/* Course List */}
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {courses.map((course) => (
-                  <div key={course.id} className="overflow-hidden rounded-lg border border-[#f1f1f3] bg-white">
+                  <div
+                    key={course.id}
+                    className="overflow-hidden rounded-lg border border-[#f1f1f3] bg-white"
+                  >
                     <div className="relative h-40 bg-[#f7f7f8]">
                       <img
                         src="/placeholder.svg?height=160&width=320"
@@ -815,12 +966,16 @@ export default function TeacherDashboard() {
                       <h3 className="mb-1 text-lg font-bold">{course.title}</h3>
                       <div className="mb-3 flex items-center text-sm text-[#4c4c4d]">
                         <Clock className="mr-1 h-4 w-4" />
-                        <span>{course.duration} • {course.level}</span>
+                        <span>
+                          {course.duration || "N/A"} • {course.level || "N/A"}
+                        </span>
                       </div>
                       <div className="mb-4 flex items-center justify-between">
                         <div className="flex items-center">
                           <Users className="mr-1 h-4 w-4 text-[#4c4c4d]" />
-                          <span className="text-sm text-[#4c4c4d]">458 students</span>
+                          <span className="text-sm text-[#4c4c4d]">
+                            458 students
+                          </span>
                         </div>
                         <div className="flex items-center">
                           <Star className="mr-1 h-4 w-4 fill-[#ff9500] text-[#ff9500]" />
@@ -839,34 +994,39 @@ export default function TeacherDashboard() {
                   </div>
                 ))}
               </div>
-              </div>
-          )};
-           
-
-              
-             
-             
-              
+            </div>
+          )}
 
           {/* Profile Tab */}
-          {activeTab === "profile" && <TeacherProfile />}
+          {activeTab === "profile" && (
+            <UserProfile 
+              userRole="teacher" 
+              userData={profile} 
+             
+              // Pass the dashboard data to the UserProfile component
+              // This allows the component to display the dashboard data
+            />
+          )}
 
           {/* Settings Tab */}
           {activeTab === "settings" && <TeacherSettings />}
 
           {/* Other tabs would go here */}
-          {activeTab !== "dashboard" && activeTab !== "courses" && activeTab !== "profile" && activeTab !== "settings" && (
-            <div className="flex h-64 flex-col items-center justify-center rounded-lg border border-dashed border-[#f1f1f3] bg-white p-6">
-              <div className="rounded-full bg-[#fff4e5] p-3">
-                <LayoutDashboard className="h-6 w-6 text-[#ff9500]" />
-              </div>
-              <h3 className="mt-4 text-lg font-medium">Coming Soon</h3>
-              <p className="mt-2 text-center text-sm text-[#4c4c4d]">
-                The {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} section is under development and will be
-                available soon.
+          {activeTab !== "dashboard" &&
+            activeTab !== "courses" &&
+            activeTab !== "profile" &&
+            activeTab !== "settings" && (
+              <div className="flex h-64 flex-col items-center justify-center rounded-lg border border-dashed border-[#f1f1f3] bg-white p-6">
+                <div className="rounded-full bg-[#fff4e5] p-3">
+                  <LayoutDashboard className="h-6 w-6 text-[#ff9500]" />
+                </div>
+                <h3 className="mt-4 text-lg font-medium">Coming Soon</h3>
+                <p className="mt-2 text-center text-sm text-[#4c4c4d]">
+                  The {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}{" "}
+                  section is under development and will be available soon.
                 </p>
               </div>
-          )}
+            )}
         </main>
       </div>
 
@@ -874,7 +1034,7 @@ export default function TeacherDashboard() {
       {showNewCourseModal && (
         <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 p-4 overflow-y-auto">
           <div className="w-full max-w-4xl rounded-lg bg-white p-6 shadow-lg my-8 relative">
-            <button 
+            <button
               onClick={() => setShowNewCourseModal(false)}
               className="absolute right-4 top-4 p-2 rounded-full hover:bg-gray-100"
             >
@@ -885,5 +1045,5 @@ export default function TeacherDashboard() {
         </div>
       )}
     </div>
-  )
+  );
 }

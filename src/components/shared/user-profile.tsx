@@ -1,5 +1,6 @@
-import  React ,{useState} from "react"
+import React, {useState, useEffect} from "react"
 import { Link } from "react-router-dom"
+import { useProfile } from "@/hooks/useProfile"
 import {
   Mail,
   Phone,
@@ -24,117 +25,145 @@ import {
   Instagram,
   Youtube,
 } from "lucide-react"
+import { Profile as DashboardProfile } from "@/types/dashboard"
 
 
 type UserRole = "student" | "teacher" | "admin"
-
-interface Skill {
-  name: string
-  level: number
-}
-
-interface Certificate {
-  id: number
-  title: string
-  issuer: string
-  date: string
-  url?: string
-}
-
-interface Course {
-  id: number
-  title: string
-  progress: number
-  image: string
-  category: string
-  instructor?: string
-  enrolled?: string
-  rating?: number
-  reviews?: number
-}
-
-interface Experience {
-  id: number
-  title: string
-  company: string
-  location: string
-  startDate: string
-  endDate: string | null
-  description: string
-  current: boolean
-}
-
-interface Education {
-  id: number
-  degree: string
-  institution: string
-  location: string
-  startDate: string
-  endDate: string | null
-  description: string
-  current: boolean
-}
-
-interface SocialLink {
-  platform: string
-  url: string
-  icon: React.ComponentType<{ className?: string }>
-}
-
 interface UserProfileProps {
-  userRole: UserRole
-  userData: {
-    id: number
-    name: string
-    email: string
-    avatar: string
-    phone?: string
-    location?: string
-    website?: string
-    bio?: string
-    joinDate: string
-    title?: string
-    skills?: Skill[]
-    certificates?: Certificate[]
-    courses?: Course[]
-    experience?: Experience[]
-    education?: Education[]
-    socialLinks?: SocialLink[]
-    stats?: {
-      [key: string]: {
-        value: string | number
-        label: string
-        change?: string
-        icon?: React.ComponentType<{ className?: string }>
-      }
-    }
-  }
-  backLink?: string
-  backLabel?: string
-  onSave?: (data: Record<string, unknown>) => void
-  readOnly?: boolean
+  userRole: UserRole;
+  userData: DashboardProfile;
+  backLink?: string;
+  backLabel?: string;
+  onSave?: (data: Record<string, unknown>) => void;
+  readOnly?: boolean;
 }
+// interface Skill {
+//   name: string
+//   level: number
+// }
+
+// interface Certificate {
+//   id: number
+//   title: string
+//   issuer: string
+//   date: string
+//   url?: string
+// }
+
+// interface Course {
+//   id: number
+//   title: string
+//   progress: number
+//   image: string
+//   category: string
+//   instructor?: string
+//   enrolled?: string
+//   rating?: number
+//   reviews?: number
+// }
+
+// interface Experience {
+//   id: number
+//   title: string
+//   company: string
+//   location: string
+//   startDate: string
+//   endDate: string | null
+//   description: string
+//   current: boolean
+// }
+
+// interface Education {
+//   id: number
+//   degree: string
+//   institution: string
+//   location: string
+//   startDate: string
+//   endDate: string | null
+//   description: string
+//   current: boolean
+// }
+
+// interface SocialLink {
+//   platform: string
+//   url: string
+//   icon: React.ComponentType<{ className?: string }>
+// }
+// const user = JSON.parse(localStorage.getItem('auth-storage') || '{}').state?.user;
+// interface UserProfileProps {
+//   userRole: UserRole
+//   userData: {
+//     id: number
+//     user_id:number
+//     instagramLink:string
+//     discordLink:string
+//     linkdenLink:string
+//     profilePicture: string
+//     biography?: string
+
+//     skills?: Skill[]
+
+//   }
+//   backLink?: string
+//   backLabel?: string
+//   onSave?: (data: Record<string, unknown>) => void
+//   readOnly?: boolean
+// }
 
 export default function UserProfile({
   userRole,
   userData,
-  backLink = "/dashboard",
+  backLink = `/dashboard-${userRole}`,
   backLabel = "Back to Dashboard",
   onSave,
   readOnly = false,
 }: UserProfileProps) {
+  // Use the useProfile hook with the userData prop
+  // const { profile: profileData, loading } = useProfile(userData);
+const [profile , setProfile] = useState([]);
+console.log(userData);
+const[loading , setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("about")
-  const [isEditing, setIsEditing] = useState(false)
+  const [isEditing, setIsEditing] = useState(true)
   const [formData, setFormData] = useState({
-    name: userData.name,
-    email: userData.email,
-    phone: userData.phone || "",
-    location: userData.location || "",
-    website: userData.website || "",
-    bio: userData.bio || "",
-    title: userData.title || "",
+    biography: userData?.biography || "",
+    profilePicture: userData?.profilePicture || "",
+    // Handle potentially missing properties
+    linkdenLink: (userData as any)?.linkdenLink || "",
+    instagramLink: (userData as any)?.instagramLink || "",
+    discordLink: (userData as any)?.discordLink || "",
+    avatar: null as File | null,
   })
 
+
+  // Handle file change for profile picture
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setFormData((prev) => ({
+        ...prev,
+        avatar: file,
+        // Create a temporary URL for preview
+        profilePicture: URL.createObjectURL(file),
+      }));
+    }
+  };
+
+  // Update formData when profileData changes
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        biography: profile.biography || "",
+        profilePicture: formData.profilePicture || "",
+        linkdenLink: (formData as any)?.linkdenLink || "",
+        instagramLink: (formData as any)?.instagramLink || "",
+        discordLink: (formData as any)?.discordLink || "",
+        avatar: null,
+      });
+    }
+  }, [profile])
+
+  const user = JSON.parse(localStorage.getItem('auth-storage') || '{}').state?.user;
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({
@@ -144,7 +173,9 @@ export default function UserProfile({
   }
 
   const handleSave = () => {
+    
     if (onSave) {
+console.log("save",formData)
       onSave(formData)
     }
     setIsEditing(false)
@@ -176,6 +207,18 @@ export default function UserProfile({
   const showEducation = userRole === "teacher" || userRole === "student"
   const showCertificates = userRole === "student" || userRole === "teacher"
   const showStats = true // All roles have stats, but different ones
+
+  // Show loading state while data is loading
+  // if (loading) {
+  //   return (
+  //     <div className="min-h-screen bg-[#f7f7f8] font-sans text-[#262626] flex items-center justify-center">
+  //       <div className="text-center">
+  //         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#ff9500] mx-auto"></div>
+  //         <p className="mt-4 text-[#4c4c4d]">Loading profile data...</p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="min-h-screen bg-[#f7f7f8] font-sans text-[#262626]">
@@ -219,14 +262,18 @@ export default function UserProfile({
             <div className="flex flex-col items-center md:flex-row md:items-start">
               <div className="relative mb-6 md:mb-0 md:mr-8">
                 <img
-                  src={userData.avatar || "/placeholder.svg?height=160&width=160"}
+                  src={formData.profilePicture || userData.profilePicture || "../../../public/img/dounia.jpg"}
                   alt={userData.name}
                   className="h-40 w-40 rounded-full object-cover"
                 />
                 {isEditing && (
-                  <button className="absolute bottom-2 right-2 rounded-full bg-[#ff9500] p-2 text-white hover:bg-[#ff9500]/90">
-                    <Camera className="h-4 w-4" />
-                  </button>
+                  <input 
+                    type="file" 
+                    name="profilePicture"
+                    accept="image/*" 
+                    onChange={handleFileChange}
+                    className="absolute bottom-2 right-2 rounded-full bg-[#ff9500] p-2 text-white hover:bg-[#ff9500]/90" 
+                  />
                 )}
               </div>
               <div className="flex-1 text-center md:text-left">
@@ -234,7 +281,7 @@ export default function UserProfile({
                   <input
                     type="text"
                     name="name"
-                    value={formData.name}
+                    value={user.firstName}
                     onChange={handleInputChange}
                     className="mb-1 w-full rounded-md border border-[#f1f1f3] bg-white px-3 py-2 text-2xl font-bold focus:border-[#ff9500] focus:outline-none focus:ring-1 focus:ring-[#ff9500] md:text-3xl"
                   />
@@ -246,7 +293,7 @@ export default function UserProfile({
                   <input
                     type="text"
                     name="title"
-                    value={formData.title}
+                    value={formData.job}
                     onChange={handleInputChange}
                     placeholder={
                       userRole === "teacher"
@@ -462,7 +509,7 @@ export default function UserProfile({
               {isEditing ? (
                 <textarea
                   name="bio"
-                  value={formData.bio}
+                  value={formData.biography}
                   onChange={handleInputChange}
                   rows={6}
                   className="w-full rounded-md border border-[#f1f1f3] bg-white px-3 py-2 text-[#4c4c4d] focus:border-[#ff9500] focus:outline-none focus:ring-1 focus:ring-[#ff9500]"
@@ -470,8 +517,8 @@ export default function UserProfile({
                 ></textarea>
               ) : (
                 <div className="space-y-4 text-[#4c4c4d]">
-                  {userData.bio ? (
-                    <p>{userData.bio}</p>
+                  {userData.biography ? (
+                    <p>{userData.biography}</p>
                   ) : (
                     <p className="text-[#4c4c4d] italic">No bio information available.</p>
                   )}
@@ -797,4 +844,3 @@ export default function UserProfile({
     </div>
   )
 }
-

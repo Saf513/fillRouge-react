@@ -100,7 +100,7 @@ export const useWishlistStore = create<WishlistState>((set, get) => ({
             console.log('Format de réponse inattendu pour les détails des cours:', coursesResponse.data);
 
             // Option 2: Récupérer tous les cours et filtrer
-            const allCoursesResponse = await axiosClient.get('http://localhost:8000/wishlist');
+            const allCoursesResponse = await axiosClient.get('wishlist');
             if (allCoursesResponse.data && allCoursesResponse.data.courses && allCoursesResponse.data.courses.data) {
               const allCourses = allCoursesResponse.data.courses.data;
               wishlistItems = allCourses.filter(course => 

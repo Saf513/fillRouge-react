@@ -27,7 +27,7 @@ export default function useCategories() {
   const fetchCategories = useCallback(async () => {
     try {
       const response = await axiosClient.get(
-        "http://localhost:8000/api/categories"
+        "api/categories"
       );
       setCategories(response.data.data);
       setLoading(false);

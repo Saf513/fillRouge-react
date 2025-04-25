@@ -21,7 +21,7 @@ export const courseService = {
       throw error;
     }
   },
-  
+
   async updateCourse(courseId: string, courseData: Partial<Course>): Promise<Course> {
     try {
       const response = await axiosClient.put(`${API_URL}/courses/${courseId}`, courseData);
@@ -31,7 +31,7 @@ export const courseService = {
       throw error;
     }
   },
-  
+
   async getCourseById(courseId: string): Promise<Course> {
     try {
       const response = await axiosClient.get(`${API_URL}/courses/${courseId}`);
@@ -41,7 +41,7 @@ export const courseService = {
       throw error;
     }
   },
-  
+
   // Section APIs
   async addSection(courseId: string, sectionData: Partial<Section>): Promise<Section> {
     try {
@@ -73,7 +73,7 @@ export const courseService = {
       throw error;
     }
   },
-  
+
   async deleteSection(courseId: string, sectionId: string): Promise<void> {
     try {
       await axiosClient.delete(`${API_URL}/courses/${courseId}/sections/${sectionId}`);
@@ -101,7 +101,7 @@ export const courseService = {
       throw error;
     }
   },
-  
+
   async updateLesson(courseId: string, sectionId: string, lessonId: string, lessonData: Partial<Lesson>): Promise<Lesson> {
     try {
       const response = await axiosClient.put(
@@ -114,7 +114,7 @@ export const courseService = {
       throw error;
     }
   },
-  
+
   async deleteLesson(courseId: string, sectionId: string, lessonId: string): Promise<void> {
     try {
       await axiosClient.delete(`${API_URL}/courses/${courseId}/sections/${sectionId}/lessons/${lessonId}`);
@@ -123,7 +123,7 @@ export const courseService = {
       throw error;
     }
   },
-  
+
   // Category APIs
   async getCategories(): Promise<Category[]> {
     try {
@@ -134,7 +134,7 @@ export const courseService = {
       throw error;
     }
   },
-  
+
   async addCategory(categoryData: Partial<Category>): Promise<Category> {
     try {
       const response = await axiosClient.post(`${API_URL}/categories`, categoryData);
@@ -144,7 +144,7 @@ export const courseService = {
       throw error;
     }
   },
-  
+
   // Tag APIs
   async getTags(): Promise<Tag[]> {
     try {
@@ -155,10 +155,10 @@ export const courseService = {
       throw error;
     }
   },
-  
+
   async addTag(courseId: string, tagName: string): Promise<Tag> {
     const token = localStorage.getItem('token');
-  
+
     try {
       // Étape 1 : Créer (ou récupérer) le tag
       const response = await axiosClient.post(
@@ -170,9 +170,9 @@ export const courseService = {
           },
         }
       );
-  
+
       const tagId = response.data.tag.id;
-  
+
       // Étape 2 : Attacher le tag au cours
       const result =await axiosClient.post(
         `${API_URL}/api/courses/${courseId}/tags/${tagId}`,
@@ -183,16 +183,16 @@ export const courseService = {
           },
         }
       );
-  
+
       console.log(response , result);
-  
+
     } catch (error) {
       console.error("Erreur lors de l'ajout du tag:", error);
       throw error;
     }
   },
-  
-  
+
+
   // File upload API
   async uploadAttachment(file: File, lessonId: string): Promise<{ url: string }> {
     try {
@@ -201,7 +201,7 @@ export const courseService = {
         formData.append('file', file);
         formData.append('type', 'lesson');
       }
-      
+
       const response = await axiosClient.post(
         `api/lessons/${lessonId}/attachments`, 
         formData,
@@ -211,20 +211,20 @@ export const courseService = {
           },
         }
       );
-      
+
       return response.data;
     } catch (error) {
       console.error('Error uploading attachment:', error);
       throw error;
     }
   },
-  
+
   // Course image upload
   async uploadCourseImage(courseId: string, file: File): Promise<{ url: string }> {
     try {
       const formData = new FormData();
       formData.append('image', file);
-      
+
       const response = await axiosClient.post(
         `${API_URL}/courses/${courseId}/image`, 
         formData,
@@ -234,14 +234,14 @@ export const courseService = {
           },
         }
       );
-      
+
       return response.data;
     } catch (error) {
       console.error('Error uploading course image:', error);
       throw error;
     }
   },
-  
+
   async uploadFile (type: string, file: File) {
     try {
         const formData = new FormData();
@@ -249,7 +249,7 @@ export const courseService = {
         formData.append('type', type);
 
         const response = await axiosClient.post(
-            'http://localhost:8000/api/upload',
+            'api/upload',
             formData,
             {
                 headers: {
@@ -265,6 +265,53 @@ export const courseService = {
         console.error('Erreur lors du téléchargement du fichier:', error);
         throw error;
     }
-},
-  
+  },
+
+  // Resource APIs
+  async addResource(courseId: string, resourceData: {
+    title: string;
+    type: string;
+    file_url: string;
+    is_downloadable: boolean;
+    lesson_id?: number;
+  }): Promise<any> {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axiosClient.post(
+        `api/courses/${courseId}/resources`,
+        resourceData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          }
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error adding resource:', error);
+      throw error;
+    }
+  },
+
+  async getEnrolledStudents(courseId: string): Promise<any> {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axiosClient.get(
+        `api/courses/${courseId}/enrolled-students`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Accept': 'application/json',
+          }
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching enrolled students:', error);
+      throw error;
+    }
+  },
+
 };

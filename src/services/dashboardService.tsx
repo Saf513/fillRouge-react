@@ -25,7 +25,7 @@ export const dashboardService = {
 
   getStudentDashboardData: async (): Promise<DashboardData> => {
     try {
-      const response = await axiosClient.get<DashboardData>('http://localhost:8000/api/dashboard-student');
+      const response = await axiosClient.get<DashboardData>('api/dashboard-student');
       return response.data;
     } catch (error) {
       console.error('Erreur lors de la récupération des données du tableau de bord étudiant:', error);

@@ -14,7 +14,6 @@ import useCategories from "@/hooks/useCategories";
 import { courseService } from "@/services/courseService";
 import { Lesson } from "@/types/course";
 import { Section } from "@/types/course";
-import { FileUpload } from "@/services/uploadService";
 import { Course } from "@/types/course";
 import {
   BookOpen,
@@ -33,7 +32,10 @@ import {
   ArrowLeft,
   ArrowRight,
   File,
+  Music,
+  X,
 } from "lucide-react";
+
 import {
   Card,
   CardContent,
@@ -42,6 +44,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+
 import {
   Select,
   SelectContent,
@@ -49,6 +52,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
 import {
   Dialog,
   DialogContent,
@@ -57,6 +61,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+
 import {
   DragDropContext,
   Droppable,
@@ -78,6 +83,9 @@ const CourseCreationForm = () => {
   const totalSteps = 4;
   // État pour les données du cours
   const [course, setCourse] = useState<Course>({
+    average_rating: 0,
+    total_reviews: 0,
+    total_students: 0,
     id: "",
     title: "",
     subtitle: "",
@@ -97,6 +105,7 @@ const CourseCreationForm = () => {
     tags: [],
     what_you_will_learn: [],
     requirements: [],
+    resources: [],
     instructor: {
       id: parseInt(localStorage.getItem("userId") || "0", 10),
       first_name: "",
@@ -127,6 +136,18 @@ const CourseCreationForm = () => {
   const [selectedTag, setSelectedTag] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // States for resource attachments
+  const [newResource, setNewResource] = useState({
+    title: "",
+    lesson_id : 0,
+    type: "PDF",
+    file_url: "",
+    files: [] as File[],
+    is_downloadable: true
+  });
+  const [resourceFileUploading, setResourceFileUploading] = useState(false);
+  const [expandedResources, setExpandedResources] = useState<string[]>([]);
+
   // les states pour aploading
   const [fileUploading, setFileUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -134,117 +155,48 @@ const CourseCreationForm = () => {
     null
   );
 
+  console.log('currentLesson====158====>>',currentLesson)
   // handler la selection de file
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    
-    if (e.target.files && e.target.files[0] && currentLesson) {
-      const fileInput = document.getElementById('pdf-upload') as HTMLInputElement;
-      const file = fileInput.files?.[0];
-    console.log(file)
-      // Utilisation de la fonction upload du service course pour uploader le fichier
-      try {
-        const response = await courseService.uploadFile('lesson', file);
-       console.log(response)
-        const contentUrl = response.path;
-        // Stockage de l'URL du fichier et non du fichier lui-même
-        setSelectedContentFile(null);
+    // Check if this is for lesson content (PDF) or for resources
+    // const isForLessonContent = e.target.id === 'pdf-upload' ;
+  
+    if (e.target.files && e.target.files.length > 0) {
+      if (currentLesson) {
+        // This is for lesson content (PDF)
+        const file = e.target.files[0]; // Only use the first file for lesson content
+        console.log('input', e.target.id);
 
-        // Mise à jour de la leçon avec les bonnes valeurs
-        setCurrentLesson({
-          ...currentLesson,
-          content_type: "pdf" as const, // Utilisation de "as const" pour le type littéral
-          content_url:file, // URL pour l'affichage temporaire
-          duration: "0", // Valeur par défaut pour la durée
-          pdf_url: contentUrl, // Stockage de l'URL du PDF pour l'affichage
+        // Utilisation de la fonction upload du service course pour uploader le fichier
+        try {
+          const response = await courseService.uploadFile('lesson', file);
+          console.log(response);
+          const contentUrl = response.url;
+          // Stockage de l'URL du fichier et non du fichier lui-même
+          setSelectedContentFile(null);
+
+          // Mise à jour de la leçon avec les bonnes valeurs
+          setCurrentLesson({
+            ...currentLesson,
+            content_type: "pdf" as const, // Utilisation de "as const" pour le type littéral
+            content_url: e.target.files[0], // URL pour l'affichage temporaire
+            duration: "0", // Valeur par défaut pour la durée
+            pdf_url: contentUrl, // Stockage de l'URL du PDF pour l'affichage
+          });
+        } catch (error) {
+          console.error('Erreur lors de l\'upload du fichier:', error);
+        }
+      } else {
+        // This is for resources
+        const files = Array.from(e.target.files);
+        setNewResource({
+          ...newResource,
+          files: files
         });
-      } catch (error) {
-        console.error('Erreur lors de l\'upload du fichier:', error);
       }
     }
-  
   };
-  // const handleSaveLesson = async () => {
-  //   if (!currentSection || !currentLesson) return;
 
-  //   // Validation
-  //   if (currentLesson.title.trim() === "") {
-  //     toast({
-  //       title: "Erreur",
-  //       description: "Le titre de la leçon est requis",
-  //       variant: "destructive",
-  //     });
-  //     return;
-  //   }
-
-  //   try {
-  //     let contentUrl = currentLesson.content_url;
-
-  //     // Si un fichier est sélectionné (PDF ou vidéo)
-  //     if (selectedContentFile) {
-  //       setFileUploading(true);
-
-  //       const formData = new FormData();
-  //       formData.append("file", selectedContentFile);
-  //       formData.append("lessonId", currentLesson.id);
-  //       formData.append("contentType", currentLesson.content_type);
-
-  //       // Upload vers votre API Laravel
-  //       const uploadResponse = await axios.post("/api/upload", formData, {
-  //         headers: {
-  //           "Content-Type": "multipart/form-data",
-  //           Authorization: `Bearer ${localStorage.getItem("token")}`,
-  //         },
-  //       });
-
-  //       contentUrl = uploadResponse.data.url;
-  //       setFileUploading(false);
-  //     }
-
-  //     // Préparer la leçon avec l'URL mise à jour
-  //     const updatedLesson = {
-  //       ...currentLesson,
-  //       content_url: contentUrl,
-  //       duration: currentLesson.duration || "0:00",
-  //       // Conserver la référence au fichier pour plus tard
-  //       contentFile: selectedContentFile,
-  //     };
-
-  //     // Mise à jour de la section
-  //     const updatedLessons = currentSection.lessons.some(
-  //       (l) => l.id === currentLesson.id
-  //     )
-  //       ? currentSection.lessons.map((l) =>
-  //           l.id === currentLesson.id ? updatedLesson : l
-  //         )
-  //       : [...currentSection.lessons, updatedLesson];
-
-  //     const updatedSection = {
-  //       ...currentSection,
-  //       lessons: updatedLessons,
-  //     };
-
-  //     // Mise à jour du cours
-  //     setCourse({
-  //       ...course,
-  //       sections:
-  //         course.sections?.map((s) =>
-  //           s.id === updatedSection.id ? updatedSection : s
-  //         ) || [],
-  //     });
-
-  //     setShowLessonDialog(false);
-  //     setCurrentLesson(null);
-  //     setCurrentSection(null);
-  //     setSelectedContentFile(null);
-  //   } catch (error) {
-  //     setFileUploading(false);
-  //     toast({
-  //       title: "Upload failed",
-  //       description: "Failed to upload file. Please try again.",
-  //       variant: "destructive",
-  //     });
-  //   }
-  // };
   // Toggle section expand/collapse
   const toggleSection = (sectionId: string) => {
     if (expandedSections.includes(sectionId)) {
@@ -319,8 +271,9 @@ const CourseCreationForm = () => {
   // Add a new lesson to a section
   const handleAddLesson = (sectionId: string) => {
     const section = course.sections?.find((s) => s.id === sectionId);
-    if (!section) return;
-
+    console.log("===============section ",section)
+    if (!section) console.log("wa3333333333333333333333333");
+    console.log("=================Section=================>>>>>>>>>" , section)
     const newLesson: Lesson = {
       id: `lesson-${Date.now()}`,
       section_id: parseInt(sectionId),
@@ -579,6 +532,278 @@ const CourseCreationForm = () => {
     });
   };
 
+  // Handle resource file selection
+  const handleResourceFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      // Convert FileList to array and append to existing files
+      const newFiles = Array.from(e.target.files);
+      console.log(newFiles)
+      setNewResource({
+        ...newResource,
+        files: [...newResource.files, ...newFiles],
+        file_url: "" // Clear file_url when files are selected
+      });
+    }
+  };
+
+  // Remove a file from the files array
+  const handleRemoveFile = (index: number) => {
+    setNewResource({
+      ...newResource,
+      files: newResource.files.filter((_, i) => i !== index)
+    });
+  };
+
+  // Handle resource type change
+  const handleResourceTypeChange = (type: string) => {
+    setNewResource({
+      ...newResource,
+      type,
+      // Clear the appropriate field based on type
+      files: type === "LINK" ? [] : newResource.files,
+      file_url: type !== "LINK" ? "" : newResource.file_url
+    });
+  };
+
+  // Add a resource to the course
+  const handleAddResource = async () => {
+    // Validate resource data
+
+    if (!newResource.title.trim()) {
+      toast({
+        title: "Missing information",
+        description: "Resource title is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newResource.type !== "LINK" && newResource.files.length === 0) {
+      toast({
+        title: "Missing files",
+        description: "Please select at least one file to upload",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newResource.type === "LINK" && !newResource.file_url.trim()) {
+      toast({
+        title: "Missing URL",
+        description: "Please enter a valid URL",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // If files are selected, upload them
+    const fileUrls: string[] = [];
+
+    if (newResource.files.length > 0) {
+      setResourceFileUploading(true);
+      console.log(newResource.files)
+      try {
+
+        // Upload each file and collect the URLs
+        for (const file of newResource.files) {
+          // Upload the file using the courseService
+          const uploadResponse = await courseService.uploadFile(
+            "courseResource", 
+            file
+          );
+
+
+          if (uploadResponse.fileUrl) {
+            fileUrls.push(uploadResponse.fileUrl);
+          }
+        }
+      } catch (error) {
+        console.error("Error uploading resource files:", error);
+        toast({
+          title: "Upload failed",
+          description: "There was an error uploading your files. Please try again.",
+          variant: "destructive",
+        });
+        setResourceFileUploading(false);
+        return;
+      }
+
+      setResourceFileUploading(false);
+    }
+
+    // Add the resource to the course
+    const newResourceItem = {
+      id: Date.now().toString(), // Temporary ID for UI purposes
+      title: newResource.title,
+      type: newResource.type,
+      file_urls: newResource.type === "LINK" ? [newResource.file_url] : fileUrls,
+      is_downloadable: newResource.is_downloadable
+    };
+
+    setCourse({
+      ...course,
+      resources: [...course.resources, newResourceItem]
+    });
+
+    // Reset the form
+    setNewResource({
+      title: "",
+      lesson_id: 0,
+      type: "PDF",
+      files: [],
+      file_url: "",
+      is_downloadable: true
+    });
+  };
+
+  // Add a resource to a lesson
+  const handleAddLessonResource = async () => {
+    // Validate resource data
+    console.log(newResource)
+    if (!newResource.title.trim()) {
+      toast({
+        title: "Missing information",
+        description: "Resource title is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newResource.type !== "LINK" && newResource.files.length === 0) {
+      toast({
+        title: "Missing files",
+        description: "Please select at least one file to upload",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newResource.type === "LINK" && !newResource.file_url.trim()) {
+      toast({
+        title: "Missing URL",
+        description: "Please enter a valid URL",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!currentLesson) {
+      toast({
+        title: "Error",
+        description: "No lesson selected",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // If files are selected, upload them
+    const fileUrls: string[] = [];
+    let fileSize = 0;
+
+    if (newResource.files.length > 0) {
+      setFileUploading(true);
+      try {
+        // Upload each file and collect the URLs
+        for (const file of newResource.files) {
+          fileSize += file.size;
+          // Upload the file using the courseService
+          const uploadResponse = await courseService.uploadFile(
+            "lessonResource", 
+            file
+          );
+
+          if (uploadResponse.fileUrl) {
+            fileUrls.push(uploadResponse.fileUrl);
+          }
+        }
+      } catch (error) {
+        console.error("Error uploading resource files:", error);
+        toast({
+          title: "Upload failed",
+          description: "There was an error uploading your files. Please try again.",
+          variant: "destructive",
+        });
+        setFileUploading(false);
+        return;
+      }
+
+      setFileUploading(false);
+    }
+
+    // Create resources for each file or link
+    const newResources: Resource[] = [];
+
+    if (newResource.type === "LINK") {
+      // For links, create a single resource
+      newResources.push({
+        id: Date.now(),
+        lesson_id: parseInt(currentLesson.id),
+        title: newResource.title,
+        type: newResource.type,
+        file_url: newResource.file_url,
+        file_size: 0,
+        is_downloadable: newResource.is_downloadable
+      });
+    } else {
+      // For files, create a resource for each file
+      fileUrls.forEach((fileUrl, index) => {
+        const fileName = newResource.files[index]?.name || newResource.title;
+        newResources.push({
+          id: Date.now() + index,
+          lesson_id: parseInt(currentLesson.id),
+          title: fileUrls.length > 1 ? `${newResource.title} (${index + 1})` : newResource.title,
+          type: newResource.type,
+          file_url: fileUrl,
+          file_size: newResource.files[index]?.size || 0,
+          is_downloadable: newResource.is_downloadable
+        });
+      });
+    }
+
+    // Add the resources to the lesson's attachments
+    setCurrentLesson({
+      ...currentLesson,
+      attachments: [...(currentLesson.attachments || []), ...newResources]
+    });
+
+    // Reset the form
+    setNewResource({
+      title: "",
+      lesson_id: 0,
+      type: "PDF",
+      files: [],
+      file_url: "",
+      is_downloadable: true
+    });
+  };
+
+  // Remove a resource
+  const handleRemoveResource = (resourceId: string) => {
+    setCourse({
+      ...course,
+      resources: course.resources.filter((resource) => resource.id !== resourceId)
+    });
+  };
+
+  // Remove a resource from a lesson
+  const handleRemoveLessonResource = (resourceId: number) => {
+    if (!currentLesson) return;
+
+    setCurrentLesson({
+      ...currentLesson,
+      attachments: currentLesson.attachments?.filter((resource) => resource.id !== resourceId) || []
+    });
+  };
+
+  // Toggle resource expanded state
+  const toggleResourceExpanded = (resourceId: string) => {
+    setExpandedResources(prev => 
+      prev.includes(resourceId)
+        ? prev.filter(id => id !== resourceId)
+        : [...prev, resourceId]
+    );
+  };
+
   // Handle form submission
   const handleSubmit = async () => {
     setIsSubmitting(true);
@@ -619,7 +844,7 @@ const CourseCreationForm = () => {
     }
 
     const authDataString = localStorage.getItem("auth-storage");
-    
+
     if (!authDataString) {
       toast({
         title: "Erreur d'authentification",
@@ -629,10 +854,10 @@ const CourseCreationForm = () => {
       setIsSubmitting(false);
       return;
     }
-   
+
     const authData = JSON.parse(authDataString);
     const userId = authData?.state?.user?.id;
-    
+
     if (!userId) {
       toast({
         title: "Erreur d'authentification",
@@ -674,7 +899,7 @@ const CourseCreationForm = () => {
         // Ajouter les leçons de la section
         for (const lesson of section.lessons) {
           let contentUrl = lesson.content_url;
-
+         console.log("=======contenturl" , contentUrl)
           // Si c'est un PDF ou une autre ressource avec un fichier physique
           if (
             lesson.content_url &&
@@ -684,16 +909,19 @@ const CourseCreationForm = () => {
             const formData = new FormData();
             formData.append("file", lesson.content_url);
 
-            try {
-              // Uploader le fichier et obtenir son URL
-              const uploadResponse = await courseService.uploadFile(
-                "lessonContent", formData.get("file")
-              );
-              contentUrl = uploadResponse.fileUrl || "";
-            } catch (error) {
-              console.error("Error uploading file:", error);
-              // Continue avec l'URL précédente si l'upload échoue
-            }
+          //   try {
+          //     // Uploader le fichier et obtenir son URL
+          //     const uploadResponse = await courseService.uploadFile(
+          //       "lesson", formData.file
+          //     );
+          //     console.log(formData.file)
+          //     console.log(uploadResponse)
+          //     contentUrl = uploadResponse.fileUrl || "";
+          //     console.log("========co,tent url upoload ===========",contentUrl)
+          //   } catch (error) {
+          //     console.error("Error uploading file:", error);
+          //     // Continue avec l'URL précédente si l'upload échoue
+          //   }
           }
 
           const lessonData = {
@@ -701,11 +929,12 @@ const CourseCreationForm = () => {
             description: lesson.description,
             content_type: lesson.content_type,
             duration: lesson.duration,
-            content_url: contentUrl,
+            content_url: lesson.content_url,
             order: lesson.order,
           };
           console.log(lessonData);
-          await courseService.addLesson(courseId, createdSection, lessonData);
+          const token = localStorage.getItem('token') || '';
+          await courseService.addLesson(courseId, createdSection, lessonData, token);
         }
       }
 
@@ -713,7 +942,29 @@ const CourseCreationForm = () => {
       if (course.tags && course.tags.length > 0) {
         for (const tag of course.tags) {
           await courseService.addTag(courseId , tag);
+        }
+      }
 
+      // 4. Ajouter les ressources
+      if (course.resources && course.resources.length > 0) {
+        for (const resource of course.resources) {
+          try {
+            // Check if resource has file_urls (multiple files) or file_url (single file)
+            const fileUrls = resource.file_urls || (resource.file_url ? [resource.file_url] : []);
+
+            // Add each file as a separate resource with the same title
+            for (const fileUrl of fileUrls) {
+              await courseService.addResource(courseId, {
+                title: resource.title,
+                type: resource.type,
+                file_url: fileUrl,
+                is_downloadable: resource.is_downloadable
+              });
+            }
+          } catch (error) {
+            console.error("Error adding resource:", error);
+            // Continue with other resources if one fails
+          }
         }
       }
 
@@ -723,7 +974,7 @@ const CourseCreationForm = () => {
       });
 
       // Redirect to the teacher dashboard
-      navigate("/teacher-dashboard");
+      navigate("/");
     } catch (error) {
       toast({
         title: "Error creating course",
@@ -1455,6 +1706,8 @@ const CourseCreationForm = () => {
                   </div>
                 </CardContent>
               </Card>
+
+
             </div>
           </div>
         );
@@ -1907,7 +2160,13 @@ const CourseCreationForm = () => {
                       <input
                         type="file"
                         accept="video/*"
-                        onChange={handleFileSelect}
+                        onChange={(e:React.ChangeEvent<HTMLInputElement>)=>{setCurrentLesson({
+                          ...currentLesson,
+                          content_type: "pdf" as const, // Utilisation de "as const" pour le type littéral
+                          content_url: e.target.files[0], // URL pour l'affichage temporaire
+                          duration: "0", // Valeur par défaut pour la durée
+                         // Stockage de l'URL du PDF pour l'affichage
+                        })}}
                         className="hidden"
                         id="video-upload"
                       />
@@ -1956,6 +2215,7 @@ const CourseCreationForm = () => {
                         className="w-full rounded-lg border"
                         src={currentLesson.content_url}
                       />
+                      {console.log("============JSX=============>",currentLesson)}
                 </div>
               )}
                 </div>
@@ -2101,81 +2361,190 @@ const CourseCreationForm = () => {
                   Make this lesson available as a free preview
                 </Label>
               </div>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Lesson Resources</CardTitle>
+                  <CardDescription>
+                    Add downloadable resources for this lesson (PDF, documents, audio, video, or links).
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {/* Display current lesson resources */}
+                    <div className="space-y-2">
+                      {currentLesson?.attachments && currentLesson.attachments.length > 0 ? (
+                        currentLesson.attachments.map((resource, index) => (
+                          <div
+                            key={index}
+                            className="border rounded-md overflow-hidden"
+                          >
+                            <div 
+                              className="flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50"
+                              onClick={() => toggleResourceExpanded(resource.id.toString())}
+                            >
+                              <div className="flex items-center gap-2">
+                                {resource.type === "PDF" ? (
+                                  <File className="h-5 w-5 text-red-500" />
+                                ) : resource.type === "DOCUMENT" ? (
+                                  <FileText className="h-5 w-5 text-blue-500" />
+                                ) : resource.type === "VIDEO" ? (
+                                  <Video className="h-5 w-5 text-purple-500" />
+                                ) : resource.type === "AUDIO" ? (
+                                  <File className="h-5 w-5 text-green-500" />
+                                ) : (
+                                  <FileText className="h-5 w-5 text-gray-500" />
+                                )}
+                                <div>
+                                  <div className="flex items-center">
+                                    <p className="font-medium">{resource.title}</p>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">
+                                    {resource.type} • {resource.is_downloadable ? "Downloadable" : "Not downloadable"}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-red-600"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRemoveLessonResource(resource.id);
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          No resources added to this lesson yet
+                        </p>
+                      )}
+                    </div>
 
-              <div className="border rounded-lg p-4 mt-4">
-                <h3 className="font-medium mb-2">Resource Attachments</h3>
+                    {/* Add new resource form */}
+                    <div className="border rounded-lg p-4 space-y-4">
+                      <h3 className="font-medium">Add New Resource</h3>
 
-                {/* Display current attachments */}
-                {currentLesson?.attachments &&
-                currentLesson.attachments.length > 0 ? (
-                  <div className="space-y-2 mb-4">
-                    {currentLesson.attachments.map((attachment, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-2 border rounded-md"
-                      >
-                        <div className="flex items-center">
-                          {attachment.type === "pdf" ? (
-                            <File className="h-4 w-4 mr-2 text-red-500" />
-                          ) : (
-                            <FileText className="h-4 w-4 mr-2" />
-                          )}
-                          <span className="text-sm">{attachment.name}</span>
-                          <span className="text-xs text-muted-foreground ml-2">
-                            ({attachment.size})
-                          </span>
+                      <div className="grid gap-3">
+                        <div className="grid gap-2">
+                          <Label htmlFor="resourceTitle">Title *</Label>
+                          <Input
+                            id="resourceTitle"
+                            value={newResource.title}
+                            onChange={(e) => setNewResource({...newResource, title: e.target.value})}
+                            placeholder="e.g. Lesson Slides, Exercise Files, etc."
+                          />
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-red-600"
-                          onClick={() => {
-                            if (currentLesson) {
-                              setCurrentLesson({
-                                ...currentLesson,
-                                attachments: currentLesson.attachments?.filter(
-                                  (_, i) => i !== index
-                                ),
-                              });
-                            }
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground mb-4">
-                    No attachments added yet
-                  </p>
-                )}
 
-                {/* File upload section */}
-                <div className="space-y-2">
-                  <Label htmlFor="fileUpload">Add PDF or other resources</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="fileUpload"
-                      type="file"
-                      accept=".pdf,.doc,.docx,.xls,.xlsx,.zip"
-                      onChange={handleFileSelect}
-                      className="flex-1"
-                    />
-                    <Button
-                      onClick={() =>
-                        currentLesson && handleFileUpload(currentLesson.id)
-                      }
-                      disabled={!selectedFile || fileUploading}
-                    >
-                      {fileUploading ? "Uploading..." : "Upload"}
-                    </Button>
+                        <div className="grid gap-2">
+                          <Label htmlFor="resourceType">Type *</Label>
+                          <Select
+                            value={newResource.type}
+                            onValueChange={handleResourceTypeChange}
+                          >
+                            <SelectTrigger id="resourceType">
+                              <SelectValue placeholder="Select resource type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="PDF">PDF</SelectItem>
+                              <SelectItem value="DOCUMENT">Document</SelectItem>
+                              <SelectItem value="VIDEO">Video</SelectItem>
+                              <SelectItem value="AUDIO">Audio</SelectItem>
+                              <SelectItem value="LINK">Link</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {newResource.type !== "LINK" ? (
+                          <div className="grid gap-2">
+                            <Label htmlFor="resourceFile">Files *</Label>
+                            <Input
+                              id="resourceFile"
+                              type="file"
+                              multiple
+                              onChange={handleResourceFileSelect}
+                              accept={
+                                newResource.type === "PDF" ? ".pdf" :
+                                newResource.type === "DOCUMENT" ? ".doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt" :
+                                newResource.type === "VIDEO" ? ".mp4,.mov,.avi" :
+                                newResource.type === "AUDIO" ? ".mp3,.wav" : ""
+                              }
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Max file size: 100MB per file. You can select multiple files.
+                            </p>
+
+                            {/* Display selected files */}
+                            {newResource.files.length > 0 && (
+                              <div className="mt-2 space-y-2">
+                                <Label>Selected Files ({newResource.files.length})</Label>
+                                <div className="max-h-40 overflow-y-auto border rounded-md p-2">
+                                  {newResource.files.map((file, index) => (
+                                    <div key={index} className="flex items-center justify-between py-1">
+                                      <div className="flex items-center">
+                                        <File className="h-4 w-4 mr-2 text-muted-foreground" />
+                                        <span className="text-sm truncate max-w-[200px]">{file.name}</span>
+                                        <span className="text-xs text-muted-foreground ml-2">
+                                          ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                                        </span>
+                                      </div>
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        className="h-6 w-6 p-0 text-red-500"
+                                        onClick={() => handleRemoveFile(index)}
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="grid gap-2">
+                            <Label htmlFor="resourceUrl">URL *</Label>
+                            <Input
+                              id="resourceUrl"
+                              type="url"
+                              value={newResource.file_url}
+                              onChange={(e) => setNewResource({...newResource, file_url: e.target.value})}
+                              placeholder="https://example.com/resource"
+                            />
+                          </div>
+                        )}
+
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="isDownloadable"
+                            checked={newResource.is_downloadable}
+                            onCheckedChange={(checked) => 
+                              setNewResource({...newResource, is_downloadable: !!checked})
+                            }
+                          />
+                          <Label htmlFor="isDownloadable">
+                            Allow students to download this resource
+                          </Label>
+                        </div>
+                      </div>
+
+                      <Button 
+                        onClick={handleAddLessonResource}
+                        disabled={fileUploading}
+                        className="w-full"
+                      >
+                        {fileUploading ? "Uploading..." : "Add Resource to Lesson"}
+                      </Button>
+                    </div>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Supported formats: PDF, DOC, XLSX, ZIP (Max size: 50MB)
-                  </p>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
 
