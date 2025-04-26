@@ -243,8 +243,8 @@ const Wishlist = ({ dashboardWishlists }: WishlistProps) => {
   }
 
   // Add course to cart
-  const addToCart = (courseId: string) => {
-  
+  const addToCart = (courseId: string ) => {
+   
   }
 
   // Remove all courses from wishlist

@@ -64,22 +64,22 @@ export default function NavBar() {
             </Link>
 
             <nav className="hidden md:flex items-center ml-8 space-x-6">
-              <Link to="/" className="text-[#262626] font-medium">
+              <Link to="/" className="text-[#262626] font-medium hover:bg-[#f1f1f3] px-4 py-2 rounded transition-colors">
                 Home
               </Link>
-              <Link to="/course-explore" className="text-[#262626] font-medium">
+              <Link to="/course-explore" className="text-[#262626] font-medium hover:bg-[#f1f1f3] px-4 py-2 rounded transition-colors">
                 Courses
               </Link>
               <Link
                 to="/about"
-                className="bg-[#f1f1f3] text-[#262626] font-medium px-4 py-2 rounded"
+                className="text-[#262626] font-medium hover:bg-[#f1f1f3] px-4 py-2 rounded transition-colors"
               >
                 About Us
               </Link>
-              <Link to="/pricing" className="text-[#262626] font-medium">
+              <Link to="/pricing" className="text-[#262626] font-medium hover:bg-[#f1f1f3] px-4 py-2 rounded transition-colors">
                 Pricing
               </Link>
-              <Link to="/contact" className="text-[#262626] font-medium">
+              <Link to="/contact" className="text-[#262626] font-medium hover:bg-[#f1f1f3] px-4 py-2 rounded transition-colors">
                 Contact
               </Link>
             </nav>
@@ -147,7 +147,7 @@ export default function NavBar() {
               <Link to="/" className="text-[#262626] font-medium">
                 Home
               </Link>
-              <Link to="/courses" className="text-[#262626] font-medium">
+              <Link to="/courses-explore" className="text-[#262626] font-medium">
                 Courses
               </Link>
               <Link

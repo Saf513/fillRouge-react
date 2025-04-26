@@ -69,6 +69,14 @@ import {
   type DropResult,
 } from "react-beautiful-dnd";
 
+// Define resource type enum
+export enum ResourceType {
+  PDF = "PDF",
+  DOCUMENT = "DOCUMENT",
+  VIDEO = "VIDEO",
+  AUDIO = "AUDIO",
+  LINK = "LINK"
+}
 
 const CourseCreationForm = () => {
   const navigate = useNavigate();
@@ -555,13 +563,13 @@ const CourseCreationForm = () => {
   };
 
   // Handle resource type change
-  const handleResourceTypeChange = (type: string) => {
+  const handleResourceTypeChange = (type: ResourceType) => {
     setNewResource({
       ...newResource,
       type,
       // Clear the appropriate field based on type
-      files: type === "LINK" ? [] : newResource.files,
-      file_url: type !== "LINK" ? "" : newResource.file_url
+      files: type === ResourceType.LINK ? [] : newResource.files,
+      file_url: type !== ResourceType.LINK ? "" : newResource.file_url
     });
   };
 
@@ -578,7 +586,7 @@ const CourseCreationForm = () => {
       return;
     }
 
-    if (newResource.type !== "LINK" && newResource.files.length === 0) {
+    if (newResource.type !== ResourceType.LINK && newResource.files.length === 0) {
       toast({
         title: "Missing files",
         description: "Please select at least one file to upload",
@@ -587,7 +595,7 @@ const CourseCreationForm = () => {
       return;
     }
 
-    if (newResource.type === "LINK" && !newResource.file_url.trim()) {
+    if (newResource.type === ResourceType.LINK && !newResource.file_url.trim()) {
       toast({
         title: "Missing URL",
         description: "Please enter a valid URL",
@@ -636,7 +644,7 @@ const CourseCreationForm = () => {
       id: Date.now().toString(), // Temporary ID for UI purposes
       title: newResource.title,
       type: newResource.type,
-      file_urls: newResource.type === "LINK" ? [newResource.file_url] : fileUrls,
+      file_urls: newResource.type === ResourceType.LINK ? [newResource.file_url] : fileUrls,
       is_downloadable: newResource.is_downloadable
     };
 
@@ -669,7 +677,7 @@ const CourseCreationForm = () => {
       return;
     }
 
-    if (newResource.type !== "LINK" && newResource.files.length === 0) {
+    if (newResource.type !== ResourceType.LINK && newResource.files.length === 0) {
       toast({
         title: "Missing files",
         description: "Please select at least one file to upload",
@@ -678,7 +686,7 @@ const CourseCreationForm = () => {
       return;
     }
 
-    if (newResource.type === "LINK" && !newResource.file_url.trim()) {
+    if (newResource.type === ResourceType.LINK && !newResource.file_url.trim()) {
       toast({
         title: "Missing URL",
         description: "Please enter a valid URL",
@@ -733,7 +741,7 @@ const CourseCreationForm = () => {
     // Create resources for each file or link
     const newResources: Resource[] = [];
 
-    if (newResource.type === "LINK") {
+    if (newResource.type === ResourceType.LINK) {
       // For links, create a single resource
       newResources.push({
         id: Date.now(),
@@ -2451,16 +2459,16 @@ const CourseCreationForm = () => {
                               <SelectValue placeholder="Select resource type" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="PDF">PDF</SelectItem>
-                              <SelectItem value="DOCUMENT">Document</SelectItem>
-                              <SelectItem value="VIDEO">Video</SelectItem>
-                              <SelectItem value="AUDIO">Audio</SelectItem>
-                              <SelectItem value="LINK">Link</SelectItem>
+                              <SelectItem value={ResourceType.PDF}>PDF</SelectItem>
+                              <SelectItem value={ResourceType.DOCUMENT}>Document</SelectItem>
+                              <SelectItem value={ResourceType.VIDEO}>Video</SelectItem>
+                              <SelectItem value={ResourceType.AUDIO}>Audio</SelectItem>
+                              <SelectItem value={ResourceType.LINK}>Link</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
 
-                        {newResource.type !== "LINK" ? (
+                        {newResource.type !== ResourceType.LINK ? (
                           <div className="grid gap-2">
                             <Label htmlFor="resourceFile">Files *</Label>
                             <Input
@@ -2469,10 +2477,10 @@ const CourseCreationForm = () => {
                               multiple
                               onChange={handleResourceFileSelect}
                               accept={
-                                newResource.type === "PDF" ? ".pdf" :
-                                newResource.type === "DOCUMENT" ? ".doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt" :
-                                newResource.type === "VIDEO" ? ".mp4,.mov,.avi" :
-                                newResource.type === "AUDIO" ? ".mp3,.wav" : ""
+                                newResource.type === ResourceType.PDF ? ".pdf" :
+                                newResource.type === ResourceType.DOCUMENT ? ".doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt" :
+                                newResource.type === ResourceType.VIDEO ? ".mp4,.mov,.avi" :
+                                newResource.type === ResourceType.AUDIO ? ".mp3,.wav" : ""
                               }
                             />
                             <p className="text-xs text-muted-foreground">

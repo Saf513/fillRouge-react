@@ -13,6 +13,8 @@ import {
   Heart,
 } from "lucide-react"
 import  {Button} from "@/components/ui/button"
+import { RatingForm } from '@/pages/course/ratingForm'
+import { RatingList } from '@/pages/course/ratingList'
 
 export default function CourseDetails() {
   const { id } = useParams()
@@ -23,6 +25,7 @@ export default function CourseDetails() {
     fetchWishlistedCourses
   } = useWishlistStore()
   const [course, setCourse] = useState<Course | null>(null)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   // Check if course is in wishlist
   const isInWishlist = id ? wishlistedCourses.includes(id) : false
@@ -52,6 +55,10 @@ export default function CourseDetails() {
       }
     }
   }, [courses, id])
+
+  const handleRatingAdded = () => {
+    setRefreshKey(prev => prev + 1)
+  }
 
   if (loading) {
     return (
@@ -118,6 +125,14 @@ console.log("course:" , course)
                 </li>
               ))}
             </ul>
+          </div>
+
+          <div className="mt-8">
+            <h2 className="text-2xl font-bold mb-6">Avis des étudiants</h2>
+            <RatingForm courseId={course.id} onRatingAdded={handleRatingAdded} />
+            <div className="mt-8">
+              <RatingList key={refreshKey} courseId={course.id} />
+            </div>
           </div>
         </div>
 

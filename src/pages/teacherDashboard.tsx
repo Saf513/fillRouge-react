@@ -51,11 +51,14 @@ export default function TeacherDashboard() {
   const [windowWidth, setWindowWidth] = useState(
     typeof window !== "undefined" ? window.innerWidth : 0
   );
-  const { data: dashboardData, loading: apiLoading } =
+  const { data: dashboardData, loading: apiLoading, error: apiError } =
     useTeacherDashboardData();
 
   const [courses, setCourses] = useState<DashboardCourse[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [stats, setStats] = useState<any>(null);
+  const [students, setStudents] = useState<any[]>([]);
+  const [recentActivities, setRecentActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -75,8 +78,11 @@ export default function TeacherDashboard() {
       try {
         setLoading(true);
         if (dashboardData) {
-          setCourses(dashboardData.courses);
-          setProfile(dashboardData.profile);
+          setCourses(dashboardData.courses || []);
+          setProfile(dashboardData.profile || null);
+          setStats(dashboardData.stats || {});
+          setStudents(dashboardData.students || []);
+          setRecentActivities(dashboardData.recent_activities || []);
           setLoading(false);
         }
       } catch (err) {
@@ -156,6 +162,37 @@ export default function TeacherDashboard() {
     }
   };
 
+  if (loading || apiLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="flex flex-col items-center">
+          <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-[#ff9500]"></div>
+          <p className="mt-4 text-[#4c4c4d]">Chargement des données...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || apiError) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="max-w-md text-center">
+          <div className="mb-4 rounded-full bg-red-100 p-3 inline-block">
+            <X className="h-6 w-6 text-red-500" />
+          </div>
+          <h2 className="mb-2 text-lg font-semibold">Erreur de chargement</h2>
+          <p className="text-[#4c4c4d]">{error || apiError}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-4 rounded-md bg-[#ff9500] px-4 py-2 text-white"
+          >
+            Réessayer
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen bg-[#f7f7f8] font-sans text-[#262626]">
       {/* Mobile Menu Overlay */}
@@ -178,7 +215,10 @@ export default function TeacherDashboard() {
       >
         <div className="flex h-16 items-center justify-between border-b border-[#f1f1f3] px-4">
           <div className="flex items-center">
-            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-[#ff9500]">
+            <div 
+              className="flex h-10 w-10 items-center justify-center rounded-md bg-[#ff9500] cursor-pointer"
+              onClick={() => navigate('/')}
+            >
               <BookOpen className="h-5 w-5 text-white" />
             </div>
             {sidebarOpen && (
@@ -254,35 +294,11 @@ export default function TeacherDashboard() {
                 }`}
               >
                 <MessageSquare className="h-5 w-5" />
-                {sidebarOpen && <span className="ml-3">Messages</span>}
+                {sidebarOpen && <span className="ml-3">Notifications</span>}
               </button>
             </li>
-            <li>
-              <button
-                onClick={() => handleTabChange("analytics")}
-                className={`flex w-full items-center rounded-md px-3 py-2 ${
-                  activeTab === "analytics"
-                    ? "bg-[#fff4e5] text-[#ff9500]"
-                    : "text-[#4c4c4d] hover:bg-[#f1f1f3]"
-                }`}
-              >
-                <BarChart3 className="h-5 w-5" />
-                {sidebarOpen && <span className="ml-3">Analytics</span>}
-              </button>
-            </li>
-            <li>
-              <button
-                onClick={() => handleTabChange("schedule")}
-                className={`flex w-full items-center rounded-md px-3 py-2 ${
-                  activeTab === "schedule"
-                    ? "bg-[#fff4e5] text-[#ff9500]"
-                    : "text-[#4c4c4d] hover:bg-[#f1f1f3]"
-                }`}
-              >
-                <Calendar className="h-5 w-5" />
-                {sidebarOpen && <span className="ml-3">Schedule</span>}
-              </button>
-            </li>
+           
+           
             <li>
               <button
                 onClick={() => handleTabChange("earnings")}
@@ -296,11 +312,7 @@ export default function TeacherDashboard() {
                 {sidebarOpen && <span className="ml-3">Earnings</span>}
               </button>
             </li>
-          </ul>
-
-          <div className="mt-6 border-t border-[#f1f1f3] pt-6">
-            <ul className="space-y-1">
-              <li>
+            <li>
                 <button
                   onClick={() => handleTabChange("profile")}
                   className={`flex w-full items-center rounded-md px-3 py-2 ${
@@ -326,21 +338,10 @@ export default function TeacherDashboard() {
                   {sidebarOpen && <span className="ml-3">Settings</span>}
                 </button>
               </li>
-              <li>
-                <button
-                  onClick={() => handleTabChange("help")}
-                  className={`flex w-full items-center rounded-md px-3 py-2 ${
-                    activeTab === "help"
-                      ? "bg-[#fff4e5] text-[#ff9500]"
-                      : "text-[#4c4c4d] hover:bg-[#f1f1f3]"
-                  }`}
-                >
-                  <HelpCircle className="h-5 w-5" />
-                  {sidebarOpen && <span className="ml-3">Help Center</span>}
-                </button>
-              </li>
-            </ul>
-          </div>
+            
+          </ul>
+
+         
         </nav>
 
         <div className="border-t border-[#f1f1f3] p-4">
@@ -420,56 +421,37 @@ export default function TeacherDashboard() {
                       Mark all as read
                     </button>
                   </div>
-                  <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-                    <div className="flex gap-3">
-                      <div className="h-10 w-10 flex-shrink-0 rounded-full bg-[#fff4e5]">
-                        <User className="h-full w-full p-2 text-[#ff9500]" />
-                      </div>
-                      <div>
-                        <p className="text-sm">
-                          <span className="font-medium">Sarah Johnson</span>{" "}
-                          asked a question in{" "}
-                          <span className="font-medium">
-                            UI/UX Design Fundamentals
-                          </span>
-                        </p>
-                        <p className="text-xs text-[#4c4c4d]">10 minutes ago</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-3">
-                      <div className="h-10 w-10 flex-shrink-0 rounded-full bg-[#fff4e5]">
-                        <Star className="h-full w-full p-2 text-[#ff9500]" />
-                      </div>
-                      <div>
-                        <p className="text-sm">
-                          <span className="font-medium">Michael Brown</span>{" "}
-                          left a 5-star review on{" "}
-                          <span className="font-medium">
-                            Advanced JavaScript
-                          </span>
-                        </p>
-                        <p className="text-xs text-[#4c4c4d]">1 hour ago</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-3">
-                      <div className="h-10 w-10 flex-shrink-0 rounded-full bg-[#fff4e5]">
-                        <Users className="h-full w-full p-2 text-[#ff9500]" />
-                      </div>
-                      <div>
-                        <p className="text-sm">
-                          <span className="font-medium">5 new students</span>{" "}
-                          enrolled in{" "}
-                          <span className="font-medium">
-                            Web Design Fundamentals
-                          </span>
-                        </p>
-                        <p className="text-xs text-[#4c4c4d]">3 hours ago</p>
-                      </div>
-                    </div>
+                  <div className="space-y-6">
+                    {recentActivities.length > 0 ? (
+                      recentActivities.map((activity, index) => (
+                        <div key={activity.id || index} className="flex gap-4">
+                          <div className="h-10 w-10 flex-shrink-0 rounded-full bg-[#fff4e5]">
+                            {activity.type === 'enrollment' && <User className="h-full w-full p-2 text-[#ff9500]" />}
+                            {activity.type === 'question' && <MessageSquare className="h-full w-full p-2 text-[#ff9500]" />}
+                            {activity.type === 'review' && <Star className="h-full w-full p-2 text-[#ff9500]" />}
+                          </div>
+                          <div>
+                            <p className="font-medium">
+                              {activity.type === 'enrollment' && 'Nouvel étudiant inscrit'}
+                              {activity.type === 'question' && 'Nouvelle question posée'}
+                              {activity.type === 'review' && 'Nouvel avis'}
+                            </p>
+                            <p className="text-sm text-[#4c4c4d]">{activity.content}</p>
+                            <p className="mt-1 text-xs text-[#4c4c4d]">
+                              {new Date(activity.created_at).toLocaleDateString('fr-FR', {
+                                day: 'numeric',
+                                month: 'long',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-center text-[#4c4c4d]">Aucune activité récente</p>
+                    )}
                   </div>
-                  <button className="mt-4 w-full rounded-md border border-[#f1f1f3] py-2 text-center text-sm text-[#4c4c4d] hover:bg-[#f1f1f3]">
-                    View All Notifications
-                  </button>
                 </div>
               )}
             </div>
@@ -562,80 +544,66 @@ export default function TeacherDashboard() {
                 <div className="rounded-lg border border-[#f1f1f3] bg-white p-6">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-medium text-[#4c4c4d]">
-                      Total Students
+                      Total Étudiants
                     </h3>
                     <div className="rounded-full bg-[#fff4e5] p-2">
                       <Users className="h-5 w-5 text-[#ff9500]" />
                     </div>
                   </div>
-                  <p className="mt-4 text-3xl font-bold">1,245</p>
+                  <p className="mt-4 text-3xl font-bold">{stats?.total_students || 0}</p>
                   <div className="mt-2 flex items-center text-sm">
                     <TrendingUp className="mr-1 h-4 w-4 text-green-500" />
-                    <span className="font-medium text-green-500">+12.5%</span>
-                    <span className="ml-1 text-[#4c4c4d]">from last month</span>
+                    <span className="font-medium text-green-500">+{stats?.student_growth || 0}%</span>
+                    <span className="ml-1 text-[#4c4c4d]">depuis le mois dernier</span>
                   </div>
                 </div>
 
                 <div className="rounded-lg border border-[#f1f1f3] bg-white p-6">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-medium text-[#4c4c4d]">
-                      Course Enrollments
+                      Inscriptions aux cours
                     </h3>
                     <div className="rounded-full bg-[#fff4e5] p-2">
                       <BookOpen className="h-5 w-5 text-[#ff9500]" />
                     </div>
                   </div>
-                  <p className="mt-4 text-3xl font-bold">3,872</p>
+                  <p className="mt-4 text-3xl font-bold">{stats?.total_enrollments || 0}</p>
                   <div className="mt-2 flex items-center text-sm">
                     <TrendingUp className="mr-1 h-4 w-4 text-green-500" />
-                    <span className="font-medium text-green-500">+8.2%</span>
-                    <span className="ml-1 text-[#4c4c4d]">from last month</span>
+                    <span className="font-medium text-green-500">+{stats?.enrollment_growth || 0}%</span>
+                    <span className="ml-1 text-[#4c4c4d]">depuis le mois dernier</span>
                   </div>
                 </div>
 
                 <div className="rounded-lg border border-[#f1f1f3] bg-white p-6">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-medium text-[#4c4c4d]">
-                      Total Revenue
+                      Revenus
                     </h3>
                     <div className="rounded-full bg-[#fff4e5] p-2">
                       <DollarSign className="h-5 w-5 text-[#ff9500]" />
                     </div>
                   </div>
-                  <p className="mt-4 text-3xl font-bold">$24,568</p>
+                  <p className="mt-4 text-3xl font-bold">${stats?.total_revenue || 0}</p>
                   <div className="mt-2 flex items-center text-sm">
                     <TrendingUp className="mr-1 h-4 w-4 text-green-500" />
-                    <span className="font-medium text-green-500">+18.3%</span>
-                    <span className="ml-1 text-[#4c4c4d]">from last month</span>
+                    <span className="font-medium text-green-500">+{stats?.revenue_growth || 0}%</span>
+                    <span className="ml-1 text-[#4c4c4d]">depuis le mois dernier</span>
                   </div>
                 </div>
 
                 <div className="rounded-lg border border-[#f1f1f3] bg-white p-6">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-medium text-[#4c4c4d]">
-                      Course Rating
+                      Total Cours
                     </h3>
                     <div className="rounded-full bg-[#fff4e5] p-2">
-                      <Star className="h-5 w-5 text-[#ff9500]" />
+                      <FileText className="h-5 w-5 text-[#ff9500]" />
                     </div>
                   </div>
-                  <p className="mt-4 text-3xl font-bold">4.8</p>
+                  <p className="mt-4 text-3xl font-bold">{stats?.total_courses || 0}</p>
                   <div className="mt-2 flex items-center text-sm">
-                    <div className="flex">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          className={`h-4 w-4 ${
-                            star <= 4
-                              ? "fill-[#ff9500] text-[#ff9500]"
-                              : "text-[#f1f1f3]"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <span className="ml-1 text-[#4c4c4d]">
-                      from 256 reviews
-                    </span>
+                    <span className="text-[#4c4c4d]">Cours actifs</span>
                   </div>
                 </div>
               </div>
@@ -645,69 +613,39 @@ export default function TeacherDashboard() {
                 {/* Recent Activity */}
                 <div className="rounded-lg border border-[#f1f1f3] bg-white p-6">
                   <div className="mb-6 flex items-center justify-between">
-                    <h2 className="text-lg font-bold">Recent Activity</h2>
-                    <button className="text-sm text-[#ff9500]">View All</button>
+                    <h2 className="text-lg font-bold">Activités Récentes</h2>
+                    <button className="text-sm text-[#ff9500]">Voir tout</button>
                   </div>
                   <div className="space-y-6">
-                    <div className="flex gap-4">
-                      <div className="h-10 w-10 flex-shrink-0 rounded-full bg-[#fff4e5]">
-                        <User className="h-full w-full p-2 text-[#ff9500]" />
-                      </div>
-                      <div>
-                        <p className="font-medium">New student enrolled</p>
-                        <p className="text-sm text-[#4c4c4d]">
-                          Emily Johnson enrolled in "UI/UX Design Fundamentals"
-                        </p>
-                        <p className="mt-1 text-xs text-[#4c4c4d]">
-                          10 minutes ago
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex gap-4">
-                      <div className="h-10 w-10 flex-shrink-0 rounded-full bg-[#fff4e5]">
-                        <MessageSquare className="h-full w-full p-2 text-[#ff9500]" />
-                      </div>
-                      <div>
-                        <p className="font-medium">New question asked</p>
-                        <p className="text-sm text-[#4c4c4d]">
-                          Michael Brown asked a question in "Advanced
-                          JavaScript"
-                        </p>
-                        <p className="mt-1 text-xs text-[#4c4c4d]">
-                          1 hour ago
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex gap-4">
-                      <div className="h-10 w-10 flex-shrink-0 rounded-full bg-[#fff4e5]">
-                        <Star className="h-full w-full p-2 text-[#ff9500]" />
-                      </div>
-                      <div>
-                        <p className="font-medium">New course review</p>
-                        <p className="text-sm text-[#4c4c4d]">
-                          Sarah Thompson left a 5-star review on "Web Design
-                          Fundamentals"
-                        </p>
-                        <p className="mt-1 text-xs text-[#4c4c4d]">
-                          3 hours ago
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex gap-4">
-                      <div className="h-10 w-10 flex-shrink-0 rounded-full bg-[#fff4e5]">
-                        <FileText className="h-full w-full p-2 text-[#ff9500]" />
-                      </div>
-                      <div>
-                        <p className="font-medium">Assignment submitted</p>
-                        <p className="text-sm text-[#4c4c4d]">
-                          David Wilson submitted an assignment in "Front-End Web
-                          Development"
-                        </p>
-                        <p className="mt-1 text-xs text-[#4c4c4d]">
-                          5 hours ago
-                        </p>
-                      </div>
-                    </div>
+                    {recentActivities.length > 0 ? (
+                      recentActivities.map((activity, index) => (
+                        <div key={activity.id || index} className="flex gap-4">
+                          <div className="h-10 w-10 flex-shrink-0 rounded-full bg-[#fff4e5]">
+                            {activity.type === 'enrollment' && <User className="h-full w-full p-2 text-[#ff9500]" />}
+                            {activity.type === 'question' && <MessageSquare className="h-full w-full p-2 text-[#ff9500]" />}
+                            {activity.type === 'review' && <Star className="h-full w-full p-2 text-[#ff9500]" />}
+                          </div>
+                          <div>
+                            <p className="font-medium">
+                              {activity.type === 'enrollment' && 'Nouvel étudiant inscrit'}
+                              {activity.type === 'question' && 'Nouvelle question posée'}
+                              {activity.type === 'review' && 'Nouvel avis'}
+                            </p>
+                            <p className="text-sm text-[#4c4c4d]">{activity.content}</p>
+                            <p className="mt-1 text-xs text-[#4c4c4d]">
+                              {new Date(activity.created_at).toLocaleDateString('fr-FR', {
+                                day: 'numeric',
+                                month: 'long',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-center text-[#4c4c4d]">Aucune activité récente</p>
+                    )}
                   </div>
                 </div>
 
@@ -948,17 +886,17 @@ export default function TeacherDashboard() {
                 {courses.map((course) => (
                   <div
                     key={course.id}
-                    className="overflow-hidden rounded-lg border border-[#f1f1f3] bg-white"
+                    className="overflow-hidden rounded-lg border border-[#f1f1f3] bg-white transition-shadow hover:shadow-md"
                   >
                     <div className="relative h-40 bg-[#f7f7f8]">
                       <img
-                        src="/placeholder.svg?height=160&width=320"
-                        alt="UI/UX Design Fundamentals"
+                        src={course.image_url || "/placeholder.svg?height=160&width=320"}
+                        alt={course.title}
                         className="h-full w-full object-cover"
                       />
                       <div className="absolute inset-0 bg-black/40 p-4">
                         <span className="rounded-md bg-green-500 px-2 py-1 text-xs font-medium text-white">
-                          Published
+                          {course.status || "Published"}
                         </span>
                       </div>
                     </div>
@@ -974,17 +912,17 @@ export default function TeacherDashboard() {
                         <div className="flex items-center">
                           <Users className="mr-1 h-4 w-4 text-[#4c4c4d]" />
                           <span className="text-sm text-[#4c4c4d]">
-                            458 students
+                            {course.total_students || 0} étudiants
                           </span>
                         </div>
                         <div className="flex items-center">
                           <Star className="mr-1 h-4 w-4 fill-[#ff9500] text-[#ff9500]" />
-                          <span className="text-sm font-medium">4.9</span>
+                          <span className="text-sm font-medium">{course.rating || 0}</span>
                         </div>
                       </div>
                       <div className="flex justify-between">
                         <button className="rounded-md border border-[#f1f1f3] bg-white px-3 py-1.5 text-sm font-medium text-[#4c4c4d] hover:bg-[#f1f1f3]">
-                          View Course
+                          Voir Cours
                         </button>
                         <button className="rounded-md border border-[#f1f1f3] bg-white px-3 py-1.5 text-sm font-medium text-[#4c4c4d] hover:bg-[#f1f1f3]">
                           <MoreVertical className="h-4 w-4" />
@@ -998,13 +936,21 @@ export default function TeacherDashboard() {
           )}
 
           {/* Profile Tab */}
-          {activeTab === "profile" && (
+          {activeTab === "profile" && profile && (
             <UserProfile 
               userRole="teacher" 
-              userData={profile} 
-             
-              // Pass the dashboard data to the UserProfile component
-              // This allows the component to display the dashboard data
+              userData={{
+                name: dashboardData?.teacher?.name || "",
+                email: dashboardData?.teacher?.email || "",
+                avatar: profile.avatar_url || "/placeholder.svg?height=100&width=100",
+                bio: profile.bio || "",
+                job_title: profile.job_title || "",
+                website: profile.website || "",
+                social_links: profile.social_links || {}
+              }}
+              backLink="/teacher/dashboard"
+              backLabel="Retour au tableau de bord"
+              onSave={(data) => console.log("Saving profile data:", data)}
             />
           )}
 

@@ -11,20 +11,94 @@ interface ErrorResponse {
 // Import des interfaces depuis le fichier types
 import { DashboardCourse, Profile } from '@/types/dashboard';
 
-// Définir l'interface pour les données du tableau de bord
-export interface DashboardData {
-  courses: DashboardCourse[];
-  student: Array<{
-    id: number;
-    first_name: string;
-    last_name: string;
-    email: string;
-    enrollment_date: string;
-    progress: number;
-  }>;
-  profile: Profile | null;
+// Interface pour le profil de l'enseignant
+export interface TeacherProfile {
+  id: number;
+  user_id: number;
+  bio?: string;
+  avatar_url?: string;
+  job_title?: string;
+  website?: string;
+  social_links?: {
+    twitter?: string;
+    facebook?: string;
+    linkedin?: string;
+    youtube?: string;
+  };
 }
 
+// Interface pour un étudiant inscrit
+export interface EnrolledStudent {
+  id: number;
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    avatar_url?: string;
+  };
+  enrollment_date: string;
+  course_id: number;
+  progress: number;
+}
+
+// Interface pour une notification
+export interface Notification {
+  id: number;
+  user_id: number;
+  title: string;
+  content: string;
+  is_read: boolean;
+  type: string;
+  created_at: string;
+}
+
+// Interface pour les statistiques d'un cours
+export interface CourseStatistic {
+  id: number;
+  title: string;
+  image_url?: string;
+  students_count: number;
+  revenue: number;
+  rating: number;
+  status: string;
+  created_at: string;
+}
+
+// Interface pour les paramètres utilisateur
+export interface UserSettings {
+  id: number;
+  user_id: number;
+  notification_preferences?: {
+    email: boolean;
+    push: boolean;
+    sms: boolean;
+  };
+  theme_preferences?: {
+    dark_mode: boolean;
+    color_scheme: string;
+  };
+  language?: string;
+}
+
+// Interface principale pour les données du tableau de bord
+export interface DashboardData {
+  teacher: {
+    id: number;
+    name: string;
+    email: string;
+    profile: TeacherProfile;
+  };
+  dashboard: {
+    total_courses: number;
+    total_students: number;
+    total_revenue: number;
+    average_rating: number;
+  };
+  settings: UserSettings;
+  courses: CourseStatistic[];
+  recent_students: EnrolledStudent[];
+  notifications: Notification[];
+}
 
 export default function useTeacherDashboardData() {
   const [data, setData] = useState<DashboardData | null>(null);
@@ -45,7 +119,7 @@ export default function useTeacherDashboardData() {
 
 
         // Utiliser l'URL relative pour bénéficier du proxy Vite
-        const response = await axiosClient.get(`api/dashboard-teacher/${teacherId}`, {
+        const response = await axiosClient.get(`/api/teacher/${teacherId}/dashboard`, {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -56,11 +130,7 @@ export default function useTeacherDashboardData() {
 
         // La réponse est directement dans response.data, pas dans response.data.data
         if (response.data) {
-          setData({
-            courses: response.data.courses || [],
-            student: response.data.student || [],
-            profile: response.data.profile && response.data.profile.length > 0 ? response.data.profile[0] : null
-          });
+          setData(response.data);
           setError(null);
         } else {
           console.error("Structure de réponse incorrecte:", response.data);

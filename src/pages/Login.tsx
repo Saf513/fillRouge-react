@@ -194,11 +194,13 @@ const Login = () => {
 
                 <p className="text-center text-sm text-[#656567]">
                   Don't have an account?{" "}
-                  <Button disabled={isSubmitting}
+                  <Button 
+                    disabled={isSubmitting}
                     variant="link"
                     className="text-[#FF9500] hover:text-[#e68600] p-0"
+                    onClick={() => navigate('/signup')}
                   >
-                   Login
+                   Sign Up
                    {isSubmitting && <Loader2/>}
                   </Button>
                 </p>

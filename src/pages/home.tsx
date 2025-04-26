@@ -1,7 +1,7 @@
-
-
 import { useState } from "react"
-import { Play, ArrowUpRight, Zap, Check, X, Plus, Minus, ChevronRight } from "lucide-react"
+
+
+import { Play, ArrowUpRight, Check, X, Plus, Minus, ChevronRight, Zap } from "lucide-react"
 
 function Home() {
 
@@ -15,6 +15,7 @@ function Home() {
   return (
     <div className="min-h-screen bg-zinc-200 font-sans">
       {/* Hero Section */}
+     
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-24 lg:px-8">
         <div className="flex flex-col items-center text-center">
           <div className="mb-6 flex items-center gap-2 rounded-full bg-[#fff4e5] px-4 py-2">
@@ -31,12 +32,12 @@ function Home() {
           <p className="mb-8 text-[#4c4c4d] md:text-lg">Learn from Industry Experts and Enhance Your Skills.</p>
 
           <div className="flex flex-col gap-4 sm:flex-row">
-            <button className="rounded-md bg-[#ff9500] px-6 py-3 font-medium text-white transition-all hover:bg-[#ff9500]/90">
+            <a href="/course-explore" className="rounded-md bg-[#ff9500] px-6 py-3 font-medium text-white transition-all hover:bg-[#ff9500]/90">
               Explore Courses
-            </button>
-            <button className="rounded-md border border-[#e5e5e5] bg-white px-6 py-3 font-medium text-[#262626] transition-all hover:bg-gray-50">
+            </a>
+            <a href="/pricing" className="rounded-md border border-[#e5e5e5] bg-white px-6 py-3 font-medium text-[#262626] transition-all hover:bg-gray-50">
               View Pricing
-            </button>
+            </a>
           </div>
         </div>
       </section>
@@ -59,16 +60,14 @@ function Home() {
       </section>
 
       {/* Hero Image Section */}
-      <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+      <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="relative overflow-hidden rounded-xl">
-          <img
-            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Untitled-eBkRstvNZTjlY8wwUCvoXVM2K1PxUA.png"
-            alt="Students collaborating on design project"
-            className="h-auto w-full object-cover"
+          <video
+            src="../../public/img/invideo-ai-1080 Boostez vos compétences avec notre eLear 2025-04-25.mp4"
+            alt="Étudiants collaborant sur un projet de design"
+            className="h-72 w-full object-cover" 
+            controls
           />
-          <button className="absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/80 text-[#262626] backdrop-blur-sm transition-all hover:bg-white">
-            <Play className="h-6 w-6" />
-          </button>
         </div>
       </section>
 
@@ -180,7 +179,7 @@ function Home() {
             ">
               <div className="relative h-48 overflow-hidden">
                 <img
-                  src="/placeholder.svg?height=200&width=400"
+                  src="../../public/img/webdesign.jfif"
                   alt="Web Design Fundamentals"
                   className="h-full w-full object-cover"
                 />
@@ -208,7 +207,7 @@ function Home() {
             <div className="overflow-hidden rounded-lg bg-zinc-100">
               <div className="relative h-48 overflow-hidden">
                 <img
-                  src="/placeholder.svg?height=200&width=400"
+                  src="../../public/img/uiux.jfif"
                   alt="UI/UX Design"
                   className="h-full w-full object-cover"
                 />
@@ -237,7 +236,7 @@ function Home() {
             ">
               <div className="relative h-48 overflow-hidden">
                 <img
-                  src="/placeholder.svg?height=200&width=400"
+                  src="../../public/img/mobileapp.jfif"
                   alt="Mobile App Development"
                   className="h-full w-full object-cover"
                 />

@@ -17,6 +17,7 @@ import Checkout from '@/components/checkout/checkout'
 import Wishlist from '../components/wishList/wishList.tsx'
 import AboutUs from '@/pages/about.tsx'
 import ContactPage from '@/pages/contact.tsx'
+import PricingPage from '@/pages/pricing.tsx'
 
 export  const  router = createBrowserRouter([
     {
@@ -47,6 +48,10 @@ export  const  router = createBrowserRouter([
             {
               path : '/contact',
               element :<ContactPage/>
+            },
+            {
+              path : '/pricing',
+              element : <PricingPage/>
             }
         
         ]},
@@ -79,6 +84,7 @@ export  const  router = createBrowserRouter([
           },
           { path : '/wishlist',
             element : <Wishlist/> // Correction du chemin de WishList
-          }
+          },
+         
           
 ])
