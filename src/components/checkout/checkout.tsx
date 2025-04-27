@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-// import Image from "react-image-enhancer";
+import { useCartStore } from "@/store/cartStore";
+import { Avatar } from "@/components/ui/avatar";
 
 // Icônes - gardez la même importation depuis lucide-react
 import {
@@ -12,7 +13,6 @@ import {
   Lock,
   Info,
   X,
-  CreditCardIcon,
   Calendar,
   User,
   MapPin,
@@ -35,7 +35,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-
+import { StripeHelp } from "./StripeHelp";
+import {getFullImageUrl} from "@/pages/course/courseExplore.tsx"
 // Types (gardez les mêmes)
 type Course = {
   id: string;
@@ -51,6 +52,49 @@ type Course = {
   rating?: number;
   reviews?: number;
 };
+
+// Type pour les éléments du panier depuis l'API
+interface CartItem {
+  id: number;
+  user_id: number;
+  course_id: number;
+  quantity: number;
+  price: string;
+  created_at: string;
+  updated_at: string;
+  course: {
+    id: number;
+    title: string;
+    subtitle: string | null;
+    description: string;
+    slug: string;
+    instructor_id: number;
+    level: string;
+    language: string;
+    image_url: string;
+    video_url: string | null;
+    price: string;
+    discount: string;
+    published_date: string | null;
+    last_updated: string | null;
+    status: string;
+    requirements: string | null;
+    what_you_will_learn: string | null;
+    target_audience: string | null;
+    average_rating: string;
+    total_reviews: number;
+    total_students: number;
+    has_certificate: boolean;
+    created_at: string;
+    updated_at: string;
+  };
+}
+
+interface CartResponse {
+  items: CartItem[];
+  total: number;
+  count: number;
+}
 
 type CheckoutFormData = {
   personalInfo: {
@@ -80,72 +124,6 @@ type CheckoutFormData = {
   acceptTerms: boolean;
 };
 
-// Sample courses data (gardez les mêmes)
-const sampleCartItems: Course[] = [
-  {
-    id: "course-1",
-    title: "JavaScript Complet 2023: De Zéro à Expert",
-    instructor: "Marie Dupont",
-    price: 14.99,
-    originalPrice: 89.99,
-    image: "/placeholder.svg",
-    duration: "22h",
-    level: "Tous niveaux",
-    discount: 83,
-    bestseller: true,
-  },
-  {
-    id: "course-2",
-    title: "React & Redux: Développement Web Frontend Avancé",
-    instructor: "Thomas Martin",
-    price: 12.99,
-    originalPrice: 69.99,
-    image: "/placeholder.svg",
-    duration: "18h",
-    level: "Intermédiaire",
-    discount: 81,
-  },
-  {
-    id: "course-3",
-    title: "Node.js: API REST Complète avec Express & MongoDB",
-    instructor: "Sophie Bernard",
-    price: 9.99,
-    originalPrice: 59.99,
-    image: "/placeholder.svg",
-    duration: "15h",
-    level: "Avancé",
-    discount: 83,
-  },
-];
-
-// Sample recommended courses (gardez les mêmes)
-const recommendedCourses: Course[] = [
-  {
-    id: "rec-1",
-    title: "TypeScript: Le Guide Complet",
-    instructor: "Jean Dubois",
-    price: 11.99,
-    originalPrice: 79.99,
-    image: "/placeholder.svg",
-    duration: "16h",
-    level: "Intermédiaire",
-    rating: 4.8,
-    reviews: 1245,
-  },
-  {
-    id: "rec-2",
-    title: "Next.js 13: Applications React Avancées",
-    instructor: "Lucie Martin",
-    price: 13.99,
-    originalPrice: 89.99,
-    image: "/placeholder.svg",
-    duration: "20h",
-    level: "Avancé",
-    rating: 4.9,
-    reviews: 876,
-  },
-];
-
 // Checkout steps
 const STEPS = {
   CART_SUMMARY: 0,
@@ -163,9 +141,20 @@ export default function Checkout() {
   const [promoApplied, setPromoApplied] = useState(false)
   const [promoCode, setPromoCode] = useState("")
   const [promoDiscount, setPromoDiscount] = useState(0)
-  const [cartItems, setCartItems] = useState<Course[]>(sampleCartItems)
+  const { items: cartStore, fetchCart, removeFromCart, checkout } = useCartStore();
   const [orderNumber, setOrderNumber] = useState("")
   const [orderDate, setOrderDate] = useState("")
+  const [cartItems, setCartItems] = useState<CartItem[]>([])
+
+  // Extraction des éléments du panier lors du chargement
+  useEffect(() => {
+    fetchCart().then(() => {
+      const items = cartStore?.items || [];
+      if (Array.isArray(items)) {
+        setCartItems(items)
+      }
+    })
+  }, [fetchCart, cartStore])
 
   const [formData, setFormData] = useState<CheckoutFormData>({
     personalInfo: {
@@ -194,6 +183,37 @@ export default function Checkout() {
     receiveNewsletter: true,
     acceptTerms: false,
   })
+  
+  // Utilisation de cartItems au lieu de items directement
+  console.log("items ======", cartItems)
+
+  // Cours recommandés (données fictives)
+  const recommendedCourses = [
+    {
+      id: 1,
+      title: "Introduction à React",
+      instructor: "John Doe",
+      price: 49.99,
+      originalPrice: 99.99,
+      image: "/placeholder.svg",
+      duration: "10h",
+      level: "Débutant",
+      rating: 4.8,
+      reviews: 123
+    },
+    {
+      id: 2,
+      title: "JavaScript Avancé",
+      instructor: "Jane Smith",
+      price: 59.99,
+      originalPrice: 129.99,
+      image: "/placeholder.svg",
+      duration: "15h",
+      level: "Intermédiaire",
+      rating: 4.6,
+      reviews: 98
+    }
+  ];
 
   // Generate order details when reaching success page
   useEffect(() => {
@@ -214,10 +234,10 @@ export default function Checkout() {
   }, [currentStep])
 
   // Calculate totals
-  const subtotal = cartItems.reduce((acc, item) => acc + item.price, 0)
-  const originalTotal = cartItems.reduce((acc, item) => acc + item.originalPrice, 0)
+  const subtotal = cartItems.reduce((acc: number, item: CartItem) => acc + (parseFloat(item.price) || 0), 0);
+  const originalTotal = subtotal; // Simplification pour éviter les erreurs
   const savings = originalTotal - subtotal
-  const savingsPercentage = Math.round((savings / originalTotal) * 100)
+  const savingsPercentage = Math.round((savings / originalTotal) * 100) || 0
   const total = promoApplied ? subtotal - promoDiscount : subtotal
 
   // Handle promo code application
@@ -247,12 +267,12 @@ export default function Checkout() {
   }
 
   // Handle form input changes
-  const handleInputChange = (section: keyof CheckoutFormData, field: string, value: any) => {
+  const handleInputChange = (section: keyof CheckoutFormData | "", field: string, value: unknown) => {
     if (section === "personalInfo" || section === "billingAddress") {
       setFormData({
         ...formData,
         [section]: {
-          ...formData[section],
+          ...formData[section as keyof CheckoutFormData],
           [field]: value,
         },
       })
@@ -281,17 +301,52 @@ export default function Checkout() {
   }
 
   // Handle form submission
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setIsLoading(true)
     setError(null)
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false)
-      // Move to success page
-      setCurrentStep(STEPS.SUCCESS)
-      window.scrollTo(0, 0)
-    }, 2000)
+    try {
+      // Définir les URLs de retour après paiement
+      const successUrl = `${window.location.origin}/payment/success`;
+      const cancelUrl = `${window.location.origin}/payment/cancel`;
+      
+      // Préparation des données d'adresse de facturation
+      const billingAddress = {
+        address: formData.billingAddress.address,
+        city: formData.billingAddress.city,
+        state: formData.billingAddress.state,
+        zipCode: formData.billingAddress.zipCode,
+        country: formData.billingAddress.country
+      };
+      
+      // Préparation des informations du client
+      const customerInfo = {
+        firstName: formData.personalInfo.firstName,
+        lastName: formData.personalInfo.lastName,
+        email: formData.personalInfo.email,
+        phone: formData.personalInfo.phone
+      };
+      
+      // Appeler l'API de checkout via le store
+      const checkoutUrl = await checkout(
+        successUrl,
+        cancelUrl,
+        billingAddress,
+        customerInfo
+      );
+      
+      if (checkoutUrl) {
+        // Rediriger vers la page de paiement Stripe
+        window.location.href = checkoutUrl;
+      } else {
+        setError("Une erreur est survenue lors de la création de la session de paiement");
+        setIsLoading(false);
+      }
+    } catch (err: any) {
+      console.error("Erreur de paiement:", err);
+      setError(err?.message || "Une erreur est survenue lors du traitement de votre paiement");
+      setIsLoading(false);
+    }
   }
 
   // Navigate to next step
@@ -376,6 +431,66 @@ export default function Checkout() {
       default:
         return false
     }
+  }
+
+  // Render cart summary
+  const renderCartSummary = () => {
+    if (cartItems.length === 0) {
+      return (
+        <div className="py-8 text-center">
+          <ShoppingCart className="w-16 h-16 mx-auto text-gray-300 mb-4" />
+          <h3 className="text-xl font-medium mb-2">Votre panier est vide</h3>
+          <p className="text-gray-600 mb-4">Vous n'avez pas encore ajouté de cours à votre panier.</p>
+          <Button onClick={() => window.location.href = "/cart"} className="bg-orange-500 hover:bg-orange-600">
+            Explorer les cours
+          </Button>
+        </div>
+      )
+    }
+
+    return cartItems.map((item: CartItem) => (
+      <div key={item.id} className="flex flex-col sm:flex-row gap-4 py-4 border-b">
+        <div className="flex-shrink-0">
+          <img
+            src={getFullImageUrl(item?.course?.image_url) || "/placeholder.svg"}
+            alt={item.course?.title}
+            className="w-32 h-24 object-cover rounded-md"
+          />
+        </div>
+        <div className="flex-grow">
+          <h3 className="font-medium text-lg">{item.course?.title}</h3>
+          <p className="text-gray-600 text-sm">Cours #{item.course_id}</p>
+          <div className="flex flex-wrap gap-2 mt-2">
+            <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">{item.course?.level}</span>
+            <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">{item.course?.language}</span>
+            {item.course?.average_rating && (
+              <span className="text-xs bg-yellow-100 px-2 py-1 rounded-full flex items-center">
+                <svg className="w-3 h-3 text-yellow-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                </svg>
+                {item.course.average_rating}
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex flex-col items-end justify-between">
+          <div className="text-right">
+            <p className="font-bold text-lg">{parseFloat(item.price).toFixed(2)} €</p>
+            {item.course?.discount !== "0.00" && (
+              <p className="text-gray-500 line-through text-sm">{parseFloat(item.course?.price).toFixed(2)} €</p>
+            )}
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-red-500 hover:text-red-700 hover:bg-red-50 mt-2"
+            onClick={() => removeFromCart(item.course_id)}
+          >
+            <X className="w-4 h-4 mr-1" /> Supprimer
+          </Button>
+        </div>
+      </div>
+    ))
   }
 
   // Render checkout process (steps 0-4)
@@ -489,55 +604,7 @@ export default function Checkout() {
                   <div>
                     <h2 className="text-xl font-semibold mb-4">Votre panier ({cartItems.length} cours)</h2>
 
-                    {cartItems.map((course) => (
-                      <div key={course.id} className="flex flex-col sm:flex-row gap-4 py-4 border-b">
-                        <div className="flex-shrink-0">
-                          <img
-                            src={course.image}
-                            alt={course.title}
-                            className="w-32 h-24 object-cover rounded-md"
-                          />
-                        </div>
-                        <div className="flex-grow">
-                          <h3 className="font-medium text-lg">{course.title}</h3>
-                          <p className="text-gray-600 text-sm">Par {course.instructor}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-sm text-gray-600">{course.duration}</span>
-                            <span className="text-xs">•</span>
-                            <span className="text-sm text-gray-600">{course.level}</span>
-                          </div>
-                          {course.bestseller && <Badge className="bg-yellow-500 text-white mt-2">Bestseller</Badge>}
-                        </div>
-                        <div className="flex flex-col items-end justify-between">
-                          <div className="text-right">
-                            <p className="font-bold text-lg">{course.price.toFixed(2)} €</p>
-                            <p className="text-gray-500 line-through text-sm">{course.originalPrice.toFixed(2)} €</p>
-                            {course.discount && <Badge className="bg-red-500 text-white">-{course.discount}%</Badge>}
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-red-500 hover:text-red-700 hover:bg-red-50 mt-2"
-                            onClick={() => {
-                              setCartItems(cartItems.filter((item) => item.id !== course.id))
-                            }}
-                          >
-                            <X className="w-4 h-4 mr-1" /> Supprimer
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-
-                    {cartItems.length === 0 && (
-                      <div className="py-8 text-center">
-                        <ShoppingCart className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-                        <h3 className="text-xl font-medium mb-2">Votre panier est vide</h3>
-                        <p className="text-gray-600 mb-4">Vous n'avez pas encore ajouté de cours à votre panier.</p>
-                        <Button onClick={() => window.location.href = "/cart"} className="bg-orange-500 hover:bg-orange-600">
-                          Explorer les cours
-                        </Button>
-                      </div>
-                    )}
+                    {renderCartSummary()}
                   </div>
                 )}
 
@@ -840,19 +907,20 @@ export default function Checkout() {
                           <div>
                             <Label htmlFor="cardNumber">Numéro de carte *</Label>
                             <div className="relative mt-1">
-                              <Input
-                                id="cardNumber"
-                                value={formData.creditCard?.cardNumber || ""}
-                                onChange={(e) => {
-                                  const formatted = formatCardNumber(e.target.value)
-                                  handleInputChange("creditCard", "cardNumber", formatted)
-                                }}
-                                placeholder="1234 5678 9012 3456"
-                                className="pl-10"
-                                maxLength={19}
-                                required
-                              />
-                              <CreditCardIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                              <div className="relative">
+                                <Input
+                                  id="cardNumber"
+                                  className="pl-10"
+                                  value={formData.creditCard?.cardNumber || ""}
+                                  onChange={(e) => {
+                                    const formatted = formatCardNumber(e.target.value)
+                                    handleInputChange("creditCard", "cardNumber", formatted)
+                                  }}
+                                  placeholder="0000 0000 0000 0000"
+                                  required
+                                />
+                                <CreditCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                              </div>
                             </div>
                           </div>
 
@@ -1220,13 +1288,29 @@ export default function Checkout() {
                       <div>
                         <h3 className="text-lg font-medium mb-2">Votre commande</h3>
                         <div className="bg-gray-50 p-4 rounded-lg">
-                          {cartItems.map((course) => (
-                            <div key={course.id} className="flex justify-between py-2 border-b last:border-0">
+                          {cartItems.map((item) => (
+                            <div key={item.id} className="flex justify-between py-2 border-b last:border-0">
                               <div>
-                                <p className="font-medium">{course.title}</p>
-                                <p className="text-sm text-gray-600">Par {course.instructor}</p>
+                                <p className="font-medium">{item.course?.title}</p>
+                                <p className="text-sm text-gray-600">Par {item.course?.instructor_id || "Instructeur"}</p>
+                                <div className="flex flex-wrap gap-2 mt-1">
+                                  <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">{item.course?.level}</span>
+                                  {item.course?.average_rating && (
+                                    <span className="text-xs bg-yellow-100 px-2 py-1 rounded-full flex items-center">
+                                      <svg className="w-3 h-3 text-yellow-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                                      </svg>
+                                      {item.course.average_rating}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
-                              <p className="font-medium">{course.price.toFixed(2)} €</p>
+                              <div className="text-right">
+                                <p className="font-medium">{parseFloat(item.price).toFixed(2)} €</p>
+                                {item.course?.discount !== "0.00" && (
+                                  <p className="text-gray-500 line-through text-sm">{parseFloat(item.course?.price).toFixed(2)} €</p>
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -1257,6 +1341,37 @@ export default function Checkout() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Adblock warning message */}
+            {hasAdBlocker && (
+              <div className="bg-amber-50 border border-amber-200 rounded-md p-3 mb-4 flex items-start">
+                <svg
+                  className="h-5 w-5 text-amber-600 mt-0.5 mr-2 flex-shrink-0"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 10a1 1 0 100-2 1 1 0 000 2z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <div className="flex-1">
+                  <div className="text-sm font-medium text-amber-800">
+                    Bloqueur de publicité détecté
+                  </div>
+                  <p className="mt-1 text-sm text-amber-700">
+                    Notre système de paiement utilise Stripe, qui peut être bloqué par votre bloqueur de publicités.
+                    Si vous rencontrez des problèmes, veuillez désactiver temporairement votre bloqueur pour ce site.
+                  </p>
+                  <div className="mt-2">
+                    <StripeHelp />
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Navigation buttons */}
             <div className="flex justify-between mt-6">
@@ -1574,307 +1689,25 @@ export default function Checkout() {
     )
   }
 
-  // Render success page (step 5)
-  const renderSuccessPage = () => {
-    return (
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="max-w-4xl mx-auto">
-          {/* Success header */}
-          <div className="text-center mb-10">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4">
-              <CheckCircle2 className="w-10 h-10 text-green-600" />
-            </div>
-            <h1 className="text-3xl font-bold mb-2">Commande confirmée !</h1>
-            <p className="text-gray-600 text-lg">
-              Merci pour votre achat. Vous recevrez bientôt un email de confirmation.
-            </p>
-          </div>
+  // Juste avant le renderCheckoutProcess()
+  const [hasAdBlocker, setHasAdBlocker] = useState(false);
 
-          {/* Order details */}
-          <Card className="mb-8">
-            <CardHeader className="pb-3">
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle>Détails de la commande</CardTitle>
-                  <CardDescription>
-                    Commande #{orderNumber} • {orderDate}
-                  </CardDescription>
-                </div>
-                <Button variant="outline" className="flex items-center gap-2">
-                  <Download className="w-4 h-4" />
-                  <span>Facture</span>
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {/* Purchased courses */}
-                <div>
-                  <h3 className="font-medium mb-3">Cours achetés</h3>
-                  <div className="space-y-4">
-                    {cartItems.map((course) => (
-                      <div key={course.id} className="flex gap-4">
-                        <div className="flex-shrink-0">
-                          <img
-                            src={course.image}
-                            alt={course.title}
-                            className="w-32 h-24 object-cover rounded-md"
-                          />
-                        </div>
-                        <div className="flex-grow">
-                          <h4 className="font-medium">{course.title}</h4>
-                          <p className="text-gray-600 text-sm">Par {course.instructor}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-sm text-gray-600">{course.duration}</span>
-                            <span className="text-xs">•</span>
-                            <span className="text-sm text-gray-600">{course.level}</span>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-bold">{course.price.toFixed(2)} €</p>
-                          <p className="text-gray-500 line-through text-sm">{course.originalPrice.toFixed(2)} €</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Price summary */}
-                <div>
-                  <h3 className="font-medium mb-3">Récapitulatif</h3>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Prix original:</span>
-                      <span className="text-gray-600 line-through">{originalTotal.toFixed(2)} €</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Sous-total:</span>
-                      <span>{subtotal.toFixed(2)} €</span>
-                    </div>
-                    <div className="flex justify-between text-green-600">
-                      <span>Économies:</span>
-                      <span>
-                        -{savings.toFixed(2)} € ({savingsPercentage}%)
-                      </span>
-                    </div>
-                    {promoApplied && (
-                      <div className="flex justify-between text-orange-500">
-                        <span>Réduction code promo:</span>
-                        <span>-{promoDiscount.toFixed(2)} €</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between font-bold text-lg pt-2">
-                      <span>Total:</span>
-                      <span>{total.toFixed(2)} €</span>
-                    </div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Payment info */}
-                <div>
-                  <h3 className="font-medium mb-3">Informations de paiement</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-gray-600 text-sm">Méthode de paiement</p>
-                      {formData.paymentMethod === "creditCard" && (
-                        <p>Carte bancaire •••• {formData.creditCard?.cardNumber.slice(-4)}</p>
-                      )}
-                      {formData.paymentMethod === "paypal" && <p>PayPal</p>}
-                      {formData.paymentMethod === "applePay" && <p>Apple Pay</p>}
-                      {formData.paymentMethod === "googlePay" && <p>Google Pay</p>}
-                    </div>
-                    <div>
-                      <p className="text-gray-600 text-sm">Adresse de facturation</p>
-                      <p>
-                        {formData.billingAddress.address}, {formData.billingAddress.zipCode}{" "}
-                        {formData.billingAddress.city}, {formData.billingAddress.country}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter className="bg-gray-50 rounded-b-lg">
-              <div className="w-full flex flex-col sm:flex-row justify-between items-center gap-4">
-                <div className="flex items-center">
-                  <Mail className="w-5 h-5 text-gray-600 mr-2" />
-                  <span className="text-sm text-gray-600">
-                    Un email de confirmation a été envoyé à <strong>{formData.personalInfo.email}</strong>
-                  </span>
-                </div>
-                <Button onClick={() => window.location.href = "/courses"} className="bg-orange-500 hover:bg-orange-600">
-                  Accéder à mes cours
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-              </div>
-            </CardFooter>
-          </Card>
-
-          {/* What's next */}
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle>Et maintenant ?</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="flex flex-col items-center text-center p-4">
-                  <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mb-3">
-                    <svg
-                      className="w-6 h-6 text-blue-600"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M12 16V12M12 8H12.01M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </div>
-                  <h3 className="font-medium mb-2">Explorez vos cours</h3>
-                  <p className="text-gray-600 text-sm">
-                    Commencez à apprendre dès maintenant en accédant à vos nouveaux cours.
-                  </p>
-                </div>
-                <div className="flex flex-col items-center text-center p-4">
-                  <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center mb-3">
-                    <svg
-                      className="w-6 h-6 text-purple-600"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M9 12H15M9 16H15M17 21H7C5.89543 21 5 20.1046 5 19V5C5 3.89543 5.89543 3 7 3H12.5858C12.851 3 13.1054 3.10536 13.2929 3.29289L18.7071 8.70711C18.8946 8.89464 19 9.149 19 9.41421V19C19 20.1046 18.1046 21 17 21Z"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </div>
-                  <h3 className="font-medium mb-2">Téléchargez les ressources</h3>
-                  <p className="text-gray-600 text-sm">
-                    Accédez aux fichiers de cours, exercices et documentation supplémentaire.
-                  </p>
-                </div>
-                <div className="flex flex-col items-center text-center p-4">
-                  <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mb-3">
-                    <svg
-                      className="w-6 h-6 text-green-600"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M7 8H17M7 12H17M7 16H13M4 4H20C21.1046 4 22 4.89543 22 6V18C22 19.1046 21.1046 20 20 20H4C2.89543 20 2 19.1046 2 18V6C2 4.89543 2.89543 4 4 4Z"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </div>
-                  <h3 className="font-medium mb-2">Rejoignez la communauté</h3>
-                  <p className="text-gray-600 text-sm">
-                    Participez aux forums de discussion et posez vos questions aux instructeurs.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Recommended courses */}
-          <div className="mb-8">
-            <h2 className="text-xl font-bold mb-4">Vous pourriez aussi aimer</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {recommendedCourses.map((course) => (
-                <Card key={course.id} className="overflow-hidden">
-                  <div className="flex flex-col sm:flex-row">
-                    <div className="sm:w-1/3">
-                      <Image
-                        src={course.image || "/placeholder.svg"}
-                        alt={course.title}
-                        width={200}
-                        height={150}
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                    <div className="p-4 sm:w-2/3">
-                      <h3 className="font-medium mb-1">{course.title}</h3>
-                      <p className="text-gray-600 text-sm mb-2">Par {course.instructor}</p>
-                      <div className="flex items-center gap-1 mb-2">
-                        <span className="text-yellow-500 font-bold">{course.rating}</span>
-                        <div className="flex">
-                          {[...Array(5)].map((_, i) => (
-                            <svg
-                              key={i}
-                              className={cn(
-                                "w-4 h-4",
-                                i < Math.floor(course.rating || 0) ? "text-yellow-500" : "text-gray-300",
-                              )}
-                              viewBox="0 0 24 24"
-                              fill="currentColor"
-                            >
-                              <path d="M12 17.27L18.18 21L16.54 13.97L22 9.24L14.81 8.63L12 2L9.19 8.63L2 9.24L7.46 13.97L5.82 21L12 17.27Z" />
-                            </svg>
-                          ))}
-                        </div>
-                        <span className="text-xs text-gray-500">({course.reviews})</span>
-                      </div>
-                      <div className="flex items-center gap-2 mb-3">
-                        <Clock className="w-3 h-3 text-gray-500" />
-                        <span className="text-xs text-gray-500">{course.duration}</span>
-                        <span className="text-xs">•</span>
-                        <span className="text-xs text-gray-500">{course.level}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <span className="font-bold">{course.price.toFixed(2)} €</span>
-                          <span className="text-gray-500 line-through text-sm ml-2">
-                            {course.originalPrice.toFixed(2)} €
-                          </span>
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-orange-500 border-orange-500 hover:bg-orange-50"
-                        >
-                          Voir le cours
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </div>
-
-          {/* Navigation buttons */}
-          <div className="flex flex-col sm:flex-row justify-center gap-4 mt-10">
-            <Button variant="outline" className="flex items-center" onClick={() => window.location.href = "/"}>
-              <Home className="w-4 h-4 mr-2" />
-              Retour à l'accueil
-            </Button>
-            <Button
-              className="bg-orange-500 hover:bg-orange-600 flex items-center"
-              onClick={() => window.location.href = "/courses"}
-            >
-              Explorer plus de cours
-              <ChevronRight className="w-4 h-4 ml-2" />
-            </Button>
-          </div>
-        </div>
-      </div>
-    )
-  }
+  // Ajouter cette fonction pour détecter un bloqueur de publicités
+  useEffect(() => {
+    const checkAdBlocker = async () => {
+      try {
+        // Essaie de charger un script depuis le domaine Stripe
+        const response = await fetch('https://js.stripe.com/v3/');
+        // Si la réponse est ok, les domaines Stripe ne sont pas bloqués
+        setHasAdBlocker(!response.ok);
+      } catch (error) {
+        // S'il y a une erreur, il y a probablement un bloqueur
+        setHasAdBlocker(true);
+      }
+    };
+    
+    checkAdBlocker();
+  }, []);
 
   // Render the appropriate view based on current step
   return currentStep === STEPS.SUCCESS ? renderSuccessPage() : renderCheckoutProcess()
