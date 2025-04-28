@@ -1049,22 +1049,8 @@ export default function TeacherDashboard() {
           )}
 
           {/* Profile Tab */}
-          {activeTab === "profile" && profile && (
-            <UserProfile 
-              userRole="teacher" 
-              userData={{
-                name: dashboardData?.teacher?.name || "",
-                email: dashboardData?.teacher?.email || "",
-                avatar: profile.avatar_url || "/placeholder.svg?height=100&width=100",
-                bio: profile.bio || "",
-                job_title: profile.job_title || "",
-                website: profile.website || "",
-                social_links: profile.social_links || {}
-              }}
-              backLink="/teacher/dashboard"
-              backLabel="Retour au tableau de bord"
-              onSave={(data) => console.log("Saving profile data:", data)}
-            />
+          {activeTab === "profile" && (
+            <TeacherProfile />
           )}
 
           {/* Settings Tab */}
