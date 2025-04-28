@@ -265,11 +265,12 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
         if (file.type === "application/pdf") {
           // Pour les PDFs
           const contentUrl = URL.createObjectURL(file);
-          setCurrentLesson({
-            ...currentLesson,
+        setCurrentLesson({
+          ...currentLesson,
             content_type: "pdf",
             content_url: contentUrl,
             pdf_url: contentUrl,
+            video_url: "", // Réinitialiser l'URL vidéo
             duration: 0,
           });
         } else if (file.type.startsWith("video/")) {
@@ -281,7 +282,8 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
             content_type: "video",
             content_url: contentUrl,
             video_url: contentUrl,
-            duration: 0,
+            pdf_url: "", // Réinitialiser l'URL PDF
+            duration: 0, // Utiliser un nombre au lieu d'une chaîne
           });
         }
       } catch (error) {
@@ -392,15 +394,15 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
     if (!currentLesson || !currentSection) return;
 
     try {
-      // Validation des champs requis
+    // Validation des champs requis
       if (!currentLesson.title || currentLesson.title.trim() === "") {
-        toast({
-          title: "Erreur",
-          description: "Le titre de la leçon est requis",
-          variant: "destructive",
-        });
-        return;
-      }
+      toast({
+        title: "Erreur",
+        description: "Le titre de la leçon est requis",
+        variant: "destructive",
+      });
+      return;
+    }
 
       // Préparation des données de la leçon avec durée par défaut selon le type
       let durationValue = currentLesson.duration;
@@ -410,45 +412,45 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
         durationValue = 0;
       }
 
-      const lessonData = {
-        ...currentLesson,
+    const lessonData = {
+      ...currentLesson,
         duration: durationValue,
         content_type: currentLesson.content_type || "video",
-        content_url: currentLesson.content_url || "",
-        section_id: parseInt(currentSection.id),
-      };
+      content_url: currentLesson.content_url || "",
+      section_id: parseInt(currentSection.id),
+    };
 
-      const isEditing = currentSection.lessons.some(
-        (lesson) => lesson.id === currentLesson.id
+    const isEditing = currentSection.lessons.some(
+      (lesson) => lesson.id === currentLesson.id
+    );
+
+    let updatedLessons;
+    if (isEditing) {
+      updatedLessons = currentSection.lessons.map((lesson) =>
+        lesson.id === currentLesson.id ? lessonData : lesson
       );
+    } else {
+      updatedLessons = [...currentSection.lessons, lessonData];
+    }
 
-      let updatedLessons;
-      if (isEditing) {
-        updatedLessons = currentSection.lessons.map((lesson) =>
-          lesson.id === currentLesson.id ? lessonData : lesson
-        );
-      } else {
-        updatedLessons = [...currentSection.lessons, lessonData];
-      }
+    const updatedSection = {
+      ...currentSection,
+      lessons: updatedLessons,
+    };
 
-      const updatedSection = {
-        ...currentSection,
-        lessons: updatedLessons,
-      };
+    const updatedSections = course.sections?.map((section) =>
+      section.id === updatedSection.id ? updatedSection : section
+    );
 
-      const updatedSections = course.sections?.map((section) =>
-        section.id === updatedSection.id ? updatedSection : section
-      );
+    setCourse({
+      ...course,
+      sections: updatedSections,
+    });
 
-      setCourse({
-        ...course,
-        sections: updatedSections,
-      });
-
-      setShowLessonDialog(false);
-      setCurrentLesson(null);
-      setCurrentSection(null);
-      setSelectedContentFile(null);
+    setShowLessonDialog(false);
+    setCurrentLesson(null);
+    setCurrentSection(null);
+    setSelectedContentFile(null);
     } catch (error) {
       console.error("Erreur lors de la sauvegarde de la leçon:", error);
       toast({
@@ -1002,7 +1004,7 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
       } else {
         // Créer un nouveau cours
         console.log("Création d'un nouveau cours");
-        const createdCourse = await courseService.createCourse(courseData);
+      const createdCourse = await courseService.createCourse(courseData);
         console.log("Réponse de la création du cours:", createdCourse);
         courseId = createdCourse.data?.id;
       }
@@ -1021,7 +1023,7 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
           // Mettre à jour la section existante
           console.log("Mise à jour de la section existante:", section.id);
           const updatedSection = await courseService.updateSection(courseId, section.id, {
-            title: section.title,
+          title: section.title,
             description: section.description || "",
             order: section.order || 0,
           });
@@ -1116,12 +1118,12 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
                 });
               } else {
                 // Nouvelle ressource
-                await courseService.addResource(courseId, {
-                  title: resource.title,
-                  type: resource.type,
-                  file_url: fileUrl,
-                  is_downloadable: resource.is_downloadable
-                });
+              await courseService.addResource(courseId, {
+                title: resource.title,
+                type: resource.type,
+                file_url: fileUrl,
+                is_downloadable: resource.is_downloadable
+              });
               }
             }
           } catch (error) {
@@ -1452,7 +1454,7 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
                                             // Sinon, si c'est une chaîne au format "min:sec"
                                             else if (typeof lesson.duration === 'string' && lesson.duration.includes(':')) {
                                               const [min, sec] = lesson.duration.split(':').map(Number);
-                                              return acc + min * 60 + (sec || 0);
+                                            return acc + min * 60 + (sec || 0);
                                             }
                                             // Pour tout autre cas, retourner simplement l'accumulateur
                                             return acc;
@@ -2372,13 +2374,13 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
                         <div className={cn(buttonVariants({ variant: "outline" }), "cursor-pointer")}>
                           Upload Video
                         </div>
-                        <input
-                          type="file"
+                      <input
+                        type="file"
                           id="video-upload"
-                          accept="video/*"
-                          onChange={handleFileSelect}
-                          className="hidden"
-                        />
+                        accept="video/*"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                      />
                       </label>
                     </div>
                   </div>
@@ -2391,8 +2393,8 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
                         className="w-full rounded-lg border"
                         src={currentLesson.video_url}
                       />
-                    </div>
-                  )}
+                </div>
+              )}
                 </div>
               )}
               {currentLesson?.content_type === "pdf" && (
@@ -2408,13 +2410,13 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
                         <div className={cn(buttonVariants({ variant: "outline" }), "cursor-pointer")}>
                           Upload PDF
                         </div>
-                        <input
-                          type="file"
+                      <input
+                        type="file"
                           id="pdf-upload"
                           accept="application/pdf"
-                          onChange={handleFileSelect}
-                          className="hidden"
-                        />
+                        onChange={handleFileSelect}
+                        className="hidden"
+                      />
                       </label>
                     </div>
                   </div>
