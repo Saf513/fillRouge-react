@@ -908,17 +908,17 @@ export default function Checkout() {
                             <Label htmlFor="cardNumber">Numéro de carte *</Label>
                             <div className="relative mt-1">
                               <div className="relative">
-                                <Input
-                                  id="cardNumber"
+                              <Input
+                                id="cardNumber"
                                   className="pl-10"
-                                  value={formData.creditCard?.cardNumber || ""}
-                                  onChange={(e) => {
-                                    const formatted = formatCardNumber(e.target.value)
-                                    handleInputChange("creditCard", "cardNumber", formatted)
-                                  }}
+                                value={formData.creditCard?.cardNumber || ""}
+                                onChange={(e) => {
+                                  const formatted = formatCardNumber(e.target.value)
+                                  handleInputChange("creditCard", "cardNumber", formatted)
+                                }}
                                   placeholder="0000 0000 0000 0000"
-                                  required
-                                />
+                                required
+                              />
                                 <CreditCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                               </div>
                             </div>
@@ -1303,7 +1303,7 @@ export default function Checkout() {
                                       {item.course.average_rating}
                                     </span>
                                   )}
-                                </div>
+                              </div>
                               </div>
                               <div className="text-right">
                                 <p className="font-medium">{parseFloat(item.price).toFixed(2)} €</p>
