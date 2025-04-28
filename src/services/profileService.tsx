@@ -22,7 +22,7 @@ export const profileService = {
       // Ajouter les champs au FormData
       Object.entries(data).forEach(([key, value]) => {
         if (key === 'avatar' && value instanceof File) {
-          formData.append('avatar', value);
+          formData.append('', value);
         } else if (typeof value === 'object') {
           formData.append(key, JSON.stringify(value));
         } else {
