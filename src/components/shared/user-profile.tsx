@@ -37,78 +37,78 @@ interface UserProfileProps {
   onSave?: (data: Record<string, unknown>) => void;
   readOnly?: boolean;
 }
-// interface Skill {
-//   name: string
-//   level: number
-// }
+interface Skill {
+  name: string
+  level: number
+}
 
-// interface Certificate {
-//   id: number
-//   title: string
-//   issuer: string
-//   date: string
-//   url?: string
-// }
+interface Certificate {
+  id: number
+  title: string
+  issuer: string
+  date: string
+  url?: string
+}
 
-// interface Course {
-//   id: number
-//   title: string
-//   progress: number
-//   image: string
-//   category: string
-//   instructor?: string
-//   enrolled?: string
-//   rating?: number
-//   reviews?: number
-// }
+interface Course {
+  id: number
+  title: string
+  progress: number
+  image: string
+  category: string
+  instructor?: string
+  enrolled?: string
+  rating?: number
+  reviews?: number
+}
 
-// interface Experience {
-//   id: number
-//   title: string
-//   company: string
-//   location: string
-//   startDate: string
-//   endDate: string | null
-//   description: string
-//   current: boolean
-// }
+interface Experience {
+  id: number
+  title: string
+  company: string
+  location: string
+  startDate: string
+  endDate: string | null
+  description: string
+  current: boolean
+}
 
-// interface Education {
-//   id: number
-//   degree: string
-//   institution: string
-//   location: string
-//   startDate: string
-//   endDate: string | null
-//   description: string
-//   current: boolean
-// }
+interface Education {
+  id: number
+  degree: string
+  institution: string
+  location: string
+  startDate: string
+  endDate: string | null
+  description: string
+  current: boolean
+}
 
-// interface SocialLink {
-//   platform: string
-//   url: string
-//   icon: React.ComponentType<{ className?: string }>
-// }
-// const user = JSON.parse(localStorage.getItem('auth-storage') || '{}').state?.user;
-// interface UserProfileProps {
-//   userRole: UserRole
-//   userData: {
-//     id: number
-//     user_id:number
-//     instagramLink:string
-//     discordLink:string
-//     linkdenLink:string
-//     profilePicture: string
-//     biography?: string
+interface SocialLink {
+  platform: string
+  url: string
+  icon: React.ComponentType<{ className?: string }>
+}
+const user = JSON.parse(localStorage.getItem('auth-storage') || '{}').state?.user;
+interface UserProfileProps {
+  userRole: UserRole
+  userData: {
+    id: number
+    user_id:number
+    instagramLink:string
+    discordLink:string
+    linkdenLink:string
+    profilePicture: string
+    biography?: string
 
-//     skills?: Skill[]
+    skills?: Skill[]
 
-//   }
-//   backLink?: string
-//   backLabel?: string
-//   onSave?: (data: Record<string, unknown>) => void
-//   readOnly?: boolean
-// }
+  }
+  backLink?: string
+  backLabel?: string
+  onSave?: (data: Record<string, unknown>) => void
+  readOnly?: boolean
+}
 
 export default function UserProfile({
   userRole,
@@ -124,7 +124,7 @@ const [profile , setProfile] = useState([]);
 console.log(userData);
 const[loading , setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("about")
-  const [isEditing, setIsEditing] = useState(true)
+  const [isEditing, setIsEditing] = useState(false)
   const [formData, setFormData] = useState({
     biography: userData?.biography || "",
     profilePicture: userData?.profilePicture || "",
