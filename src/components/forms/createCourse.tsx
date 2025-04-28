@@ -1,10 +1,10 @@
 import type React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -69,16 +69,64 @@ import {
   type DropResult,
 } from "react-beautiful-dnd";
 
-// Define resource type enum
-export enum ResourceType {
-  PDF = "PDF",
-  DOCUMENT = "DOCUMENT",
-  VIDEO = "VIDEO",
-  AUDIO = "AUDIO",
-  LINK = "LINK"
+import { ResourceType } from "../../types/resource";
+import { cn } from "@/lib/utils";
+
+type CourseCreationFormProps = {
+  courseId?: number;
+  isEditing?: boolean;
+  onSuccess?: () => void;
+};
+
+interface Resource {
+  id: string;
+  title: string;
+  type: string;
+  file_url: string;
+  file_urls?: string[];
+  is_downloadable: boolean;
+  lesson_id?: number;
+  file_size?: number;
 }
 
-const CourseCreationForm = () => {
+interface Lesson {
+  id?: string;
+  title?: string;
+  description?: string;
+  order?: number;
+  video_url?: string;
+  videoFile?: File | null;
+  duration?: number;
+  resources?: Resource[];
+  content_type?: "video" | "pdf" | "article" | "quiz" | "assignment";
+  content_url?: string;
+  pdf_url?: string;
+  preview?: boolean;
+  attachments?: any[];
+}
+
+interface Section {
+  id: string;
+  title: string;
+  description: string;
+  order: number;
+  lessons: Lesson[];
+}
+
+interface CourseData {
+  id?: number;
+  title: string;
+  description: string;
+  category_id: number;
+  thumbnail_url?: string;
+  thumbnailFile?: File | null;
+  sections: Section[];
+  tags: string[];
+  resources: Resource[];
+  subtitle?: string;
+}
+
+const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCreationFormProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const {
@@ -90,40 +138,82 @@ const CourseCreationForm = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 4;
   // État pour les données du cours
-  const [course, setCourse] = useState<Course>({
-    average_rating: 0,
-    total_reviews: 0,
-    total_students: 0,
-    id: "",
-    title: "",
-    subtitle: "",
-    description: "",
-    category_id: "",
-    subcategory: "",
-    level: "beginner",
-    language: "en",
-    price: 0,
-    salePrice: 0,
-    image_url: "",
-    instructor_id: parseInt(localStorage.getItem("userId") || "0", 10),
-    status: "draft",
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
+  const [course, setCourse] = useState<CourseData>({
+    title: '',
+    description: '',
+    category_id: 0,
     sections: [],
     tags: [],
-    what_you_will_learn: [],
-    requirements: [],
-    resources: [],
-    instructor: {
-      id: parseInt(localStorage.getItem("userId") || "0", 10),
-      first_name: "",
-      last_name: "",
-      email: "",
-      avatar_url: "",
-      bio: "",
-    },
-    discount: 0,
+    resources: []
   });
+
+  // Charger les données du cours si on est en mode édition
+  useEffect(() => {
+    const fetchCourseData = async () => {
+      if (isEditing && courseId) {
+        try {
+          const response = await courseService.getCourseById(courseId.toString());
+          const courseData = response.data;
+          
+          // Transformation des données du cours pour correspondre à notre structure
+          setCourse({
+            ...course,
+            id: courseData.id.toString(),
+            title: courseData.title || "",
+            subtitle: courseData.subtitle || "",
+            description: courseData.description || "",
+            category_id: courseData.category_id || "",
+            subcategory: courseData.subcategory || "",
+            level: courseData.level || "beginner",
+            language: courseData.language || "en",
+            price: courseData.price || 0,
+            discount: courseData.discount || 0,
+            image_url: courseData.image_url || "",
+            instructor_id: courseData.instructor_id || parseInt(localStorage.getItem("userId") || "0", 10),
+            status: courseData.status || "draft",
+            sections: courseData.sections?.map(section => ({
+              id: section.id.toString(),
+              title: section.title,
+              description: section.description || "",
+              order: section.order,
+              lessons: section.lessons?.map(lesson => ({
+                id: lesson.id?.toString(),
+                title: lesson.title || "",
+                description: lesson.description || "",
+                duration: lesson.duration || "0",
+                content_type: (lesson.content_type as "video" | "article" | "quiz" | "assignment"|"pdf") ,
+                completed: lesson.completed || false,
+                locked: lesson.locked || false,
+                preview: lesson.preview || false,
+                content: lesson.description,
+                content_url: lesson.content_url,
+          
+                order: lesson.order || 0
+              })) || []
+            })) || [],
+            tags: courseData.tags?.map((tag: any) => tag.name) || [],
+            what_you_will_learn: courseData.what_you_will_learn || [],
+            requirements: courseData.requirements || [],
+            resources: courseData.resources || []
+          });
+
+          // Étendre toutes les sections pour l'édition
+          if (courseData.sections && courseData.sections.length > 0) {
+            setExpandedSections(courseData.sections.map((section: any) => section.id.toString()));
+          }
+        } catch (err) {
+          console.error("Erreur lors du chargement du cours:", err);
+          toast({
+            title: "Erreur",
+            description: "Impossible de charger les données du cours",
+            variant: "destructive"
+          });
+        }
+      }
+    };
+
+    fetchCourseData();
+  }, [isEditing, courseId]);
 
   //les states pour les lessons et les coures
   const [expandedSections, setExpandedSections] = useState<string[]>([]);
@@ -166,45 +256,45 @@ const CourseCreationForm = () => {
   console.log('currentLesson====158====>>',currentLesson)
   // handler la selection de file
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Check if this is for lesson content (PDF) or for resources
-    // const isForLessonContent = e.target.id === 'pdf-upload' ;
-  
-    if (e.target.files && e.target.files.length > 0) {
-      if (currentLesson) {
-        // This is for lesson content (PDF)
-        const file = e.target.files[0]; // Only use the first file for lesson content
-        console.log('input', e.target.id);
-
-        // Utilisation de la fonction upload du service course pour uploader le fichier
-        try {
-          const response = await courseService.uploadFile('lesson', file);
-          console.log(response);
-          const contentUrl = response.url;
-          // Stockage de l'URL du fichier et non du fichier lui-même
-          setSelectedContentFile(null);
-
-          // Mise à jour de la leçon avec les bonnes valeurs
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setSelectedContentFile(file);
+      console.log("file", file);
+      
+      try {
+        if (file.type === "application/pdf") {
+          // Pour les PDFs
+          const contentUrl = URL.createObjectURL(file);
           setCurrentLesson({
             ...currentLesson,
-            content_type: "pdf" as const, // Utilisation de "as const" pour le type littéral
-            content_url: e.target.files[0], // URL pour l'affichage temporaire
-            duration: "0", // Valeur par défaut pour la durée
-            pdf_url: contentUrl, // Stockage de l'URL du PDF pour l'affichage
+            content_type: "pdf",
+            content_url: contentUrl,
+            pdf_url: contentUrl,
+            duration: 0,
           });
-        } catch (error) {
-          console.error('Erreur lors de l\'upload du fichier:', error);
+        } else if (file.type.startsWith("video/")) {
+          // Pour les vidéos
+          const contentUrl = URL.createObjectURL(file);
+          console.log("contentUrl", contentUrl);
+          setCurrentLesson({
+            ...currentLesson,
+            content_type: "video",
+            content_url: contentUrl,
+            video_url: contentUrl,
+            duration: 0,
+          });
         }
-      } else {
-        // This is for resources
-        const files = Array.from(e.target.files);
-        setNewResource({
-          ...newResource,
-          files: files
+      } catch (error) {
+        console.error("Erreur lors de la sélection du fichier:", error);
+        toast({
+          title: "Erreur",
+          description: "Erreur lors de la sélection du fichier",
+          variant: "destructive"
         });
       }
     }
   };
-
+ 
   // Toggle section expand/collapse
   const toggleSection = (sectionId: string) => {
     if (expandedSections.includes(sectionId)) {
@@ -278,18 +368,16 @@ const CourseCreationForm = () => {
 
   // Add a new lesson to a section
   const handleAddLesson = (sectionId: string) => {
-    const section = course.sections?.find((s) => s.id === sectionId);
-    console.log("===============section ",section)
-    if (!section) console.log("wa3333333333333333333333333");
-    console.log("=================Section=================>>>>>>>>>" , section)
+    const section = course.sections.find((s) => s.id === sectionId);
+    if (!section) return;
+
     const newLesson: Lesson = {
-      id: `lesson-${Date.now()}`,
-      section_id: parseInt(sectionId),
+      id: `temp-lesson-${Date.now()}`,
       title: "",
       description: "",
       content_type: "video",
       content_url: "",
-      duration: "0:00",
+      duration: 0,
       order: section.lessons.length + 1,
       attachments: [],
     };
@@ -300,64 +388,75 @@ const CourseCreationForm = () => {
   };
 
   // Save lesson
-  const handleSaveLesson = () => {
-    if (!currentSection || !currentLesson) return;
+  const handleSaveLesson = async () => {
+    if (!currentLesson || !currentSection) return;
 
-    // Validation des champs requis
-    if (currentLesson.title.trim() === "") {
+    try {
+      // Validation des champs requis
+      if (!currentLesson.title || currentLesson.title.trim() === "") {
+        toast({
+          title: "Erreur",
+          description: "Le titre de la leçon est requis",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Préparation des données de la leçon avec durée par défaut selon le type
+      let durationValue = currentLesson.duration;
+      if (currentLesson.content_type === "pdf") {
+        durationValue = 0;
+      } else if (!durationValue) {
+        durationValue = 0;
+      }
+
+      const lessonData = {
+        ...currentLesson,
+        duration: durationValue,
+        content_type: currentLesson.content_type || "video",
+        content_url: currentLesson.content_url || "",
+        section_id: parseInt(currentSection.id),
+      };
+
+      const isEditing = currentSection.lessons.some(
+        (lesson) => lesson.id === currentLesson.id
+      );
+
+      let updatedLessons;
+      if (isEditing) {
+        updatedLessons = currentSection.lessons.map((lesson) =>
+          lesson.id === currentLesson.id ? lessonData : lesson
+        );
+      } else {
+        updatedLessons = [...currentSection.lessons, lessonData];
+      }
+
+      const updatedSection = {
+        ...currentSection,
+        lessons: updatedLessons,
+      };
+
+      const updatedSections = course.sections?.map((section) =>
+        section.id === updatedSection.id ? updatedSection : section
+      );
+
+      setCourse({
+        ...course,
+        sections: updatedSections,
+      });
+
+      setShowLessonDialog(false);
+      setCurrentLesson(null);
+      setCurrentSection(null);
+      setSelectedContentFile(null);
+    } catch (error) {
+      console.error("Erreur lors de la sauvegarde de la leçon:", error);
       toast({
         title: "Erreur",
-        description: "Le titre de la leçon est requis",
-        variant: "destructive",
+        description: "Erreur lors de la sauvegarde de la leçon",
+        variant: "destructive"
       });
-      return;
     }
-
-    // Conversion de la durée en nombre entier
-    const durationInSeconds = parseInt(currentLesson.duration) || 0;
-
-    // Préparation des données de la leçon
-    const lessonData = {
-      ...currentLesson,
-      duration: durationInSeconds.toString(),
-      content_type: currentLesson.content_type,
-      content_url: currentLesson.content_url || "",
-      section_id: parseInt(currentSection.id),
-      // Ajout d'une référence au fichier réel
-      contentFile: selectedContentFile,
-    };
-
-    const isEditing = currentSection.lessons.some(
-      (lesson) => lesson.id === currentLesson.id
-    );
-
-    let updatedLessons;
-    if (isEditing) {
-      updatedLessons = currentSection.lessons.map((lesson) =>
-        lesson.id === currentLesson.id ? lessonData : lesson
-      );
-    } else {
-      updatedLessons = [...currentSection.lessons, lessonData];
-    }
-
-    const updatedSection = {
-      ...currentSection,
-      lessons: updatedLessons,
-    };
-
-    const updatedSections = course.sections?.map((section) =>
-      section.id === updatedSection.id ? updatedSection : section
-    );
-
-    setCourse({
-      ...course,
-      sections: updatedSections,
-    });
-
-    setShowLessonDialog(false);
-    setCurrentLesson(null);
-    setCurrentSection(null);
-    setSelectedContentFile(null);
   };
 
   // Edit lesson
@@ -606,12 +705,12 @@ const CourseCreationForm = () => {
 
     // If files are selected, upload them
     const fileUrls: string[] = [];
-
+   
     if (newResource.files.length > 0) {
       setResourceFileUploading(true);
       console.log(newResource.files)
       try {
-
+        
         // Upload each file and collect the URLs
         for (const file of newResource.files) {
           // Upload the file using the courseService
@@ -619,7 +718,7 @@ const CourseCreationForm = () => {
             "courseResource", 
             file
           );
-
+          
 
           if (uploadResponse.fileUrl) {
             fileUrls.push(uploadResponse.fileUrl);
@@ -815,6 +914,7 @@ const CourseCreationForm = () => {
   // Handle form submission
   const handleSubmit = async () => {
     setIsSubmitting(true);
+    console.log("Début de la soumission du formulaire. Mode édition:", isEditing);
 
     // Validate course data
     if (!course.title || !course.description || !course.category_id) {
@@ -877,7 +977,7 @@ const CourseCreationForm = () => {
     }
 
     try {
-      // 1. Créer le cours de base
+      // Préparer les données du cours
       const courseData = {
         title: course.title,
         description: course.description,
@@ -885,108 +985,173 @@ const CourseCreationForm = () => {
         level: course.level,
         language: course.language,
         instructor_id: userId,
-        price: course.price,
-        discount: course.discount,
+        price: typeof course.price === 'number' ? course.price : Number(course.price),
+        discount: typeof course.discount === 'number' ? course.discount : Number(course.discount),
+        image_url: course.image_url,
       };
+      
+      console.log("Données du cours à envoyer:", courseData);
+      let courseId;
+      
+      if (isEditing && course.id) {
+        // Mettre à jour le cours existant
+        console.log("Mise à jour du cours existant avec ID:", course.id);
+        const updatedCourse = await courseService.updateCourse(course.id, courseData);
+        console.log("Réponse de la mise à jour du cours:", updatedCourse);
+        courseId = course.id;
+      } else {
+        // Créer un nouveau cours
+        console.log("Création d'un nouveau cours");
+        const createdCourse = await courseService.createCourse(courseData);
+        console.log("Réponse de la création du cours:", createdCourse);
+        courseId = createdCourse.data?.id;
+      }
 
-      const createdCourse = await courseService.createCourse(courseData);
-      console.log(createdCourse);
+      if (!courseId) {
+        throw new Error("L'ID du cours est manquant après création/mise à jour");
+      }
 
-      const courseId = createdCourse.data.id;
-
-      // 2. Ajouter les sections et leurs leçons
+      console.log("Traitement des sections du cours. Nombre de sections:", course.sections.length);
+      
+      // 2. Ajouter ou mettre à jour les sections et leurs leçons
       for (const section of course.sections) {
-        // Créer la section
-        const createdSection = await courseService.addSection(courseId, {
-          title: section.title,
-          description: section.description,
-          order: section.order,
-        });
-        console.log("section :", createdSection);
+        let sectionId;
+        
+        if (isEditing && section.id && !section.id.startsWith('section-')) {
+          // Mettre à jour la section existante
+          console.log("Mise à jour de la section existante:", section.id);
+          const updatedSection = await courseService.updateSection(courseId, section.id, {
+            title: section.title,
+            description: section.description || "",
+            order: section.order || 0,
+          });
+          console.log("Réponse de la mise à jour de la section:", updatedSection);
+          sectionId = section.id;
+        } else {
+          // Créer une nouvelle section
+          console.log("Création d'une nouvelle section");
+          const sectionToCreate = {
+            title: section.title,
+            description: section.description || "",
+            order: section.order || 0,
+          };
+          console.log("Données de la section à créer:", sectionToCreate);
+          const createdSection = await courseService.addSection(courseId, sectionToCreate);
+          console.log("Réponse de la création de la section:", createdSection);
+          sectionId = createdSection.id;
+        }
 
-        // Ajouter les leçons de la section
+        if (!sectionId) {
+          console.error("ID de section manquant, passage à la section suivante");
+          continue;
+        }
+
+        // Ajouter ou mettre à jour les leçons de la section
+        console.log(`Traitement des leçons de la section ${sectionId}. Nombre de leçons:`, section.lessons.length);
         for (const lesson of section.lessons) {
-          let contentUrl = lesson.content_url;
-         console.log("=======contenturl" , contentUrl)
-          // Si c'est un PDF ou une autre ressource avec un fichier physique
-          if (
-            lesson.content_url &&
-            (lesson.content_type === "pdf" || lesson.content_type === "video")
-          ) {
-            // Utiliser FormData pour envoyer le fichier
-            const formData = new FormData();
-            formData.append("file", lesson.content_url);
-
-          //   try {
-          //     // Uploader le fichier et obtenir son URL
-          //     const uploadResponse = await courseService.uploadFile(
-          //       "lesson", formData.file
-          //     );
-          //     console.log(formData.file)
-          //     console.log(uploadResponse)
-          //     contentUrl = uploadResponse.fileUrl || "";
-          //     console.log("========co,tent url upoload ===========",contentUrl)
-          //   } catch (error) {
-          //     console.error("Error uploading file:", error);
-          //     // Continue avec l'URL précédente si l'upload échoue
-          //   }
-          }
-
+          // Traitement des leçons
           const lessonData = {
             title: lesson.title,
-            description: lesson.description,
+            description: lesson.description || "",
             content_type: lesson.content_type,
             duration: lesson.duration,
             content_url: lesson.content_url,
-            order: lesson.order,
+            order: lesson.order || 0,
           };
-          console.log(lessonData);
+          
           const token = localStorage.getItem('token') || '';
-          await courseService.addLesson(courseId, createdSection, lessonData, token);
-        }
-      }
-
-      // 3. Ajouter les tags
-      if (course.tags && course.tags.length > 0) {
-        for (const tag of course.tags) {
-          await courseService.addTag(courseId , tag);
-        }
-      }
-
-      // 4. Ajouter les ressources
-      if (course.resources && course.resources.length > 0) {
-        for (const resource of course.resources) {
-          try {
-            // Check if resource has file_urls (multiple files) or file_url (single file)
-            const fileUrls = resource.file_urls || (resource.file_url ? [resource.file_url] : []);
-
-            // Add each file as a separate resource with the same title
-            for (const fileUrl of fileUrls) {
-              await courseService.addResource(courseId, {
-                title: resource.title,
-                type: resource.type,
-                file_url: fileUrl,
-                is_downloadable: resource.is_downloadable
-              });
+          
+          if (isEditing && lesson.id && !lesson.id.startsWith('lesson-')) {
+            // Mettre à jour la leçon existante
+            console.log("Mise à jour de la leçon existante:", lesson.id);
+            try {
+              console.log("lessonData", lessonData);
+              const updatedLesson = await courseService.updateLesson(courseId, sectionId, lesson.id, lessonData);
+              console.log("Réponse de la mise à jour de la leçon:", updatedLesson);
+            } catch (lessonError) {
+              console.error("Erreur lors de la mise à jour de la leçon:", lessonError);
             }
-          } catch (error) {
-            console.error("Error adding resource:", error);
-            // Continue with other resources if one fails
+          } else {
+            // Ajouter une nouvelle leçon
+            console.log("Création d'une nouvelle leçon");
+            try {
+              const createdLesson = await courseService.addLesson(courseId, sectionId, lessonData, token);
+              console.log("Réponse de la création de la leçon:", createdLesson);
+            } catch (lessonError) {
+              console.error("Erreur lors de la création de la leçon:", lessonError);
+            }
           }
         }
       }
 
+      console.log("Traitement des tags et ressources");
+      // 3. Gérer les tags
+      if (course.tags && course.tags.length > 0) {
+        try {
+          // Envoyer tous les tags en une seule fois
+          await courseService.updateCourseTags(courseId, course.tags);
+        } catch (tagError) {
+          console.error("Erreur lors de la mise à jour des tags:", tagError);
+          toast({
+            title: "Erreur",
+            description: "Impossible de mettre à jour les tags du cours",
+            variant: "destructive"
+          });
+        }
+      }
+
+      // 4. Gérer les ressources
+      if (course.resources && course.resources.length > 0) {
+        for (const resource of course.resources) {
+          try {
+            const fileUrls = resource.file_urls || (resource.file_url ? [resource.file_url] : []);
+            for (const fileUrl of fileUrls) {
+              if (resource.id && !resource.id.startsWith('resource-')) {
+                // Mise à jour de la ressource existante
+                await courseService.updateResource(courseId, resource.id, {
+                  title: resource.title,
+                  type: resource.type,
+                  file_url: fileUrl,
+                  is_downloadable: resource.is_downloadable
+                });
+              } else {
+                // Nouvelle ressource
+                await courseService.addResource(courseId, {
+                  title: resource.title,
+                  type: resource.type,
+                  file_url: fileUrl,
+                  is_downloadable: resource.is_downloadable
+                });
+              }
+            }
+          } catch (error) {
+            console.error("Error handling resource:", error);
+          }
+        }
+      }
+
+      console.log("Soumission du formulaire terminée avec succès");
       toast({
-        title: "Course created successfully",
-        description: "Your course has been created and is now in draft mode.",
+        title: isEditing ? "Course updated successfully" : "Course created successfully",
+        description: isEditing 
+          ? "Your course has been updated successfully." 
+          : "Your course has been created and is now in draft mode.",
       });
 
-      // Redirect to the teacher dashboard
-      navigate("/");
+      // Appeler le callback onSuccess s'il existe
+      if (onSuccess) {
+        console.log("Appel du callback onSuccess");
+        onSuccess();
+      } else {
+        // Rediriger vers le tableau de bord
+        console.log("Redirection vers la page d'accueil");
+        navigate("/");
+      }
     } catch (error) {
+      console.error("Erreur lors de la soumission du formulaire:", error);
       toast({
-        title: "Error creating course",
-        description: `There was an error creating your course. Please try again.${error}`,
+        title: isEditing ? "Error updating course" : "Error creating course",
+        description: `There was an error ${isEditing ? 'updating' : 'creating'} your course. Please try again. ${error}`,
         variant: "destructive",
       });
     } finally {
@@ -1056,11 +1221,11 @@ const CourseCreationForm = () => {
                 <div className="grid gap-2">
                   <Label htmlFor="category">Category *</Label>
                   <Select
-                    value={course.category_id}
+                    value={course.category_id.toString()}
                     onValueChange={(value: string) =>
                       setCourse({
                         ...course,
-                        category_id: value,
+                        category_id: Number(value),
                         subcategory: "",
                       })
                     }
@@ -1069,22 +1234,12 @@ const CourseCreationForm = () => {
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
-                      {categoriesLoading ? (
-                        <SelectItem value="loading" disabled>
-                          Loading categories...
-                        </SelectItem>
-                      ) : categoriesError ? (
-                        <SelectItem value="error" disabled>
-                          Error loading categories
-                        </SelectItem>
-                      ) : (
-                        Array.isArray(categories) &&
+                      {categories &&
                         categories.map((category) => (
-                          <SelectItem key={category.id} value={category.id}>
+                          <SelectItem key={category.id} value={category.id.toString()}>
                             {category.title}
                           </SelectItem>
-                        ))
-                      )}
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -1105,7 +1260,7 @@ const CourseCreationForm = () => {
                       {course.category_id &&
                         Array.isArray(categories) &&
                         categories
-                          .find((cat) => cat.id === course.category_id)
+                          .find((cat) => cat.id === course.category_id.toString())
                           ?.subcategories?.map((subcategory) => (
                             <SelectItem
                               key={subcategory.id}
@@ -1197,7 +1352,7 @@ const CourseCreationForm = () => {
                         } else {
                           // eslint-disable-next-line @typescript-eslint/no-unused-vars
                           const { salePrice, ...rest } = course;
-                          setCourse(rest as Course);
+                          setCourse(rest as CourseData);
                         }
                       }}
                     />
@@ -1290,10 +1445,17 @@ const CourseCreationForm = () => {
                                         {section.lessons.length} lessons •{" "}
                                         {section.lessons.reduce(
                                           (acc, lesson) => {
-                                            const [min, sec] = lesson.duration
-                                              .split(":")
-                                              .map(Number);
-                                            return acc + min * 60 + (sec || 0);
+                                            // Si la durée est un nombre, l'utiliser directement
+                                            if (typeof lesson.duration === 'number') {
+                                              return acc + (lesson.duration || 0);
+                                            }
+                                            // Sinon, si c'est une chaîne au format "min:sec"
+                                            else if (typeof lesson.duration === 'string' && lesson.duration.includes(':')) {
+                                              const [min, sec] = lesson.duration.split(':').map(Number);
+                                              return acc + min * 60 + (sec || 0);
+                                            }
+                                            // Pour tout autre cas, retourner simplement l'accumulateur
+                                            return acc;
                                           },
                                           0
                                         ) / 60}{" "}
@@ -1536,10 +1698,37 @@ const CourseCreationForm = () => {
                         className="h-full w-full object-cover"
                       />
                       <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                        <Button variant="secondary">
+                        <div className="cursor-pointer">
+                          <input
+                            id="course-image-upload"
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onload = (event) => {
+                                  setCourse({
+                                    ...course,
+                                    image_url: event.target?.result as string
+                                  });
+                                };
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                          />
+                          <Button 
+                            variant="secondary" 
+                            type="button"
+                            onClick={() => {
+                              document.getElementById('course-image-upload')?.click();
+                            }}
+                          >
                           <Upload className="mr-2 h-4 w-4" />
                           Télécharger l'image
                         </Button>
+                        </div>
                       </div>
                     </div>
                     <p className="text-xs text-muted-foreground">
@@ -1804,14 +1993,14 @@ const CourseCreationForm = () => {
                       <h3 className="font-medium text-sm text-muted-foreground">
                         Price
                       </h3>
-                      <p>${course.price.toFixed(2)}</p>
+                      <p>${typeof course.price === 'number' ? course.price.toFixed(2) : Number(course.price).toFixed(2)}</p>
                     </div>
                     {course.salePrice && (
                       <div>
                         <h3 className="font-medium text-sm text-muted-foreground">
                           Sale Price
                         </h3>
-                        <p>${course.salePrice.toFixed(2)}</p>
+                        <p>${typeof course.salePrice === 'number' ? course.salePrice.toFixed(2) : Number(course.salePrice).toFixed(2)}</p>
                       </div>
                     )}
                   </div>
@@ -1891,21 +2080,26 @@ const CourseCreationForm = () => {
     throw new Error("Function not implemented.");
   }
 
-  return (
-    <div className="container mx-auto py-6 max-w-4xl">
-      <div className="flex items-center mb-6">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => navigate("/teacher-dashboard")}
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h1 className="text-2xl font-bold ml-2">Create New Course</h1>
-      </div>
+  const handleEditTag = (oldTag: string, newTag: string) => {
+    setCourse((prevCourse: CourseData) => ({
+      ...prevCourse,
+      tags: prevCourse.tags.map(tag => tag === oldTag ? newTag : tag)
+    }));
+  };
 
+  const handleEditResource = (resourceId: string, updatedResource: Partial<Resource>) => {
+    setCourse((prevCourse: CourseData) => ({
+      ...prevCourse,
+      resources: prevCourse.resources.map(resource => 
+        resource.id === resourceId ? { ...resource, ...updatedResource } : resource
+      )
+    }));
+  };
+
+  return (
+    <div className="max-w-full">
       {/* Progress steps */}
-      <div className="mb-8">
+      <div className="mb-6">
         <div className="flex justify-between">
           {Array.from({ length: totalSteps }).map((_, index) => (
             <div
@@ -1933,15 +2127,15 @@ const CourseCreationForm = () => {
           ))}
         </div>
         <div className="flex justify-between mt-2">
-          <div className="text-sm">Basic Info</div>
-          <div className="text-sm">Content</div>
-          <div className="text-sm">Details</div>
-          <div className="text-sm">Review</div>
+          <div className="text-sm">Info. basiques</div>
+          <div className="text-sm">Contenu</div>
+          <div className="text-sm">Détails</div>
+          <div className="text-sm">Révision</div>
         </div>
       </div>
 
       {/* Step content */}
-      <div className="bg-white rounded-lg border p-6 mb-6">
+      <div className="bg-white rounded-lg border p-6 mb-6 overflow-y-auto max-h-[calc(70vh-200px)]">
         {renderStepContent()}
       </div>
 
@@ -1953,14 +2147,14 @@ const CourseCreationForm = () => {
           disabled={currentStep === 1}
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Previous
+          Précédent
         </Button>
         {currentStep < totalSteps ? (
           <Button
             onClick={goToNextStep}
             className="bg-purple-600 hover:bg-purple-700"
           >
-            Next
+            Suivant
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         ) : (
@@ -1969,7 +2163,9 @@ const CourseCreationForm = () => {
             disabled={isSubmitting}
             className="bg-purple-600 hover:bg-purple-700"
           >
-            {isSubmitting ? "Creating Course..." : "Create Course"}
+            {isSubmitting 
+              ? isEditing ? "Mise à jour..." : "Création..." 
+              : isEditing ? "Mettre à jour" : "Créer"}
           </Button>
         )}
       </div>
@@ -2116,12 +2312,15 @@ const CourseCreationForm = () => {
               <div className="grid gap-2">
                 <Label htmlFor="lessonType">Content Type *</Label>
                 <Select
-                  value={currentLesson?.content_type}
+                  value={currentLesson?.content_type || "video"}
                   onValueChange={(value) =>
                     currentLesson &&
                     setCurrentLesson({
                       ...currentLesson,
-                      content_type: value as Lesson["content_type"],
+                      content_type: value as "video" | "pdf" | "article" | "quiz" | "assignment",
+                      // Réinitialiser les URLs spécifiques au type lors du changement
+                      ...(value === "video" ? { pdf_url: undefined } : {}),
+                      ...(value === "pdf" ? { video_url: undefined } : {})
                     })
                   }
                 >
@@ -2130,9 +2329,9 @@ const CourseCreationForm = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="video">Video</SelectItem>
+                    <SelectItem value="pdf">PDF</SelectItem>
                     <SelectItem value="article">Article</SelectItem>
                     <SelectItem value="quiz">Quiz</SelectItem>
-                    <SelectItem value="pdf">Pdf</SelectItem>
                     <SelectItem value="assignment">Assignment</SelectItem>
                   </SelectContent>
                 </Select>
@@ -2164,128 +2363,71 @@ const CourseCreationForm = () => {
                 <div className="border rounded-lg p-6">
                   <div className="text-lg font-medium mb-4">Video Upload</div>
                   <div className="border border-dashed rounded-lg p-8 text-center">
-                    <div className="mx-auto mb-4 rounded-full bg-gray-100 p-3 w-fit">
-                      <input
-                        type="file"
-                        accept="video/*"
-                        onChange={(e:React.ChangeEvent<HTMLInputElement>)=>{setCurrentLesson({
-                          ...currentLesson,
-                          content_type: "pdf" as const, // Utilisation de "as const" pour le type littéral
-                          content_url: e.target.files[0], // URL pour l'affichage temporaire
-                          duration: "0", // Valeur par défaut pour la durée
-                         // Stockage de l'URL du PDF pour l'affichage
-                        })}}
-                        className="hidden"
-                        id="video-upload"
-                      />
-                      <Label htmlFor="video-upload">
-                        <Upload className="h-6 w-6 text-muted-foreground cursor-pointer" />
-                      </Label>
+                    <div className="flex flex-col items-center gap-2">
+                      <Video className="h-10 w-10 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">
+                        Glissez-déposez votre vidéo ici ou cliquez pour sélectionner
+                      </p>
+                      <label htmlFor="video-upload" className="mt-2">
+                        <div className={cn(buttonVariants({ variant: "outline" }), "cursor-pointer")}>
+                          Upload Video
+                        </div>
+                        <input
+                          type="file"
+                          id="video-upload"
+                          accept="video/*"
+                          onChange={handleFileSelect}
+                          className="hidden"
+                        />
+                      </label>
                     </div>
-                    <h3 className="text-lg font-medium mb-2">
-                      {selectedContentFile
-                        ? "Vidéo sélectionnée"
-                        : "Télécharger une vidéo"}
-                    </h3>
-                    <p className="text-muted-foreground mb-4">
-                      {selectedContentFile
-                        ? selectedContentFile.name
-                        : "Formats supportés: MP4, MOV, AVI"}
-                    </p>
-                    {selectedContentFile && (
-                      <div className="flex gap-2 justify-center">
-                        <Button
-                          onClick={() => handleFileUpload(currentLesson.id)}
-                          disabled={fileUploading}
-                        >
-                          {fileUploading
-                            ? "Envoi en cours..."
-                            : "Envoyer la vidéo"}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => setSelectedContentFile(null)}
-                        >
-                          Annuler
-                        </Button>
-                      </div>
-                    )}
-                    <p className="text-xs text-muted-foreground mt-4">
-                      Taille maximale : 100MB
-                    </p>
                   </div>
 
                   {/* Aperçu si vidéo déjà uploadée */}
-                  {currentLesson.content_url && !selectedContentFile && (
+                  {currentLesson.video_url && (
                     <div className="mt-4">
                       <video
                         controls
                         className="w-full rounded-lg border"
-                        src={currentLesson.content_url}
+                        src={currentLesson.video_url}
                       />
-                      {console.log("============JSX=============>",currentLesson)}
-                </div>
-              )}
+                    </div>
+                  )}
                 </div>
               )}
               {currentLesson?.content_type === "pdf" && (
                 <div className="border rounded-lg p-6">
                   <div className="text-lg font-medium mb-4">PDF Upload</div>
                   <div className="border border-dashed rounded-lg p-8 text-center">
-                    <div className="mx-auto mb-4 rounded-full bg-gray-100 p-3 w-fit">
-                      <input
-                        type="file"
-                        accept=".pdf"
-                        onChange={handleFileSelect}
-                        className="hidden"
-                        id="pdf-upload"
-                      />
-                      <Label htmlFor="pdf-upload">
-                        <Upload className="h-6 w-6 text-muted-foreground cursor-pointer" />
-                      </Label>
+                    <div className="flex flex-col items-center gap-2">
+                      <FileText className="h-10 w-10 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">
+                        Glissez-déposez votre PDF ici ou cliquez pour sélectionner
+                      </p>
+                      <label htmlFor="pdf-upload" className="mt-2">
+                        <div className={cn(buttonVariants({ variant: "outline" }), "cursor-pointer")}>
+                          Upload PDF
+                        </div>
+                        <input
+                          type="file"
+                          id="pdf-upload"
+                          accept="application/pdf"
+                          onChange={handleFileSelect}
+                          className="hidden"
+                        />
+                      </label>
                     </div>
-                    <h3 className="text-lg font-medium mb-2">
-                      {selectedContentFile
-                        ? "Fichier sélectionné"
-                        : "Télécharger un PDF"}
-                    </h3>
-                    <p className="text-muted-foreground mb-4">
-                      {selectedContentFile
-                        ? selectedContentFile.name
-                        : "Glissez-déposez ou cliquez pour sélectionner"}
-                    </p>
-                    {selectedContentFile && (
-                      <div className="flex gap-2 justify-center">
-                        <Button
-                          onClick={() => handleFileUpload(currentLesson.id)}
-                          disabled={fileUploading}
-                        >
-                          {fileUploading
-                            ? "Envoi en cours..."
-                            : "Envoyer le PDF"}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => setSelectedContentFile(null)}
-                        >
-                          Annuler
-                        </Button>
-                      </div>
-                    )}
-                    <p className="text-xs text-muted-foreground mt-4">
-                      Format supporté : PDF (Max 20MB)
-                    </p>
                   </div>
 
                   {/* Aperçu si PDF déjà uploadé */}
-                  {currentLesson.pdf_url && !selectedContentFile && (
+                  {currentLesson.pdf_url && (
                     <div className="mt-4 p-4 border rounded-lg bg-gray-50">
                       <div className="flex items-center gap-2">
                         <File className="h-5 w-5 text-red-500" />
-                        <span>PDF déjà attaché</span>
+                        <span className="flex-1 text-sm">Document PDF</span>
                         <Button
-                          variant="ghost"
                           size="sm"
+                          variant="outline"
                           onClick={() => {
                             // Ouvrir le PDF dans un nouvel onglet
                             window.open(currentLesson.pdf_url, "_blank");
@@ -2382,8 +2524,8 @@ const CourseCreationForm = () => {
                     <div className="space-y-2">
                       {currentLesson?.attachments && currentLesson.attachments.length > 0 ? (
                         currentLesson.attachments.map((resource, index) => (
-                          <div
-                            key={index}
+                      <div
+                        key={index}
                             className="border rounded-md overflow-hidden"
                           >
                             <div 
@@ -2405,33 +2547,33 @@ const CourseCreationForm = () => {
                                 <div>
                                   <div className="flex items-center">
                                     <p className="font-medium">{resource.title}</p>
-                                  </div>
+                        </div>
                                   <p className="text-xs text-muted-foreground">
                                     {resource.type} • {resource.is_downloadable ? "Downloadable" : "Not downloadable"}
                                   </p>
                                 </div>
                               </div>
                               <div className="flex items-center gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-red-600"
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-600"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleRemoveLessonResource(resource.id);
-                                  }}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </div>
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                  </div>
                           </div>
                         ))
-                      ) : (
+                ) : (
                         <p className="text-sm text-muted-foreground">
                           No resources added to this lesson yet
-                        </p>
-                      )}
+                  </p>
+                )}
                     </div>
 
                     {/* Add new resource form */}
@@ -2441,37 +2583,37 @@ const CourseCreationForm = () => {
                       <div className="grid gap-3">
                         <div className="grid gap-2">
                           <Label htmlFor="resourceTitle">Title *</Label>
-                          <Input
-                            id="resourceTitle"
-                            value={newResource.title}
+              <Input
+                id="resourceTitle"
+                value={newResource.title}
                             onChange={(e) => setNewResource({...newResource, title: e.target.value})}
                             placeholder="e.g. Lesson Slides, Exercise Files, etc."
-                          />
-                        </div>
+              />
+            </div>
 
                         <div className="grid gap-2">
                           <Label htmlFor="resourceType">Type *</Label>
-                          <Select
-                            value={newResource.type}
+              <Select
+                value={newResource.type}
                             onValueChange={handleResourceTypeChange}
-                          >
-                            <SelectTrigger id="resourceType">
+              >
+                <SelectTrigger id="resourceType">
                               <SelectValue placeholder="Select resource type" />
-                            </SelectTrigger>
-                            <SelectContent>
+                </SelectTrigger>
+                <SelectContent>
                               <SelectItem value={ResourceType.PDF}>PDF</SelectItem>
                               <SelectItem value={ResourceType.DOCUMENT}>Document</SelectItem>
                               <SelectItem value={ResourceType.VIDEO}>Video</SelectItem>
                               <SelectItem value={ResourceType.AUDIO}>Audio</SelectItem>
                               <SelectItem value={ResourceType.LINK}>Link</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
+                </SelectContent>
+              </Select>
+          </div>
 
                         {newResource.type !== ResourceType.LINK ? (
                           <div className="grid gap-2">
                             <Label htmlFor="resourceFile">Files *</Label>
-                            <Input
+              <Input
                               id="resourceFile"
                               type="file"
                               multiple
@@ -2514,33 +2656,33 @@ const CourseCreationForm = () => {
                                 </div>
                               </div>
                             )}
-                          </div>
-                        ) : (
+            </div>
+          ) : (
                           <div className="grid gap-2">
                             <Label htmlFor="resourceUrl">URL *</Label>
-                            <Input
+              <Input
                               id="resourceUrl"
                               type="url"
                               value={newResource.file_url}
                               onChange={(e) => setNewResource({...newResource, file_url: e.target.value})}
                               placeholder="https://example.com/resource"
                             />
-                          </div>
-                        )}
+            </div>
+          )}
 
                         <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="isDownloadable"
-                            checked={newResource.is_downloadable}
+            <Checkbox
+              id="isDownloadable"
+              checked={newResource.is_downloadable}
                             onCheckedChange={(checked) => 
                               setNewResource({...newResource, is_downloadable: !!checked})
                             }
-                          />
+            />
                           <Label htmlFor="isDownloadable">
                             Allow students to download this resource
                           </Label>
                         </div>
-                      </div>
+          </div>
 
                       <Button 
                         onClick={handleAddLessonResource}
@@ -2548,11 +2690,11 @@ const CourseCreationForm = () => {
                         className="w-full"
                       >
                         {fileUploading ? "Uploading..." : "Add Resource to Lesson"}
-                      </Button>
+          </Button>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+        </CardContent>
+      </Card>
             </TabsContent>
           </Tabs>
 
