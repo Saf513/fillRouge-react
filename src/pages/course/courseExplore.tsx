@@ -65,7 +65,18 @@ interface Course {
   created_at: string;
   discount: number;
 }
-
+export const  getFullImageUrl = (url) => {
+  if (!url) return null;
+  
+  // Vérifier si l'URL est déjà complète
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  
+  // Utiliser l'URL de l'API de votre backend
+  const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+  return `${apiUrl}/storage/${url}`;
+};
 export default function CoursesExplorer() {
   const navigate = useNavigate();
   // State
@@ -736,7 +747,7 @@ export default function CoursesExplorer() {
                   >
                     <div className="relative">
                       <img
-                        src={course.image_url || "/placeholder.svg"}
+                        src={getFullImageUrl(course.image_url) }
                         alt={course.title}
                         className="w-full h-48 object-cover"
                       />
