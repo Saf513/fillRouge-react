@@ -1,45 +1,57 @@
-import { useState, useEffect } from "react";
-import UserProfile from "../components/shared/user-profile";
+import  { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
-  BarChart3,
+  User,
+  LogOut,
+  Menu,
+  Bell,
+  Search,
+  Settings,
+  Users,
   BookOpen,
-  Calendar,
+  Plus,
+  Edit,
+  Trash,
+  Eye,
   ChevronRight,
-  Clock,
+  Loader2,
+  BarChart3,
   DollarSign,
   FileText,
   Grid,
-  HelpCircle,
   LayoutDashboard,
-  LogOut,
-  Menu,
   MessageSquare,
-  MoreVertical,
   PenTool,
-  Plus,
-  Search,
-  Settings,
   Star,
   TrendingUp,
-  Upload,
-  User,
-  Users,
   X,
-  Bell,
   Code,
-  Layout,
+  Layout
 } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
+import { Popover } from "@headlessui/react";
+import { useClickAway } from "@uidotdev/usehooks";
+import useCourses from "../hooks/useCourses";
+import UserProfile from "../components/shared/user-profile";
 import TeacherProfile from "./teacher/profile/teacherProfile";
 import TeacherSettings from "./teacher/settings/teacherSettings";
 import CourseCreationForm from "../components/forms/createCourse";
-import { DashboardCourse, Profile } from "@/types/dashboard";
-import { useProfile } from "@/hooks/useProfile";
+import DashboardMetricCard from "../components/dashboard/DashboardMetricCard";
+import DashboardBarChart from "../components/dashboard/DashboardBarChart";
+import ActivityList from "../components/dashboard/ActivityList";
+import CourseCard from "../components/course/CourseCard";
+import Modal from "../components/ui/modal";
+import { Button } from "../components/ui/button";
+import { useUsers } from "../hooks/useUsers";
+import { useAuth } from "../hooks/useAuth";
+import { courseService } from "../services/courseService";
+import { Course } from "../types/course";
+import { Tab } from "@headlessui/react";
+import { useProfile } from "../hooks/useProfile";
 import useTeacherDashboardData, {
   DashboardData,
-} from "@/hooks/useDashboardTeacher";
-import { useUsers } from "@/hooks/useUsers";
-import { useAuth } from "../hooks/useAuth";
-import { data, useNavigate } from "react-router-dom";
+} from "../hooks/useDashboardTeacher";
+
 export default function TeacherDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -66,6 +78,15 @@ export default function TeacherDashboard() {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("auth-storage") || "{}").state
     ?.user;
+
+  const [showEditCourseModal, setShowEditCourseModal] = useState(false);
+  const [courseToEdit, setCourseToEdit] = useState<number | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [courseToDelete, setCourseToDelete] = useState<number | null>(null);
+
+  const [courseFilter, setCourseFilter] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filteredCourses, setFilteredCourses] = useState<DashboardCourse[]>([]);
 
   useEffect(() => {
     if (dashboardData?.courses) {
@@ -161,6 +182,62 @@ export default function TeacherDashboard() {
       setShowMobileMenu(false);
     }
   };
+
+  const handleEditCourse = (courseId: number) => {
+    setCourseToEdit(courseId);
+    setShowEditCourseModal(true);
+  };
+
+  const handleDeleteCourse = async (courseId: number) => {
+    if (window.confirm("Êtes-vous sûr de vouloir supprimer ce cours ? Cette action est irréversible.")) {
+      try {
+        setIsDeleting(true);
+        setCourseToDelete(courseId);
+        
+        await courseService.deleteCourse(courseId.toString());
+        
+        // Mettre à jour la liste des cours après suppression
+        setCourses(prevCourses => prevCourses.filter(course => course.id !== courseId));
+        
+        // Afficher un message de succès
+        toast({
+          title: "Cours supprimé",
+          description: "Le cours a été supprimé avec succès",
+          variant: "success"
+        });
+      } catch (error) {
+        console.error("Erreur lors de la suppression du cours:", error);
+        toast({
+          title: "Erreur",
+          description: "Une erreur est survenue lors de la suppression du cours",
+          variant: "destructive"
+        });
+      } finally {
+        setIsDeleting(false);
+        setCourseToDelete(null);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const filterCourses = () => {
+      let filtered = courses;
+
+      if (courseFilter !== "all") {
+        filtered = filtered.filter(course => course.status === courseFilter);
+      }
+
+      if (searchTerm) {
+        filtered = filtered.filter(course =>
+          course.title.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      }
+
+      setFilteredCourses(filtered);
+    };
+
+    filterCourses();
+  }, [courses, courseFilter, searchTerm]);
 
   if (loading || apiLoading) {
     return (
@@ -840,98 +917,134 @@ export default function TeacherDashboard() {
           {/* My Courses Tab */}
           {activeTab === "courses" && (
             <div className="space-y-6">
-              <div className="flex flex-col justify-between md:flex-row md:items-center">
-                <div>
-                  <h1 className="text-2xl font-bold md:text-3xl">My Courses</h1>
-                  <p className="text-[#4c4c4d]">
-                    Manage and monitor all your courses
-                  </p>
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2 md:mt-0">
-                  <div className="relative w-full sm:w-auto">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#4c4c4d]" />
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <h2 className="text-xl font-bold">Mes cours</h2>
+                <div className="mt-3 flex sm:mt-0">
+                  <div className="relative mr-3 flex-1">
                     <input
                       type="text"
-                      placeholder="Search courses..."
-                      className="h-10 w-full rounded-md border border-[#f1f1f3] bg-white pl-10 pr-4 text-sm focus:border-[#ff9500] focus:outline-none focus:ring-1 focus:ring-[#ff9500] sm:w-60"
+                      placeholder="Rechercher des cours..."
+                      className="w-full rounded-md border border-[#e5e7eb] bg-white px-4 py-2 pr-10 text-sm focus:border-[#ff9500] focus:outline-none"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
                     />
+                    <Search className="absolute right-3 top-2 h-4 w-4 text-[#4c4c4d]" />
                   </div>
-                  <button
-                    onClick={() => setShowNewCourseModal(true)}
-                    className="flex w-full items-center justify-center rounded-md bg-[#ff9500] px-4 py-2 text-sm font-medium text-white hover:bg-[#ff9500]/90 sm:w-auto"
+                  <select
+                    className="rounded-md border border-[#e5e7eb] bg-white px-4 py-2 text-sm focus:border-[#ff9500] focus:outline-none"
+                    value={courseFilter}
+                    onChange={(e) => setCourseFilter(e.target.value)}
                   >
-                    <Plus className="mr-2 h-4 w-4" />
-                    New Course
-                  </button>
+                    <option value="all">Tous</option>
+                    <option value="published">Publiés</option>
+                    <option value="draft">Brouillons</option>
+                    <option value="archived">Archivés</option>
+                  </select>
+                  <Button
+                    className="ml-3 bg-[#ff9500] hover:bg-[#e08600]"
+                    onClick={() => setShowNewCourseModal(true)}
+                  >
+                    <Plus className="mr-1 h-4 w-4" />
+                    Nouveau
+                  </Button>
                 </div>
               </div>
-
-              {/* Course Filters */}
-              <div className="flex flex-wrap gap-2">
-                <button className="rounded-md bg-[#fff4e5] px-4 py-2 text-sm font-medium text-[#ff9500]">
-                  All Courses (12)
-                </button>
-                <button className="rounded-md bg-white px-4 py-2 text-sm font-medium text-[#4c4c4d] hover:bg-[#f1f1f3]">
-                  Published (8)
-                </button>
-                <button className="rounded-md bg-white px-4 py-2 text-sm font-medium text-[#4c4c4d] hover:bg-[#f1f1f3]">
-                  Draft (3)
-                </button>
-                <button className="rounded-md bg-white px-4 py-2 text-sm font-medium text-[#4c4c4d] hover:bg-[#f1f1f3]">
-                  Archived (1)
-                </button>
-              </div>
-              {/* Course List */}
-              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {courses.map((course) => (
-                  <div
-                    key={course.id}
-                    className="overflow-hidden rounded-lg border border-[#f1f1f3] bg-white transition-shadow hover:shadow-md"
-                  >
-                    <div className="relative h-40 bg-[#f7f7f8]">
-                      <img
-                        src={course.image_url || "/placeholder.svg?height=160&width=320"}
-                        alt={course.title}
-                        className="h-full w-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black/40 p-4">
-                        <span className="rounded-md bg-green-500 px-2 py-1 text-xs font-medium text-white">
-                          {course.status || "Published"}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="p-4">
-                      <h3 className="mb-1 text-lg font-bold">{course.title}</h3>
-                      <div className="mb-3 flex items-center text-sm text-[#4c4c4d]">
-                        <Clock className="mr-1 h-4 w-4" />
-                        <span>
-                          {course.duration || "N/A"} • {course.level || "N/A"}
-                        </span>
-                      </div>
-                      <div className="mb-4 flex items-center justify-between">
-                        <div className="flex items-center">
-                          <Users className="mr-1 h-4 w-4 text-[#4c4c4d]" />
-                          <span className="text-sm text-[#4c4c4d]">
-                            {course.total_students || 0} étudiants
+              
+              {filteredCourses.length === 0 ? (
+                <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-[#e5e7eb] bg-white p-8 text-center">
+                  <BookOpen className="mb-2 h-12 w-12 text-[#d1d5db]" />
+                  <h3 className="text-lg font-medium">Pas de cours trouvés</h3>
+                  <p className="mt-1 text-[#4c4c4d]">
+                    {searchTerm || courseFilter !== "all"
+                      ? "Aucun cours ne correspond à votre recherche. Essayez d'ajuster vos filtres."
+                      : "Vous n'avez pas encore créé de cours. Commencez à enseigner dès maintenant !"}
+                  </p>
+                  {!searchTerm && courseFilter === "all" && (
+                    <Button
+                      className="mt-4 bg-[#ff9500] hover:bg-[#e08600]"
+                      onClick={() => setShowNewCourseModal(true)}
+                    >
+                      <Plus className="mr-1 h-4 w-4" />
+                      Créer un cours
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {filteredCourses.map((course) => (
+                    <div
+                      key={course.id}
+                      className="overflow-hidden rounded-lg border border-[#e5e7eb] bg-white shadow-sm transition hover:shadow-md"
+                    >
+                      <div className="relative h-48 w-full overflow-hidden">
+                        <img
+                          src={course.thumbnail_url || "/placeholder-course.jpg"}
+                          alt={course.title}
+                          className="h-full w-full object-cover"
+                        />
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+                          <span
+                            className={`rounded px-2 py-1 text-xs font-medium text-white ${
+                              course.status === "published"
+                                ? "bg-green-500"
+                                : course.status === "draft"
+                                ? "bg-yellow-500"
+                                : "bg-gray-500"
+                            }`}
+                          >
+                            {course.status === "published"
+                              ? "Publié"
+                              : course.status === "draft"
+                              ? "Brouillon"
+                              : "Archivé"}
                           </span>
                         </div>
-                        <div className="flex items-center">
-                          <Star className="mr-1 h-4 w-4 fill-[#ff9500] text-[#ff9500]" />
-                          <span className="text-sm font-medium">{course.rating || 0}</span>
+                      </div>
+                      <div className="p-4">
+                        <h3 className="mb-1 text-lg font-bold">{course.title}</h3>
+                        <p className="mb-2 line-clamp-2 text-sm text-[#4c4c4d]">
+                          {course.description}
+                        </p>
+                        <div className="mb-3 flex items-center text-sm text-[#4c4c4d]">
+                          <Users className="mr-1 h-4 w-4" />
+                          <span>{course.student_count || 0} étudiants</span>
+                          <span className="mx-2">•</span>
+                          <Star className="mr-1 h-4 w-4 text-[#ff9500]" />
+                          <span>{course.avg_rating || 0}</span>
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button
+                            className="flex-1 bg-[#e7f0ff] text-[#3b82f6] hover:bg-[#dbe7fd]"
+                            onClick={() => navigate(`/coursePlayer/${course.id}`)}
+                          >
+                            <Eye className="mr-1 h-4 w-4" />
+                            Voir
+                          </Button>
+                          <Button
+                            className="flex-1 bg-[#fff4e5] text-[#ff9500] hover:bg-[#ffe9cc]"
+                            onClick={() => handleEditCourse(course.id)}
+                          >
+                            <Edit className="mr-1 h-4 w-4" />
+                            Modifier
+                          </Button>
+                          <Button
+                            className="flex-1 bg-[#fee2e2] text-[#ef4444] hover:bg-[#fecaca]"
+                            onClick={() => handleDeleteCourse(course.id)}
+                            disabled={isDeleting && courseToDelete === course.id}
+                          >
+                            {isDeleting && courseToDelete === course.id ? (
+                              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash className="mr-1 h-4 w-4" />
+                            )}
+                            Supprimer
+                          </Button>
                         </div>
                       </div>
-                      <div className="flex justify-between">
-                        <button className="rounded-md border border-[#f1f1f3] bg-white px-3 py-1.5 text-sm font-medium text-[#4c4c4d] hover:bg-[#f1f1f3]">
-                          Voir Cours
-                        </button>
-                        <button className="rounded-md border border-[#f1f1f3] bg-white px-3 py-1.5 text-sm font-medium text-[#4c4c4d] hover:bg-[#f1f1f3]">
-                          <MoreVertical className="h-4 w-4" />
-                        </button>
-                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -977,19 +1090,48 @@ export default function TeacherDashboard() {
       </div>
 
       {/* New Course Modal */}
-      {showNewCourseModal && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 p-4 overflow-y-auto">
-          <div className="w-full max-w-4xl rounded-lg bg-white p-6 shadow-lg my-8 relative">
-            <button
-              onClick={() => setShowNewCourseModal(false)}
-              className="absolute right-4 top-4 p-2 rounded-full hover:bg-gray-100"
-            >
-              <X className="h-5 w-5 text-gray-500" />
-            </button>
-            <CourseCreationForm />
-          </div>
-        </div>
-      )}
+      <Modal
+        isOpen={showNewCourseModal}
+        onClose={() => setShowNewCourseModal(false)}
+        title="Créer un nouveau cours"
+        size="lg"
+        className="max-h-[90vh] overflow-y-auto"
+      >
+        <CourseCreationForm
+          onSuccess={() => {
+            setShowNewCourseModal(false);
+            toast({
+              title: "Cours créé",
+              description: "Votre cours a été créé avec succès",
+              variant: "success"
+            });
+          }}
+        />
+      </Modal>
+
+      {/* Edit Course Modal */}
+      <Modal
+        isOpen={showEditCourseModal}
+        onClose={() => setShowEditCourseModal(false)}
+        title="Modifier le cours"
+        size="lg"
+        className="max-h-[90vh] overflow-y-auto"
+      >
+        {courseToEdit && (
+          <CourseCreationForm
+            courseId={courseToEdit}
+            isEditing={true}
+            onSuccess={() => {
+              setShowEditCourseModal(false);
+              toast({
+                title: "Cours mis à jour",
+                description: "Votre cours a été mis à jour avec succès",
+                variant: "success"
+              });
+            }}
+          />
+        )}
+      </Modal>
     </div>
   );
 }
