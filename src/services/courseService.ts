@@ -1,5 +1,6 @@
 import axiosClient from '@/api/axios';
 import { Course, Section, Lesson, Category, Tag } from '@/types/course';
+import { Rating } from '@/types/rating';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
@@ -24,7 +25,17 @@ export const courseService = {
 
   async updateCourse(courseId: string, courseData: Partial<Course>): Promise<Course> {
     try {
-      const response = await axiosClient.put(`${API_URL}/courses/${courseId}`, courseData);
+      const token = localStorage.getItem('token');
+      const response = await axiosClient.put(
+        `api/courses/${courseId}`, 
+        courseData, 
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Accept': 'application/json',
+          }
+        }
+      );
       return response.data;
     } catch (error) {
       console.error('Error updating course:', error);
@@ -32,9 +43,27 @@ export const courseService = {
     }
   },
 
+  async deleteCourse(courseId: string): Promise<void> {
+    try {
+      const token = localStorage.getItem('token');
+      await axiosClient.delete(
+        `api/courses/${courseId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Accept': 'application/json',
+          }
+        }
+      );
+    } catch (error) {
+      console.error('Erreur lors de la suppression du cours:', error);
+      throw error;
+    }
+  },
+
   async getCourseById(courseId: string): Promise<Course> {
     try {
-      const response = await axiosClient.get(`${API_URL}/courses/${courseId}`);
+      const response = await axiosClient.get(`/api/courses/${courseId}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching course:', error);
@@ -66,7 +95,18 @@ export const courseService = {
 
   async updateSection(courseId: string, sectionId: string, sectionData: Partial<Section>): Promise<Section> {
     try {
-      const response = await axiosClient.put(`${API_URL}/courses/${courseId}/sections/${sectionId}`, sectionData);
+      const token = localStorage.getItem('token');
+      const response = await axiosClient.put(
+        `api/courses/${courseId}/sections/${sectionId}`, 
+        sectionData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          }
+        }
+      );
       return response.data;
     } catch (error) {
       console.error('Error updating section:', error);
@@ -104,9 +144,17 @@ export const courseService = {
 
   async updateLesson(courseId: string, sectionId: string, lessonId: string, lessonData: Partial<Lesson>): Promise<Lesson> {
     try {
+      const token = localStorage.getItem('token');
       const response = await axiosClient.put(
-        `${API_URL}/courses/${courseId}/sections/${sectionId}/lessons/${lessonId}`, 
-        lessonData
+        `api/courses/${courseId}/sections/${sectionId}/lessons/${lessonId}`, 
+        lessonData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          }
+        }
       );
       return response.data;
     } catch (error) {
@@ -156,7 +204,7 @@ export const courseService = {
     }
   },
 
-  async addTag(courseId: string, tagName: string): Promise<Tag> {
+  async addTag(courseId: string, tagName: string): Promise<any> {
     const token = localStorage.getItem('token');
 
     try {
@@ -174,7 +222,7 @@ export const courseService = {
       const tagId = response.data.tag.id;
 
       // Étape 2 : Attacher le tag au cours
-      const result =await axiosClient.post(
+      const result = await axiosClient.post(
         `${API_URL}/api/courses/${courseId}/tags/${tagId}`,
         {}, // ← corps vide (sinon Laravel ne comprend pas bien parfois)
         {
@@ -184,7 +232,8 @@ export const courseService = {
         }
       );
 
-      console.log(response , result);
+      console.log(response, result);
+      return response.data; // Retourner les données de la réponse
 
     } catch (error) {
       console.error("Erreur lors de l'ajout du tag:", error);
@@ -192,6 +241,27 @@ export const courseService = {
     }
   },
 
+  async updateCourseTags(courseId: string, tags: string[]): Promise<{ success: boolean }> {
+    const token = localStorage.getItem('token');
+    
+    try {
+      const response = await axiosClient.put(
+        `${API_URL}/api/courses/${courseId}/tags`,
+        { tags }, // Envoyer tous les tags en une fois
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      
+      return { success: true };
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour des tags:", error);
+      throw error;
+    }
+  },
 
   // File upload API
   async uploadAttachment(file: File, lessonId: string): Promise<{ url: string }> {
@@ -314,4 +384,54 @@ export const courseService = {
     }
   },
 
+  // Ratings APIs
+  async getCourseRatings(courseId: string): Promise<Rating[]> {
+    try {
+      const response = await axiosClient.get(`${API_URL}/courses/${courseId}/ratings`);
+      return response.data;
+    } catch (error) {
+      console.error('Erreur lors de la récupération des évaluations:', error);
+      throw error;
+    }
+  },
+
+  async submitRating(courseId: string, ratingData: { stars: number; comment: string }): Promise<Rating> {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axiosClient.post(
+        `api/courses/${courseId}/ratings`,
+        ratingData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          }
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Erreur lors de la soumission de l\'évaluation:', error);
+      throw error;
+    }
+  },
+
+  async getUserRating(courseId: string): Promise<Rating | null> {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axiosClient.get(
+        `api/courses/${courseId}/user-rating`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Accept': 'application/json',
+          }
+        }
+      );
+      return response.data.rating || null;
+    } catch (error) {
+      console.error('Erreur lors de la récupération de l\'évaluation de l\'utilisateur:', error);
+      return null;
+    }
+  }
 };
