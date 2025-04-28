@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate } from "react-router-dom";
-import axiosClient  from "@/api/axios";
+import axiosClient from "@/api/axios";
 import { useAuth } from "@/hooks/useAuth";
 
 const Signup = () => {
@@ -12,30 +12,35 @@ const Signup = () => {
   const [userType, setUserType] = useState("student");
   const [formData, setFormData] = useState({
     firstName: "",
-    lastName:"",
+    lastName: "",
     email: "",
     password: "",
-    agreeToTerms: false
+    agreeToTerms: false,
   });
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value, type, checked } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [id]: type === 'checkbox' ? checked : value
+      [id]: type === "checkbox" ? checked : value,
     }));
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
+
     // Validation basique
-    if (!formData.firstName || !formData.lastName ||!formData.email || !formData.password) {
+    if (
+      !formData.firstName ||
+      !formData.lastName ||
+      !formData.email ||
+      !formData.password
+    ) {
       alert("Please fill all required fields");
       return;
     }
-    
+
     if (!formData.agreeToTerms) {
       alert("Please agree to the terms and conditions");
       return;
@@ -50,50 +55,50 @@ const Signup = () => {
     try {
       // Obtenez d'abord le cookie CSRF
       console.log("Fetching CSRF cookie...");
-      await axiosClient.get('/sanctum/csrf-cookie');
-      
+      await axiosClient.get("/sanctum/csrf-cookie");
+
       // Préparation des données pour l'API
       const userData = {
         firstName: formData.firstName,
-        lastName:formData.lastName,
+        lastName: formData.lastName,
         email: formData.email,
         password: formData.password,
         password_confirmation: formData.password, // Laravel demande généralement une confirmation
-        role: userType // student ou teacher
+        role: userType, // student ou teacher
       };
-      
+
       console.log("Sending registration data:", userData);
-      
+
       // Appel API pour l'inscription
-      const response = await axiosClient.post('/api/register', userData);
-      
+      const response = await axiosClient.post("/api/register", userData);
+
       console.log("Registration response:", response);
-      
+
       if (response.status === 201 || response.status === 200) {
         // Si l'API renvoie le token et les informations utilisateur directement
         if (response.data.token && response.data.user) {
           const { user, token } = response.data;
           console.log("Auto-login after registration");
-          
+
           // Connectez l'utilisateur immédiatement
           useAuth.getState().login(user, token);
-          
+
           // Redirection vers la page d'accueil ou tableau de bord
-          navigate('/');
+          navigate("/");
         } else {
           // Sinon, redirigez vers la page de connexion
           alert("Registration successful! Please login.");
-          navigate('/login');
+          navigate("/login");
         }
       }
     } catch (error: any) {
       console.error("Registration failed:", error);
-      
+
       // Affichage des erreurs de validation renvoyées par le backend
       if (error.response?.data?.errors) {
         const errorMessages = Object.values(error.response.data.errors)
           .flat()
-          .join('\n');
+          .join("\n");
         alert(`Registration error: ${errorMessages}`);
       } else if (error.response?.data?.message) {
         alert(`Error: ${error.response.data.message}`);
@@ -165,8 +170,10 @@ const Signup = () => {
             <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-100">
               <form onSubmit={handleSubmit} className="space-y-6">
                 <h2 className="text-2xl font-bold text-center mb-2">Sign Up</h2>
-                <p className="text-center text-[#656567] mb-6">Create an account to unlock exclusive features.</p>
-                
+                <p className="text-center text-[#656567] mb-6">
+                  Create an account to unlock exclusive features.
+                </p>
+
                 {/* Champ Nom Complet */}
                 <div className="space-y-2">
                   <label
@@ -274,14 +281,20 @@ const Signup = () => {
 
                 {/* Case à cocher pour les conditions */}
                 <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="agreeToTerms" 
+                  <Checkbox
+                    id="agreeToTerms"
                     checked={formData.agreeToTerms}
-                    onCheckedChange={(checked) => 
-                      setFormData(prev => ({ ...prev, agreeToTerms: checked === true }))
+                    onCheckedChange={(checked) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        agreeToTerms: checked === true,
+                      }))
                     }
                   />
-                  <label htmlFor="agreeToTerms" className="text-sm text-[#656567]">
+                  <label
+                    htmlFor="agreeToTerms"
+                    className="text-sm text-[#656567]"
+                  >
                     I agree with{" "}
                     <a href="#" className="text-[#333333] underline">
                       Terms of Use
@@ -294,8 +307,8 @@ const Signup = () => {
                 </div>
 
                 {/* Bouton d'inscription */}
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   className="w-full bg-[#FF9500] hover:bg-[#e68600] text-white"
                 >
                   Sign Up as {userType === "student" ? "Student" : "Teacher"}
