@@ -22,7 +22,7 @@ export function RatingForm({ courseId, onRatingAdded }: RatingFormProps) {
   useEffect(() => {
     const checkExistingRating = async () => {
       try {
-        const response = await axios.get(`/api/ratings/check/${courseId}`);
+        const response = await axios.get(`/api/courses/${courseId}/ratings`);
         if (response.data.has_rated) {
           setHasRated(true);
           setError('Vous avez déjà donné un avis pour ce cours');
