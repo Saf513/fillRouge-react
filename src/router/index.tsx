@@ -76,7 +76,7 @@ export  const  router = createBrowserRouter([
             element : <Navigate to="/login" replace />
           }
           ,{
-            path : '/course' , 
+            path : '/coursePlayer/:id' , 
             element : <CoursePlayer/>
           },
           {path : '/checkout',
