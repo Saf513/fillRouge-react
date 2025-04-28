@@ -1,18 +1,30 @@
-import axiosClient from '@/api/axios';
+import axios from '@/api/axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+export interface CartItem {
+  id: number;
+  title: string;
+  price: number;
+  image?: string;
+  course_id: number;
+}
+
+export interface CheckoutResponse {
+  url: string;
+  session_id: string;
+}
+
+export interface BillingAddress {
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  country: string;
+}
 
 export const cartService = {
-  // Récupérer le contenu du panier
-  async getCart() {
+  async fetchCart(): Promise<CartItem[]> {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axiosClient.get(`${API_URL}/cart`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Accept': 'application/json',
-        }
-      });
+      const response = await axios.get('/api/cart');
       return response.data;
     } catch (error) {
       console.error('Erreur lors de la récupération du panier:', error);
@@ -20,17 +32,10 @@ export const cartService = {
     }
   },
 
-  // Ajouter un cours au panier
-  async addToCart(courseId: number | string) {
+  async addToCart(course_id: number): Promise<CartItem[]> {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axiosClient.post(`${API_URL}/cart/add`, { course_id: courseId }, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
-      });
+      console.log(course_id)
+      const response = await axios.post('/api/cart/add', { course_id });
       return response.data;
     } catch (error) {
       console.error('Erreur lors de l\'ajout au panier:', error);
@@ -38,15 +43,10 @@ export const cartService = {
     }
   },
 
-  // Supprimer un cours du panier
-  async removeFromCart(courseId: number | string) {
+  async removeFromCart(course_id: number): Promise<CartItem[]> {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axiosClient.delete(`${API_URL}/cart/remove/${courseId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Accept': 'application/json',
-        }
+      const response = await axios.delete(`api/cart/remove`, { 
+        data: { course_id } 
       });
       return response.data;
     } catch (error) {
@@ -55,19 +55,66 @@ export const cartService = {
     }
   },
 
-  // Vider tout le panier
-  async clearCart() {
+  async clearCart(): Promise<CartItem[]> {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axiosClient.delete(`${API_URL}/cart/clear`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Accept': 'application/json',
-        }
+      const response = await axios.delete('/api/cart');
+      return response.data;
+    } catch (error) {
+      console.error('Erreur lors de la suppression du panier:', error);
+      throw error;
+    }
+  },
+  
+  async createCheckoutSession(
+    successUrl: string, 
+    cancelUrl: string, 
+    billingAddress: BillingAddress,
+    customerInfo: {
+      firstName: string;
+      lastName: string;
+      email: string;
+      phone: string;
+    }
+  ): Promise<CheckoutResponse> {
+    try {
+      const formattedBillingAddress = `${billingAddress.address}, ${billingAddress.zipCode} ${billingAddress.city}, ${billingAddress.state}, ${billingAddress.country}`;
+      
+      // Récupérer les informations du panier
+      let cart: CartItem[] = [];
+      try {
+        cart = await this.fetchCart();
+        console.log("Panier récupéré:", cart);
+      } catch (fetchError) {
+        console.error("Erreur lors de la récupération du panier:", fetchError);
+        cart = [];
+      }
+      
+      // S'assurer que cart est un tableau avant d'utiliser map
+      const filteredCart = Array.isArray(cart) ? cart.map(item => {
+        // Si l'image est une chaîne vide, on la définit à null pour que Stripe ne la traite pas
+        return {
+          ...item,
+          image: item.image && item.image.trim() !== '' ? item.image : null
+        };
+      }) : [];
+      
+      console.log("Panier filtré:", filteredCart);
+      
+      const response = await axios.post('/api/frontend/checkout', {
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+        billing_address: formattedBillingAddress,
+        customer_info: {
+          first_name: customerInfo.firstName,
+          last_name: customerInfo.lastName,
+          email: customerInfo.email,
+          phone: customerInfo.phone
+        },
+        cart_items: filteredCart // Remettre cart_items qui est nécessaire pour l'API
       });
       return response.data;
     } catch (error) {
-      console.error('Erreur lors du vidage du panier:', error);
+      console.error('Erreur lors de la création de la session de paiement:', error);
       throw error;
     }
   }
