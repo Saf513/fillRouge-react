@@ -2,6 +2,8 @@
 import { useState } from 'react';
 import { Star } from 'lucide-react';
 import axios from 'axios';
+import { useEffect } from 'react';
+import { Rating } from '@/types/rating';
 
 interface RatingFormProps {
   courseId: number;
@@ -79,6 +81,85 @@ export function RatingForm({ courseId, onRatingAdded }: RatingFormProps) {
           Envoyer mon avis
         </button>
       </form>
+    </div>
+  );
+}
+
+interface RatingsResponse {
+  current_page: number;
+  data: Rating[];
+  first_page_url: string;
+  from: number;
+  last_page: number;
+  last_page_url: string;
+  links: Array<{ url: string | null; label: string; active: boolean }>;
+  next_page_url: string | null;
+  path: string;
+  per_page: number;
+  prev_page_url: string | null;
+  to: number;
+  total: number;
+}
+
+export function useRatings(courseId: number, refreshTrigger = 0) {
+  const [ratings, setRatings] = useState<Rating[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [averageRating, setAverageRating] = useState<number | null>(null);
+  const [totalRatings, setTotalRatings] = useState<number>(0);
+
+  useEffect(() => {
+    const fetchRatings = async () => {
+      setLoading(true);
+      try {
+        const response = await axios.get<RatingsResponse>(`/api/courses/${courseId}/ratings`);
+        setRatings(response.data.data);
+        setTotalRatings(response.data.total);
+        
+        // Calculer la note moyenne
+        if (response.data.data.length > 0) {
+          const sum = response.data.data.reduce((acc, rating) => acc + rating.rating, 0);
+          setAverageRating(sum / response.data.data.length);
+        } else {
+          setAverageRating(null);
+        }
+        
+        setError(null);
+      } catch (err) {
+        console.error('Erreur lors du chargement des avis:', err);
+        setError('Impossible de charger les avis pour ce cours');
+        setRatings([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRatings();
+  }, [courseId, refreshTrigger]);
+
+  return {
+    ratings,
+    loading,
+    error,
+    averageRating,
+    totalRatings,
+  };
+}
+
+// Fonction pour afficher un nombre d'étoiles
+export function RatingStars({ rating }: { rating: number }) {
+  return (
+    <div className="flex">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <Star
+          key={star}
+          className={`h-4 w-4 ${
+            star <= Math.round(rating)
+              ? 'fill-[#ff9500] text-[#ff9500]'
+              : 'text-gray-300'
+          }`}
+        />
+      ))}
     </div>
   );
 }
