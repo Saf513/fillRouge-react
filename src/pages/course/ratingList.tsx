@@ -5,6 +5,7 @@ import { Rating } from '@/types/rating';
 
 interface RatingListProps {
   courseId: number;
+  refresh?: number;
 }
 
 interface ApiResponse {
@@ -23,7 +24,7 @@ interface ApiResponse {
   total: number;
 }
 
-export function RatingList({ courseId }: RatingListProps) {
+export function RatingList({ courseId, refresh = 0 }: RatingListProps) {
   const [ratings, setRatings] = useState<Rating[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -43,7 +44,7 @@ export function RatingList({ courseId }: RatingListProps) {
 
   useEffect(() => {
     fetchRatings();
-  }, [courseId]);
+  }, [courseId, refresh]);
 
   if (loading) return (
     <div className="text-center py-8">
