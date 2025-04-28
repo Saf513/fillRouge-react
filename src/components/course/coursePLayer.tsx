@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { useParams } from "react-router-dom"
 import Image from "next/image"
 import {
   ChevronDown,
@@ -27,7 +28,10 @@ import {
   MoreHorizontal,
   Printer,
   Linkedin,
+  File as FileIcon
 } from "lucide-react"
+import { courseService } from "@/services/courseService"
+import { toast } from "@/hooks/use-toast"
 
 // Types
 type Lesson = {
@@ -40,6 +44,8 @@ type Lesson = {
   preview: boolean
   content?: string
   videoUrl?: string
+  content_url?: string
+  content_type?: string
 }
 
 type Section = {
@@ -52,284 +58,32 @@ type Section = {
 type Course = {
   id: string
   title: string
-  instructor: string
+  instructor: {
+    first_name: string
+    last_name: string
+  }
   description: string
   progress: number
   totalLessons: number
   completedLessons: number
   sections: Section[]
-  image: string
+  image_url: string
 }
 
-// Exemple de données de cours
-const sampleCourse: Course = {
-  id: "course-1",
-  title: "Développement Web Complet 2023: De Zéro à Expert",
-  instructor: "Marie Dupont",
-  description:
-    "Apprenez HTML, CSS, JavaScript, React, Node.js et plus encore dans ce cours complet de développement web.",
-  progress: 68,
-  totalLessons: 142,
-  completedLessons: 97,
-  image: "/placeholder.svg?height=600&width=1200",
-  sections: [
-    {
-      id: "section-1",
-      title: "Introduction au Développement Web",
-      expanded: true,
-      lessons: [
-        {
-          id: "lesson-1-1",
-          title: "Bienvenue au cours",
-          duration: "5:30",
-          type: "video",
-          completed: true,
-          locked: false,
-          preview: true,
-          videoUrl: "/placeholder.svg?height=600&width=1200",
-        },
-        {
-          id: "lesson-1-2",
-          title: "Configuration de l'environnement de développement",
-          duration: "12:45",
-          type: "video",
-          completed: true,
-          locked: false,
-          preview: false,
-          videoUrl: "/placeholder.svg?height=600&width=1200",
-        },
-        {
-          id: "lesson-1-3",
-          title: "Comprendre le développement web moderne",
-          duration: "8:20",
-          type: "article",
-          completed: true,
-          locked: false,
-          preview: false,
-          content: "Le développement web moderne implique de nombreuses technologies et frameworks...",
-        },
-      ],
-    },
-    {
-      id: "section-2",
-      title: "HTML Fondamentaux",
-      expanded: false,
-      lessons: [
-        {
-          id: "lesson-2-1",
-          title: "Structure de base HTML",
-          duration: "10:15",
-          type: "video",
-          completed: true,
-          locked: false,
-          preview: false,
-          videoUrl: "/placeholder.svg?height=600&width=1200",
-        },
-        {
-          id: "lesson-2-2",
-          title: "Balises HTML essentielles",
-          duration: "15:30",
-          type: "video",
-          completed: true,
-          locked: false,
-          preview: false,
-          videoUrl: "/placeholder.svg?height=600&width=1200",
-        },
-        {
-          id: "lesson-2-3",
-          title: "Quiz: Fondamentaux HTML",
-          duration: "10:00",
-          type: "quiz",
-          completed: true,
-          locked: false,
-          preview: false,
-        },
-      ],
-    },
-    {
-      id: "section-3",
-      title: "CSS Fondamentaux",
-      expanded: false,
-      lessons: [
-        {
-          id: "lesson-3-1",
-          title: "Introduction au CSS",
-          duration: "14:20",
-          type: "video",
-          completed: true,
-          locked: false,
-          preview: false,
-          videoUrl: "/placeholder.svg?height=600&width=1200",
-        },
-        {
-          id: "lesson-3-2",
-          title: "Sélecteurs et propriétés CSS",
-          duration: "18:45",
-          type: "video",
-          completed: true,
-          locked: false,
-          preview: false,
-          videoUrl: "/placeholder.svg?height=600&width=1200",
-        },
-        {
-          id: "lesson-3-3",
-          title: "Mise en page avec Flexbox",
-          duration: "22:10",
-          type: "video",
-          completed: true,
-          locked: false,
-          preview: false,
-          videoUrl: "/placeholder.svg?height=600&width=1200",
-        },
-        {
-          id: "lesson-3-4",
-          title: "Projet: Créer une page d'accueil responsive",
-          duration: "45:00",
-          type: "assignment",
-          completed: false,
-          locked: false,
-          preview: false,
-        },
-      ],
-    },
-    {
-      id: "section-4",
-      title: "JavaScript Fondamentaux",
-      expanded: false,
-      lessons: [
-        {
-          id: "lesson-4-1",
-          title: "Introduction à JavaScript",
-          duration: "16:30",
-          type: "video",
-          completed: true,
-          locked: false,
-          preview: false,
-          videoUrl: "/placeholder.svg?height=600&width=1200",
-        },
-        {
-          id: "lesson-4-2",
-          title: "Variables, Types et Fonctions",
-          duration: "24:15",
-          type: "video",
-          completed: true,
-          locked: false,
-          preview: false,
-          videoUrl: "/placeholder.svg?height=600&width=1200",
-        },
-        {
-          id: "lesson-4-3",
-          title: "Manipulation du DOM",
-          duration: "28:40",
-          type: "video",
-          completed: false,
-          locked: false,
-          preview: false,
-          videoUrl: "/placeholder.svg?height=600&width=1200",
-        },
-      ],
-    },
-    {
-      id: "section-5",
-      title: "React.js",
-      expanded: false,
-      lessons: [
-        {
-          id: "lesson-5-1",
-          title: "Introduction à React",
-          duration: "20:15",
-          type: "video",
-          completed: false,
-          locked: false,
-          preview: false,
-          videoUrl: "/placeholder.svg?height=600&width=1200",
-        },
-        {
-          id: "lesson-5-2",
-          title: "Composants et Props",
-          duration: "25:30",
-          type: "video",
-          completed: false,
-          locked: false,
-          preview: false,
-          videoUrl: "/placeholder.svg?height=600&width=1200",
-        },
-        {
-          id: "lesson-5-3",
-          title: "État et Cycle de Vie",
-          duration: "28:45",
-          type: "video",
-          completed: false,
-          locked: true,
-          preview: false,
-          videoUrl: "/placeholder.svg?height=600&width=1200",
-        },
-      ],
-    },
-    {
-      id: "section-6",
-      title: "Node.js et Express",
-      expanded: false,
-      lessons: [
-        {
-          id: "lesson-6-1",
-          title: "Introduction à Node.js",
-          duration: "18:20",
-          type: "video",
-          completed: false,
-          locked: true,
-          preview: false,
-          videoUrl: "/placeholder.svg?height=600&width=1200",
-        },
-        {
-          id: "lesson-6-2",
-          title: "Création d'une API REST avec Express",
-          duration: "32:15",
-          type: "video",
-          completed: false,
-          locked: true,
-          preview: false,
-          videoUrl: "/placeholder.svg?height=600&width=1200",
-        },
-      ],
-    },
-    {
-      id: "section-7",
-      title: "Projet Final",
-      expanded: false,
-      lessons: [
-        {
-          id: "lesson-7-1",
-          title: "Présentation du Projet Final",
-          duration: "10:30",
-          type: "video",
-          completed: false,
-          locked: true,
-          preview: false,
-          videoUrl: "/placeholder.svg?height=600&width=1200",
-        },
-        {
-          id: "lesson-7-2",
-          title: "Mise en place du Projet",
-          duration: "25:45",
-          type: "video",
-          completed: false,
-          locked: true,
-          preview: false,
-          videoUrl: "/placeholder.svg?height=600&width=1200",
-        },
-        {
-          id: "lesson-7-3",
-          title: "Soumission et Évaluation",
-          duration: "15:20",
-          type: "assignment",
-          completed: false,
-          locked: true,
-          preview: false,
-        },
-      ],
-    },
-  ],
+// Exemple de données de cours - sera remplacé par les données réelles
+const defaultCourseState: Course = {
+  id: "",
+  title: "",
+  instructor: {
+    first_name: "",
+    last_name: ""
+  },
+  description: "",
+  progress: 0,
+  totalLessons: 0,
+  completedLessons: 0,
+  sections: [],
+  image_url: "/placeholder.svg?height=600&width=1200"
 }
 
 // Ressources téléchargeables
@@ -358,13 +112,91 @@ const notes = [
 
 // Composant principal
 const CoursePlayer = () => {
-  const [course, setCourse] = useState<Course>(sampleCourse)
-  const [currentLessonId, setCurrentLessonId] = useState<string>("lesson-1-1")
+  const { id } = useParams<{ id: string }>()
+  const [course, setCourse] = useState<Course>(defaultCourseState)
+  const [currentLessonId, setCurrentLessonId] = useState<string>("")
   const [showSidebar, setShowSidebar] = useState(true)
   const [showCertificate, setShowCertificate] = useState(false)
   const [showNotes, setShowNotes] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
+
+  // Charger les données du cours
+  useEffect(() => {
+    const fetchCourseData = async () => {
+      if (!id) return
+      
+      try {
+        setLoading(true)
+        const response = await courseService.getCourseById(id)
+        console.log("Données du cours:", response)
+        
+        // Récupérer les données du cours depuis response
+        const data = response.data
+        console.log(data.sections[0].lessons[0])
+        // Transformation des données du cours pour correspondre à notre structure
+        const transformedCourse: Course = {
+          id: data.id,
+          title: data.title || "",
+          instructor: {
+            first_name: data.instructor?.firstName || "",
+            last_name: data.instructor?.lastName || ""
+          },
+          description: data.description || "",
+          progress: data.user_progress ? parseInt(data.user_progress) : 0,
+          totalLessons: data.total_lessons || data.sections?.reduce((total, section) => 
+            total + (section.lessons?.length || 0), 0) || 0,
+          completedLessons: data.completed_lessons || 0,
+          sections: data.sections?.map(section => ({
+            id: section.id.toString(),
+            title: section.title,
+            expanded: false,
+            lessons: section.lessons?.map(lesson => ({
+              id: lesson.id.toString(),
+              title: lesson.title || "",
+              duration: lesson.duration || "0:00",
+              type: (lesson.content_type as "video" | "article" | "quiz" | "assignment") || "video",
+              completed: lesson.completed || false,
+              locked: lesson.locked || false,
+              preview: lesson.preview || false,
+              content: lesson.description,
+              videoUrl: lesson.content_url,
+              content_url: lesson.content_url,
+              content_type: lesson.content_type
+            })) || []
+          })) || [],
+          image_url: data.image_url || "/placeholder.svg?height=600&width=1200"
+        }
+
+        console.log("Données du cours transformées:", transformedCourse)
+        
+        setCourse(transformedCourse)
+        
+        // Définir la première leçon comme leçon actuelle si aucune n'est sélectionnée
+        if (transformedCourse.sections.length > 0 && 
+            transformedCourse.sections[0].lessons.length > 0 && 
+            !currentLessonId) {
+          setCurrentLessonId(transformedCourse.sections[0].lessons[0].id)
+        }
+        
+        setError(null)
+      } catch (err) {
+        console.error("Erreur lors du chargement du cours:", err)
+        setError("Impossible de charger le cours. Veuillez réessayer plus tard.")
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger le cours. Veuillez réessayer plus tard.",
+          variant: "destructive"
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    fetchCourseData()
+  }, [id, currentLessonId])
 
   // Trouver la leçon et la section actuelles
   const findCurrentLesson = () => {
@@ -391,7 +223,7 @@ const CoursePlayer = () => {
   // Vérifier si c'est la première ou la dernière leçon
   const isFirstLesson = sectionIndex === 0 && lessonIndex === 0
   const isLastLesson =
-    sectionIndex === course.sections.length - 1 && lessonIndex === course.sections[sectionIndex].lessons.length - 1
+    sectionIndex === course.sections.length - 1 && lessonIndex === course.sections[sectionIndex]?.lessons.length - 1
 
   // Naviguer vers la leçon précédente
   const goToPreviousLesson = () => {
@@ -435,36 +267,53 @@ const CoursePlayer = () => {
   }
 
   // Marquer une leçon comme terminée
-  const markLessonAsCompleted = (lessonId: string) => {
-    const updatedSections = course.sections.map((section) => {
-      const updatedLessons = section.lessons.map((lesson) => {
-        if (lesson.id === lessonId) {
-          return { ...lesson, completed: true }
-        }
-        return lesson
+  const markLessonAsCompleted = async (lessonId: string) => {
+    try {
+      // Ici, vous pouvez ajouter l'appel API pour marquer la leçon comme terminée
+      // Exemple: await courseService.markLessonAsCompleted(course.id, lessonId);
+      
+      const updatedSections = course.sections.map((section) => {
+        const updatedLessons = section.lessons.map((lesson) => {
+          if (lesson.id === lessonId) {
+            return { ...lesson, completed: true }
+          }
+          return lesson
+        })
+        return { ...section, lessons: updatedLessons }
       })
-      return { ...section, lessons: updatedLessons }
-    })
 
-    // Calculer le nouveau nombre de leçons terminées
-    let completedCount = 0
-    updatedSections.forEach((section) => {
-      section.lessons.forEach((lesson) => {
-        if (lesson.completed) completedCount++
+      // Calculer le nouveau nombre de leçons terminées
+      let completedCount = 0
+      updatedSections.forEach((section) => {
+        section.lessons.forEach((lesson) => {
+          if (lesson.completed) completedCount++
+        })
       })
-    })
 
-    // Mettre à jour le cours avec les nouvelles données
-    setCourse({
-      ...course,
-      sections: updatedSections,
-      completedLessons: completedCount,
-      progress: Math.round((completedCount / course.totalLessons) * 100),
-    })
+      // Mettre à jour le cours avec les nouvelles données
+      setCourse({
+        ...course,
+        sections: updatedSections,
+        completedLessons: completedCount,
+        progress: Math.round((completedCount / course.totalLessons) * 100),
+      })
 
-    // Si le cours est terminé à plus de 95%, afficher le certificat
-    if (Math.round((completedCount / course.totalLessons) * 100) > 95) {
-      setShowCertificate(true)
+      // Si le cours est terminé à plus de 95%, afficher le certificat
+      if (Math.round((completedCount / course.totalLessons) * 100) > 95) {
+        setShowCertificate(true)
+      }
+      
+      toast({
+        title: "Leçon terminée",
+        description: "Votre progression a été enregistrée avec succès.",
+      })
+    } catch (error) {
+      console.error("Erreur lors du marquage de la leçon comme terminée:", error)
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de l'enregistrement de votre progression.",
+        variant: "destructive"
+      })
     }
   }
 
@@ -511,6 +360,37 @@ const CoursePlayer = () => {
     }
   }
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center">
+          <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-orange-500"></div>
+          <p className="mt-4 text-gray-600">Chargement du cours...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="mb-4 rounded-full bg-red-100 p-3 inline-block">
+            <X className="h-6 w-6 text-red-500" />
+          </div>
+          <h2 className="mb-2 text-lg font-semibold">Erreur de chargement</h2>
+          <p className="text-gray-600">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-4 rounded-md bg-orange-500 px-4 py-2 text-white"
+          >
+            Réessayer
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       {/* Header du cours */}
@@ -526,7 +406,7 @@ const CoursePlayer = () => {
             <div>
               <h1 className="text-lg font-bold truncate max-w-[200px] sm:max-w-md">{course.title}</h1>
               <div className="flex items-center text-sm text-gray-500">
-                <span className="hidden sm:inline">Par {course.instructor}</span>
+                <span className="hidden sm:inline">Par {course.instructor.first_name} {course.instructor.last_name}</span>
                 <span className="mx-2 hidden sm:inline">•</span>
                 <div className="flex items-center">
                   <div className="w-20 h-1.5 bg-gray-200 rounded-full mr-2">
@@ -673,7 +553,7 @@ const CoursePlayer = () => {
                       height={60}
                       className="mx-auto mb-2"
                     />
-                    <p className="font-medium">{course.instructor}</p>
+                    <p className="font-medium">{course.instructor.first_name} {course.instructor.last_name}</p>
                     <p className="text-sm text-gray-500">Instructeur</p>
                   </div>
                   <div className="text-center">
@@ -722,12 +602,12 @@ const CoursePlayer = () => {
             <div className="h-full flex flex-col">
               {/* Contenu de la leçon */}
               <div className="flex-1 overflow-y-auto">
-                {currentLesson.type === "video" && (
+                {currentLesson?.type === "video" && (
                   <div className="bg-black aspect-video">
                     <div className="relative w-full h-full flex items-center justify-center">
                       <Image
-                        src={currentLesson.videoUrl || "/placeholder.svg?height=600&width=1200"}
-                        alt={currentLesson.title}
+                        src={currentLesson?.content_url || "/placeholder.svg?height=600&width=1200"}
+                        alt={currentLesson?.title || "Vidéo du cours"}
                         layout="fill"
                         objectFit="contain"
                       />
@@ -742,7 +622,7 @@ const CoursePlayer = () => {
 
                 <div className="p-6 max-w-4xl mx-auto">
                   <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-bold">{currentLesson.title}</h2>
+                    <h2 className="text-2xl font-bold">{currentLesson?.title}</h2>
                     <div className="flex items-center">
                       <button
                         className="p-2 rounded-full hover:bg-gray-100 mr-2"
@@ -756,32 +636,16 @@ const CoursePlayer = () => {
                     </div>
                   </div>
 
-                  {currentLesson.type === "article" && (
+                  {currentLesson?.type === "article" && (
                     <div className="prose max-w-none">
                       <p>
-                        {currentLesson.content ||
-                          "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl, eget aliquam nisl nisl sit amet nisl. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl, eget aliquam nisl nisl sit amet nisl."}
-                      </p>
-                      <p>
-                        Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl, eget aliquam nisl nisl sit amet
-                        nisl. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl, eget aliquam nisl nisl
-                        sit amet nisl.
-                      </p>
-                      <h3>Points clés à retenir</h3>
-                      <ul>
-                        <li>Les sélecteurs CSS permettent de cibler des éléments HTML spécifiques</li>
-                        <li>Les propriétés CSS définissent l'apparence des éléments</li>
-                        <li>La cascade détermine quelles règles s'appliquent en cas de conflit</li>
-                        <li>La spécificité est un concept important pour comprendre la priorité des règles</li>
-                      </ul>
-                      <p>
-                        N'oubliez pas de pratiquer ces concepts en créant vos propres exemples. La pratique est
-                        essentielle pour maîtriser le CSS.
+                        {currentLesson?.content ||
+                          "Le contenu de cette leçon n'est pas disponible pour le moment."}
                       </p>
                     </div>
                   )}
 
-                  {currentLesson.type === "quiz" && (
+                  {currentLesson?.type === "quiz" && (
                     <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
                       <h3 className="text-lg font-medium mb-4">Quiz: Vérifiez vos connaissances</h3>
                       <div className="space-y-4">
@@ -815,29 +679,11 @@ const CoursePlayer = () => {
                     </div>
                   )}
 
-                  {currentLesson.type === "assignment" && (
+                  {currentLesson?.type === "assignment" && (
                     <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-                      <h3 className="text-lg font-medium mb-4">Projet: Créer une page d'accueil responsive</h3>
+                      <h3 className="text-lg font-medium mb-4">Projet: {currentLesson.title}</h3>
                       <div className="prose max-w-none">
-                        <p>
-                          Dans ce projet, vous allez mettre en pratique vos connaissances en HTML et CSS pour créer une
-                          page d'accueil responsive pour un site web fictif.
-                        </p>
-                        <h4>Objectifs:</h4>
-                        <ul>
-                          <li>Créer une structure HTML sémantique</li>
-                          <li>Appliquer des styles CSS pour une mise en page attrayante</li>
-                          <li>Implémenter un design responsive qui s'adapte aux mobiles, tablettes et ordinateurs</li>
-                          <li>Utiliser Flexbox pour la mise en page</li>
-                        </ul>
-                        <h4>Instructions:</h4>
-                        <ol>
-                          <li>Créez un nouveau fichier HTML et un fichier CSS</li>
-                          <li>Structurez votre page avec header, navigation, sections principales et footer</li>
-                          <li>Ajoutez du contenu fictif (texte et images)</li>
-                          <li>Appliquez des styles pour rendre la page attrayante</li>
-                          <li>Assurez-vous que la page est responsive</li>
-                        </ol>
+                        <p>{currentLesson.content || "Les instructions pour ce projet ne sont pas disponibles."}</p>
                       </div>
                       <div className="mt-6 flex flex-wrap gap-3">
                         <button className="py-2 px-4 bg-orange-500 text-white rounded-md hover:bg-orange-600">
@@ -896,7 +742,7 @@ const CoursePlayer = () => {
                               ) : resource.type === "zip" ? (
                                 <Download className="h-4 w-4 text-blue-500" />
                               ) : (
-                                <File className="h-4 w-4 text-gray-500" />
+                                <FileIcon className="h-4 w-4 text-gray-500" />
                               )}
                             </div>
                             <div>
@@ -970,7 +816,7 @@ const CoursePlayer = () => {
                 </button>
 
                 <div className="flex items-center">
-                  {!currentLesson.completed && (
+                  {currentLesson && !currentLesson.completed && (
                     <button
                       className="py-2 px-4 bg-orange-500 text-white rounded-md hover:bg-orange-600 mr-2"
                       onClick={() => markLessonAsCompleted(currentLessonId)}
@@ -982,14 +828,14 @@ const CoursePlayer = () => {
                   <button
                     className={`flex items-center py-2 px-4 rounded-md ${
                       isLastLesson ||
-                      (currentLesson.completed && course.sections[sectionIndex].lessons[lessonIndex + 1]?.locked)
+                      (currentLesson?.completed && course.sections[sectionIndex]?.lessons[lessonIndex + 1]?.locked)
                         ? "text-gray-400 cursor-not-allowed"
                         : "bg-white border border-gray-300 hover:bg-gray-50"
                     }`}
                     onClick={goToNextLesson}
                     disabled={
                       isLastLesson ||
-                      (currentLesson.completed && course.sections[sectionIndex].lessons[lessonIndex + 1]?.locked)
+                      (currentLesson?.completed && course.sections[sectionIndex]?.lessons[lessonIndex + 1]?.locked)
                     }
                   >
                     <span className="hidden sm:inline">Suivant</span>
