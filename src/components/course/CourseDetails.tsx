@@ -1,6 +1,6 @@
 import { X, Play, BookOpen, Clock, Star, CheckCircle, ChevronDown, ChevronRight, Layers, Download, MessageSquare, ExternalLink, Share2, Bookmark } from "lucide-react"
-import { useState } from "react"
-import { Course, Section, Lesson } from "../../types/course"
+import { useState, useEffect } from "react"
+import { Course, Lesson } from "../../types/course"
 import CourseSections from "./CourseSections"
 import LessonViewer from "./LessonViewer"
 
@@ -23,6 +23,18 @@ export default function CourseDetails({ course, onClose }: CourseDetailsProps) {
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null)
   const [currentSectionIndex, setCurrentSectionIndex] = useState<number>(0)
   const [currentLessonIndex, setCurrentLessonIndex] = useState<number>(0)
+  const [isTeacher, setIsTeacher] = useState(false)
+
+  // Vérifier si l'utilisateur est un enseignant
+  useEffect(() => {
+    try {
+      const authData = JSON.parse(localStorage.getItem("auth-storage") || "{}");
+      const userRole = authData?.state?.user?.role || "";
+      setIsTeacher(userRole === "teacher");
+    } catch (error) {
+      console.error("Erreur lors de la vérification du rôle:", error);
+    }
+  }, []);
 
   const handleLessonClick = (lesson: Lesson) => {
     setSelectedLesson(lesson)
@@ -264,18 +276,22 @@ export default function CourseDetails({ course, onClose }: CourseDetailsProps) {
 
           {/* Boutons d'Action */}
           <div className="mt-6 flex flex-wrap gap-3 border-t border-gray-200 pt-6">
-            <button className="flex items-center rounded-md border border-gray-200 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-              <ExternalLink className="mr-2 h-4 w-4" />
-              Voir le Certificat du Cours
-            </button>
-            <button className="flex items-center rounded-md border border-gray-200 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-              <Share2 className="mr-2 h-4 w-4" />
-              Partager le Cours
-            </button>
-            <button className="flex items-center rounded-md border border-gray-200 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-              <Bookmark className="mr-2 h-4 w-4" />
-              {course.bookmarked ? "Retirer des Favoris" : "Sauvegarder le Cours"}
-            </button>
+            {!isTeacher && (
+              <>
+                <button className="flex items-center rounded-md border border-gray-200 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  Voir le Certificat du Cours
+                </button>
+                <button className="flex items-center rounded-md border border-gray-200 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                  <Share2 className="mr-2 h-4 w-4" />
+                  Partager le Cours
+                </button>
+                <button className="flex items-center rounded-md border border-gray-200 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                  <Bookmark className="mr-2 h-4 w-4" />
+                  {course.bookmarked ? "Retirer des Favoris" : "Sauvegarder le Cours"}
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>

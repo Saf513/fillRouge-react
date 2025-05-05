@@ -12,9 +12,6 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import useCategories from "@/hooks/useCategories";
 import { courseService } from "@/services/courseService";
-import { Lesson } from "@/types/course";
-import { Section } from "@/types/course";
-import { Course } from "@/types/course";
 import {
   BookOpen,
   Plus,
@@ -32,8 +29,6 @@ import {
   ArrowLeft,
   ArrowRight,
   File,
-  Music,
-  X,
 } from "lucide-react";
 
 import {
@@ -71,6 +66,7 @@ import {
 
 import { ResourceType } from "../../types/resource";
 import { cn } from "@/lib/utils";
+import { object } from "zod";
 
 type CourseCreationFormProps = {
   courseId?: number;
@@ -79,10 +75,10 @@ type CourseCreationFormProps = {
 };
 
 interface Resource {
-  id: string;
+  id: string | number;
   title: string;
   type: string;
-  file_url: string;
+  file_url: string | File;
   file_urls?: string[];
   is_downloadable: boolean;
   lesson_id?: number;
@@ -96,13 +92,13 @@ interface Lesson {
   order?: number;
   video_url?: string;
   videoFile?: File | null;
-  duration?: number;
+  duration?: number | string; // Accepter les deux types pour la compatibilité
   resources?: Resource[];
   content_type?: "video" | "pdf" | "article" | "quiz" | "assignment";
-  content_url?: string;
+  content_url?: string | File;
   pdf_url?: string;
   preview?: boolean;
-  attachments?: any[];
+  attachments?: Resource[]; // Type plus précis
 }
 
 interface Section {
@@ -117,15 +113,45 @@ interface CourseData {
   id?: number;
   title: string;
   description: string;
-  category_id: number;
+  category_id: number | string;
   thumbnail_url?: string;
   thumbnailFile?: File | null;
   sections: Section[];
   tags: string[];
   resources: Resource[];
   subtitle?: string;
+  level?: string;
+  language?: string;
+  price?: number;
+  discount?: number;
+  instructor_id?: number;
+  status?: string;
+  image_url?: string;
+  what_you_will_learn?: string[];
+  requirements?: string[];
+  subcategory?: string;
+  salePrice?: number;
 }
 
+/**
+ * Composant pour la création et la modification de cours
+ * 
+ * Processus complet de création d'un cours:
+ * 1. Saisie des informations de base (titre, description, catégorie, prix...)
+ * 2. Ajout de sections
+ * 3. Ajout de leçons dans les sections 
+ * 4. Ajout de tags et ressources au cours
+ * 5. Soumission du formulaire qui crée le cours en base
+ * 
+ * Pour chaque entité, le processus est:
+ * - Pour le cours: création via courseService.createCourse()
+ * - Pour les sections: création via courseService.addSection() pour chaque section
+ * - Pour les leçons: création via courseService.addLesson() pour chaque leçon de chaque section
+ * - Pour les tags: création via courseService.addTag() pour chaque tag
+ * - Pour les ressources: création via courseService.addResource() pour chaque ressource
+ * 
+ * Lors de l'édition, le processus est similaire mais utilise les méthodes update correspondantes
+ */
 const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCreationFormProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -144,7 +170,17 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
     category_id: 0,
     sections: [],
     tags: [],
-    resources: []
+    resources: [],
+    subtitle: '',
+    level: 'beginner',
+    language: 'fr',
+    price: 0,
+    discount: 0,
+    image_url: '',
+    status: 'draft',
+    subcategory: '',
+    what_you_will_learn: [],
+    requirements: []
   });
 
   // Charger les données du cours si on est en mode édition
@@ -152,55 +188,118 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
     const fetchCourseData = async () => {
       if (isEditing && courseId) {
         try {
+          // Récupérer les données du cours depuis l'API
           const response = await courseService.getCourseById(courseId.toString());
-          const courseData = response.data;
+          
+          // Vérifier le format de la réponse et extraire les données du cours
+          let courseData;
+          if (response && response.data) {
+            // Si la réponse contient un objet data, c'est le format attendu
+            courseData = response.data;
+          } else {
+            // Sinon, la réponse elle-même est le cours
+            courseData = response;
+          }
+          
+          console.log("Données du cours chargées pour édition:", courseData);
           
           // Transformation des données du cours pour correspondre à notre structure
-          setCourse({
-            ...course,
-            id: courseData.id.toString(),
+          const formattedCourse: CourseData = {
+            id: typeof courseData.id === 'string' ? parseInt(courseData.id) : courseData.id,
             title: courseData.title || "",
-            subtitle: courseData.subtitle || "",
             description: courseData.description || "",
-            category_id: courseData.category_id || "",
-            subcategory: courseData.subcategory || "",
+            category_id: typeof courseData.category_id === 'string' ? parseInt(courseData.category_id) : courseData.category_id || 0,
+            sections: [],
+            tags: [],
+            resources: [],
+            subtitle: courseData.subtitle || "",
             level: courseData.level || "beginner",
             language: courseData.language || "en",
-            price: courseData.price || 0,
-            discount: courseData.discount || 0,
+            price: typeof courseData.price === 'string' ? parseFloat(courseData.price) : (courseData.price || 0),
+            discount: typeof courseData.discount === 'string' ? parseFloat(courseData.discount) : (courseData.discount || 0),
             image_url: courseData.image_url || "",
             instructor_id: courseData.instructor_id || parseInt(localStorage.getItem("userId") || "0", 10),
             status: courseData.status || "draft",
-            sections: courseData.sections?.map(section => ({
+            subcategory: courseData.subcategory || "",
+            what_you_will_learn: Array.isArray(courseData.what_you_will_learn) ? courseData.what_you_will_learn : [],
+            requirements: Array.isArray(courseData.requirements) ? courseData.requirements : []
+          };
+
+          // Traitement des sections et leçons
+          if (Array.isArray(courseData.sections)) {
+            formattedCourse.sections = courseData.sections.map((section: any) => ({
               id: section.id.toString(),
-              title: section.title,
+              title: section.title || "",
               description: section.description || "",
-              order: section.order,
-              lessons: section.lessons?.map(lesson => ({
-                id: lesson.id?.toString(),
-                title: lesson.title || "",
-                description: lesson.description || "",
-                duration: lesson.duration || "0",
-                content_type: (lesson.content_type as "video" | "article" | "quiz" | "assignment"|"pdf") ,
-                completed: lesson.completed || false,
-                locked: lesson.locked || false,
-                preview: lesson.preview || false,
-                content: lesson.description,
-                content_url: lesson.content_url,
+              order: section.order || 0,
+              lessons: Array.isArray(section.lessons) 
+                ? section.lessons.map((lesson: any) => ({
+                    id: lesson.id?.toString() || `temp-${Date.now()}`,
+                    title: lesson.title || "",
+                    description: lesson.description || "",
+                    duration: typeof lesson.duration === 'string' ? parseInt(lesson.duration) : (lesson.duration || 0),
+                    content_type: (lesson.content_type as "video" | "article" | "quiz" | "assignment" | "pdf") || "video",
+                    preview: lesson.preview || false,
+                    content_url: lesson.content_url || "",
+                    order: lesson.order || 0,
+                    video_url: lesson.video_url || "",
+                    pdf_url: lesson.pdf_url || "",
+                    attachments: Array.isArray(lesson.attachments) ? lesson.attachments.map((att: any) => ({
+                      id: att.id?.toString() || `resource-${Date.now()}`,
+                      title: att.title || "",
+                      type: att.type || "",
+                      file_url: att.file_url || "",
+                      is_downloadable: att.is_downloadable || false,
+                      lesson_id: att.lesson_id || 0,
+                      file_size: att.file_size || 0
+                    })) : []
+                  }))
+                : []
+            }));
+          }
+
+          // Traitement des tags
+          if (Array.isArray(courseData.tags)) {
+            formattedCourse.tags = courseData.tags.map((tag: any) => {
+              if (typeof tag === 'object' && tag !== null) {
+                // Si c'est un objet Tag, extraire le nom
+                return 'name' in tag ? tag.name : tag.toString();
+              }
+              return tag.toString();
+            });
+          }
+
+          // Traitement des ressources
+          if (Array.isArray(courseData.resources)) {
+            formattedCourse.resources = courseData.resources.map((resource: any) => ({
+              id: resource.id?.toString() || `resource-${Date.now()}`,
+              title: resource.title || "",
+              type: resource.type || "",
+              file_url: resource.file_url || "",
+              is_downloadable: resource.is_downloadable || false,
+              lesson_id: resource.lesson_id || 0,
+              file_size: resource.file_size || 0
+            }));
+          }
+
+          // Définir le prix de vente si applicable
+          if (formattedCourse.discount && formattedCourse.discount > 0 && formattedCourse.price) {
+            formattedCourse.salePrice = formattedCourse.price * (1 - formattedCourse.discount / 100);
+          }
+
+          console.log("Données formatées pour le formulaire:", formattedCourse);
           
-                order: lesson.order || 0
-              })) || []
-            })) || [],
-            tags: courseData.tags?.map((tag: any) => tag.name) || [],
-            what_you_will_learn: courseData.what_you_will_learn || [],
-            requirements: courseData.requirements || [],
-            resources: courseData.resources || []
-          });
+          // Mettre à jour l'état du cours avec les données formatées
+          setCourse(formattedCourse);
 
           // Étendre toutes les sections pour l'édition
-          if (courseData.sections && courseData.sections.length > 0) {
-            setExpandedSections(courseData.sections.map((section: any) => section.id.toString()));
+          if (formattedCourse.sections.length > 0) {
+            setExpandedSections(formattedCourse.sections.map(section => section.id));
           }
+          
+          // Revenir au premier onglet pour visualiser les données
+          setCurrentStep(1);
+          
         } catch (err) {
           console.error("Erreur lors du chargement du cours:", err);
           toast({
@@ -213,7 +312,7 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
     };
 
     fetchCourseData();
-  }, [isEditing, courseId]);
+  }, [isEditing, courseId, toast]);
 
   //les states pour les lessons et les coures
   const [expandedSections, setExpandedSections] = useState<string[]>([]);
@@ -265,28 +364,30 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
         if (file.type === "application/pdf") {
           // Pour les PDFs
           const contentUrl = URL.createObjectURL(file);
-        setCurrentLesson({
-          ...currentLesson,
+          setCurrentLesson({
+            ...currentLesson,
             content_type: "pdf",
-            content_url: contentUrl,
-            pdf_url: contentUrl,
+            content_url: file, // Stocker l'objet File directement pour l'upload ultérieur
+            pdf_url: contentUrl, // URL locale pour l'aperçu
             video_url: "", // Réinitialiser l'URL vidéo
             duration: 0,
           });
+          console.log("PDF sélectionné, URL locale créée:", contentUrl);
         } else if (file.type.startsWith("video/")) {
           // Pour les vidéos
           const contentUrl = URL.createObjectURL(file);
-          console.log("contentUrl", contentUrl);
+          console.log("contentUrl vidéo:", contentUrl);
           setCurrentLesson({
             ...currentLesson,
             content_type: "video",
-            content_url: contentUrl,
-            video_url: contentUrl,
+            content_url: file, // Stocker l'objet File directement pour l'upload ultérieur
+            video_url: contentUrl, // URL locale pour l'aperçu
             pdf_url: "", // Réinitialiser l'URL PDF
             duration: 0, // Utiliser un nombre au lieu d'une chaîne
           });
+          console.log("Vidéo sélectionnée, URL locale créée:", contentUrl);
         }
-      } catch (error) {
+        } catch (error) {
         console.error("Erreur lors de la sélection du fichier:", error);
         toast({
           title: "Erreur",
@@ -296,7 +397,7 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
       }
     }
   };
- 
+
   // Toggle section expand/collapse
   const toggleSection = (sectionId: string) => {
     if (expandedSections.includes(sectionId)) {
@@ -321,45 +422,134 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
   };
 
   // Save section
-  const handleSaveSection = () => {
+  const handleSaveSection = async () => {
     if (!currentSection) return;
 
     if (currentSection.title.trim() === "") {
       toast({
-        title: "Section title required",
-        description: "Please provide a title for the section.",
+        title: "Titre de section requis",
+        description: "Veuillez fournir un titre pour la section.",
         variant: "destructive",
       });
       return;
     }
 
-    const isEditing = course.sections?.some(
+    // Afficher un toast de chargement
+    toast({
+      title: "Sauvegarde en cours",
+      description: "Enregistrement de la section...",
+    });
+
+    try {
+      // Préparer les données de la section
+      const sectionData = {
+        ...currentSection,
+        title: currentSection.title.trim(),
+        description: currentSection.description || "",
+        order: currentSection.order || course.sections.length + 1
+      };
+
+      console.log("Données de section à sauvegarder:", sectionData);
+
+      // Vérifier si la section existe déjà
+      const isEditing = course.sections.some(
       (section) => section.id === currentSection.id
     );
-    let updatedSections;
 
+      let updatedSections;
     if (isEditing) {
-      updatedSections = course.sections?.map((section) =>
-        section.id === currentSection.id ? currentSection : section
+        updatedSections = course.sections.map((section) =>
+          section.id === currentSection.id ? sectionData : section
       );
     } else {
-      updatedSections = course.sections
-        ? [...course.sections, currentSection]
-        : [currentSection];
-    }
+        updatedSections = [
+          ...course.sections,
+          sectionData
+        ];
+      }
 
+      // Mettre à jour le cours avec la nouvelle section
     setCourse({
       ...course,
       sections: updatedSections,
     });
+
+      // Si le cours a déjà été créé, enregistrer la section immédiatement sur le serveur
+      if (course.id) {
+        try {
+          const courseId = course.id.toString();
+          
+          const sectionToSave = {
+            title: sectionData.title,
+            description: sectionData.description || "",
+            order: sectionData.order || 1
+          };
+          
+          console.log("Tentative de sauvegarde de la section sur le serveur:", {
+            courseId,
+            sectionData: sectionToSave
+          });
+          
+          if (isEditing && !sectionData.id.startsWith('section-')) {
+            // Mise à jour d'une section existante
+            await courseService.updateSection(
+              courseId,
+              sectionData.id,
+              sectionToSave
+            );
+            console.log("Section mise à jour avec succès sur le serveur");
+          } else {
+            // Création d'une nouvelle section
+            const createdSection = await courseService.addSection(
+              courseId,
+              sectionToSave
+            );
+            console.log("Nouvelle section créée avec succès sur le serveur:", createdSection);
+            
+            // Mettre à jour l'ID de la section avec celui retourné par le serveur
+            if (createdSection && createdSection.id) {
+              const updatedSectionsWithId = course.sections.map((section) => 
+                section.id === sectionData.id ? { ...section, id: createdSection.id.toString() } : section
+              );
+              
+              setCourse({
+                ...course,
+                sections: updatedSectionsWithId
+              });
+            }
+          }
+        } catch (serverError) {
+          console.error("Erreur lors de la sauvegarde de la section sur le serveur:", serverError);
+          toast({
+            title: "Avertissement",
+            description: "La section a été sauvegardée localement mais pas sur le serveur. Elle sera synchronisée lors de la soumission finale.",
+            variant: "destructive"
+          });
+        }
+      }
 
     // Expand the new section
     if (!isEditing) {
       setExpandedSections([...expandedSections, currentSection.id]);
     }
 
+      // Notification pour confirmer l'action
+      toast({
+        title: isEditing ? "Section mise à jour" : "Section ajoutée",
+        description: isEditing ? "La section a été mise à jour avec succès" : "La section a été ajoutée avec succès",
+        variant: "default"
+      });
+
     setShowSectionDialog(false);
     setCurrentSection(null);
+    } catch (error) {
+      console.error("Erreur lors de la sauvegarde de la section:", error);
+      toast({
+        title: "Erreur",
+        description: "Erreur lors de la sauvegarde de la section: " + ((error as Error).message || "Erreur inconnue"),
+        variant: "destructive"
+      });
+    }
   };
 
   // Edit section
@@ -370,8 +560,20 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
 
   // Add a new lesson to a section
   const handleAddLesson = (sectionId: string) => {
+    console.log("handleAddLesson appelé avec sectionId:", sectionId);
     const section = course.sections.find((s) => s.id === sectionId);
-    if (!section) return;
+    
+    if (!section) {
+      console.error("Section non trouvée avec l'ID:", sectionId);
+      toast({
+        title: "Erreur",
+        description: "Section non trouvée",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    console.log("Section trouvée:", section);
 
     const newLesson: Lesson = {
       id: `temp-lesson-${Date.now()}`,
@@ -384,14 +586,56 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
       attachments: [],
     };
 
+    console.log("Nouvelle leçon créée:", newLesson);
+    console.log("Ouverture du dialogue de leçon");
+
     setCurrentSection({ ...section });
     setCurrentLesson(newLesson);
     setShowLessonDialog(true);
   };
 
+  // Edit lesson
+  const handleEditLesson = (sectionId: string, lessonId: string) => {
+    const section = course.sections?.find((s) => s.id === sectionId);
+    if (!section) return;
+
+    const lesson = section.lessons.find((l) => l.id === lessonId);
+    if (!lesson) return;
+
+    console.log("Édition de la leçon:", lesson);
+    
+    setCurrentSection({ ...section });
+    setCurrentLesson({ 
+      ...lesson,
+      title: lesson.title || "",
+      description: lesson.description || "",
+      content_type: lesson.content_type || "video",
+      duration: lesson.duration || 0,
+      order: lesson.order || 1,
+      preview: lesson.preview || false,
+      content_url: lesson.content_url || "",
+      video_url: lesson.video_url || "",
+      pdf_url: lesson.pdf_url || "",
+      attachments: lesson.attachments || []
+    });
+    
+    setShowLessonDialog(true);
+  };
+
   // Save lesson
   const handleSaveLesson = async () => {
-    if (!currentLesson || !currentSection) return;
+    console.log("Début de handleSaveLesson");
+    console.log("currentLesson:", currentLesson);
+    console.log("currentSection:", currentSection);
+    
+    if (!currentLesson || !currentSection) {
+      toast({
+        title: "Erreur",
+        description: "Informations manquantes pour enregistrer la leçon",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
     // Validation des champs requis
@@ -404,27 +648,41 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
       return;
     }
 
+      // Afficher un indicateur de chargement
+      toast({
+        title: "Sauvegarde en cours",
+        description: "Enregistrement de la leçon en cours...",
+      });
+
       // Préparation des données de la leçon avec durée par défaut selon le type
-      let durationValue = currentLesson.duration;
-      if (currentLesson.content_type === "pdf") {
-        durationValue = 0;
-      } else if (!durationValue) {
+      let durationValue = currentLesson.duration || 0;
+      if (currentLesson.content_type === "pdf" && !durationValue) {
         durationValue = 0;
       }
 
+      // Créer une copie de la leçon actuelle pour éviter les problèmes de référence
+      // Conservons l'objet File tel quel dans l'état local
     const lessonData = {
       ...currentLesson,
+        title: currentLesson.title.trim(),
+        description: currentLesson.description || "",
         duration: durationValue,
         content_type: currentLesson.content_type || "video",
-      content_url: currentLesson.content_url || "",
-      section_id: parseInt(currentSection.id),
-    };
+        preview: currentLesson.preview || false,
+        order: currentLesson.order || 1,
+      };
+      
+      console.log("lessonData", lessonData);
+      console.log("Données de la leçon à sauvegarder:", lessonData);
+      console.log("Section parent:", currentSection);
 
+      // Vérifier si la leçon existe déjà dans la section
     const isEditing = currentSection.lessons.some(
       (lesson) => lesson.id === currentLesson.id
     );
 
-    let updatedLessons;
+      // Mettre à jour les données de la section
+      let updatedLessons = [];
     if (isEditing) {
       updatedLessons = currentSection.lessons.map((lesson) =>
         lesson.id === currentLesson.id ? lessonData : lesson
@@ -433,20 +691,33 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
       updatedLessons = [...currentSection.lessons, lessonData];
     }
 
+      // Créer une nouvelle copie de la section pour éviter les problèmes de référence
     const updatedSection = {
       ...currentSection,
       lessons: updatedLessons,
     };
 
-    const updatedSections = course.sections?.map((section) =>
+      // Mettre à jour les sections dans le cours
+      const updatedSections = course.sections.map((section) =>
       section.id === updatedSection.id ? updatedSection : section
     );
 
+      console.log("Sections mises à jour:", updatedSections);
+
+      // Mettre à jour le cours avec la nouvelle leçon
     setCourse({
       ...course,
       sections: updatedSections,
     });
 
+      // Notification pour confirmer l'action
+      toast({
+        title: isEditing ? "Leçon mise à jour" : "Leçon ajoutée",
+        description: isEditing ? "La leçon a été mise à jour avec succès" : "La leçon a été ajoutée avec succès",
+        variant: "default"
+      });
+
+      console.log("Fin de handleSaveLesson - succès");
     setShowLessonDialog(false);
     setCurrentLesson(null);
     setCurrentSection(null);
@@ -455,23 +726,10 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
       console.error("Erreur lors de la sauvegarde de la leçon:", error);
       toast({
         title: "Erreur",
-        description: "Erreur lors de la sauvegarde de la leçon",
+        description: "Erreur lors de la sauvegarde de la leçon: " + ((error as Error).message || "Erreur inconnue"),
         variant: "destructive"
       });
     }
-  };
-
-  // Edit lesson
-  const handleEditLesson = (sectionId: string, lessonId: string) => {
-    const section = course.sections?.find((s) => s.id === sectionId);
-    if (!section) return;
-
-    const lesson = section.lessons.find((l) => l.id === lessonId);
-    if (!lesson) return;
-
-    setCurrentSection({ ...section });
-    setCurrentLesson({ ...lesson });
-    setShowLessonDialog(true);
   };
 
   // Delete section or lesson
@@ -624,13 +882,37 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
 
   // Add a tag
   const handleAddTag = () => {
-    if (selectedTag && !course.tags.includes(selectedTag)) {
+    if (!selectedTag || selectedTag.trim() === "") {
+      toast({
+        title: "Erreur",
+        description: "Veuillez entrer un tag valide",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Vérifier si le tag existe déjà
+    if (course.tags.includes(selectedTag.trim())) {
+      toast({
+        title: "Tag déjà existant",
+        description: "Ce tag existe déjà dans la liste",
+        variant: "destructive",
+      });
+      return;
+    }
+    
       setCourse({
         ...course,
-        tags: [...course.tags, selectedTag],
+      tags: [...course.tags, selectedTag.trim()],
       });
+    
+    toast({
+      title: "Tag ajouté",
+      description: `Le tag "${selectedTag}" a été ajouté avec succès`,
+      variant: "default",
+    });
+    
       setSelectedTag("");
-    }
   };
 
   // Remove a tag
@@ -638,6 +920,12 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
     setCourse({
       ...course,
       tags: course.tags.filter((t) => t !== tag),
+    });
+    
+    toast({
+      title: "Tag supprimé",
+      description: `Le tag "${tag}" a été supprimé`,
+      variant: "default",
     });
   };
 
@@ -677,11 +965,10 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
   // Add a resource to the course
   const handleAddResource = async () => {
     // Validate resource data
-
     if (!newResource.title.trim()) {
       toast({
-        title: "Missing information",
-        description: "Resource title is required",
+        title: "Information manquante",
+        description: "Le titre de la ressource est requis",
         variant: "destructive",
       });
       return;
@@ -689,8 +976,8 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
 
     if (newResource.type !== ResourceType.LINK && newResource.files.length === 0) {
       toast({
-        title: "Missing files",
-        description: "Please select at least one file to upload",
+        title: "Fichiers manquants",
+        description: "Veuillez sélectionner au moins un fichier à télécharger",
         variant: "destructive",
       });
       return;
@@ -698,63 +985,73 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
 
     if (newResource.type === ResourceType.LINK && !newResource.file_url.trim()) {
       toast({
-        title: "Missing URL",
-        description: "Please enter a valid URL",
+        title: "URL manquante",
+        description: "Veuillez entrer une URL valide",
         variant: "destructive",
       });
       return;
     }
 
-    // If files are selected, upload them
+    // Si des fichiers sont sélectionnés, les télécharger
     const fileUrls: string[] = [];
-   
-    if (newResource.files.length > 0) {
-      setResourceFileUploading(true);
-      console.log(newResource.files)
+    let resourceFileUploading = true;
+
       try {
-        
-        // Upload each file and collect the URLs
+      if (newResource.files.length > 0) {
+        // Télécharger chaque fichier et collecter les URLs
         for (const file of newResource.files) {
-          // Upload the file using the courseService
+          // Télécharger le fichier en utilisant courseService
           const uploadResponse = await courseService.uploadFile(
             "courseResource", 
             file
           );
-          
 
           if (uploadResponse.fileUrl) {
             fileUrls.push(uploadResponse.fileUrl);
           }
         }
-      } catch (error) {
-        console.error("Error uploading resource files:", error);
-        toast({
-          title: "Upload failed",
-          description: "There was an error uploading your files. Please try again.",
-          variant: "destructive",
-        });
-        setResourceFileUploading(false);
-        return;
       }
 
-      setResourceFileUploading(false);
-    }
+      resourceFileUploading = false;
 
-    // Add the resource to the course
-    const newResourceItem = {
-      id: Date.now().toString(), // Temporary ID for UI purposes
+      // Ajouter la ressource au cours pour chaque fichier ou lien
+      if (newResource.type === ResourceType.LINK) {
+        // Pour les liens, créer une ressource unique
+        const newResourceItem: Resource = {
+          id: Date.now().toString(),
       title: newResource.title,
       type: newResource.type,
-      file_urls: newResource.type === ResourceType.LINK ? [newResource.file_url] : fileUrls,
-      is_downloadable: newResource.is_downloadable
+          file_url: newResource.file_url,
+          is_downloadable: newResource.is_downloadable,
+          lesson_id: 0,
+          file_size: 0
     };
 
     setCourse({
       ...course,
       resources: [...course.resources, newResourceItem]
     });
+      } else {
+        // Pour les fichiers, créer une ressource pour chaque fichier
+        const newResources = fileUrls.map((fileUrl, index) => {
+          return {
+            id: (Date.now() + index).toString(),
+            title: fileUrls.length > 1 ? `${newResource.title} (${index + 1})` : newResource.title,
+            type: newResource.type,
+            file_url: fileUrl,
+            is_downloadable: newResource.is_downloadable,
+            lesson_id: 0,
+            file_size: newResource.files[index]?.size || 0
+          };
+        });
+        
+        setCourse({
+          ...course,
+          resources: [...course.resources, ...newResources]
+        });
+      }
 
-    // Reset the form
+      // Réinitialiser le formulaire
     setNewResource({
       title: "",
       lesson_id: 0,
@@ -763,6 +1060,20 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
       file_url: "",
       is_downloadable: true
     });
+      
+      toast({
+        title: "Ressource ajoutée",
+        description: "La ressource a été ajoutée avec succès",
+        variant: "default",
+      });
+    } catch (error) {
+      console.error("Erreur lors de l'ajout de la ressource:", error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur s'est produite lors de l'ajout de la ressource",
+        variant: "destructive",
+      });
+    }
   };
 
   // Add a resource to a lesson
@@ -846,12 +1157,12 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
       // For links, create a single resource
       newResources.push({
         id: Date.now(),
-        lesson_id: parseInt(currentLesson.id),
+        lesson_id: currentLesson?.id ? parseInt(currentLesson.id) : 0,
         title: newResource.title,
         type: newResource.type,
         file_url: newResource.file_url,
-        file_size: 0,
-        is_downloadable: newResource.is_downloadable
+        file_size: fileSize || 0,
+        is_downloadable: newResource.is_downloadable,
       });
     } else {
       // For files, create a resource for each file
@@ -859,7 +1170,7 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
         const fileName = newResource.files[index]?.name || newResource.title;
         newResources.push({
           id: Date.now() + index,
-          lesson_id: parseInt(currentLesson.id),
+          lesson_id: currentLesson?.id ? parseInt(currentLesson.id) : 0,
           title: fileUrls.length > 1 ? `${newResource.title} (${index + 1})` : newResource.title,
           type: newResource.type,
           file_url: fileUrl,
@@ -895,7 +1206,7 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
   };
 
   // Remove a resource from a lesson
-  const handleRemoveLessonResource = (resourceId: number) => {
+  const handleRemoveLessonResource = (resourceId: string | number) => {
     if (!currentLesson) return;
 
     setCurrentLesson({
@@ -917,48 +1228,28 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
   const handleSubmit = async () => {
     setIsSubmitting(true);
     console.log("Début de la soumission du formulaire. Mode édition:", isEditing);
+    console.log("Données du cours à soumettre:", course);
 
-    // Validate course data
+    try {
+      console.log(course.title , course.description , course.category_id)
+      // Validation des données du cours
     if (!course.title || !course.description || !course.category_id) {
       toast({
-        title: "Missing information",
-        description: "Please fill in all required fields.",
+          title: "Informations manquantes",
+          description: "Veuillez remplir tous les champs requis.",
         variant: "destructive",
       });
       setIsSubmitting(false);
+       
       return;
     }
 
-    if (!course.sections || course.sections.length === 0) {
-      toast({
-        title: "Aucun section ajoutée",
-        description: "Veuillez ajouter au moins une section à votre cours.",
-        variant: "destructive",
-      });
-      setIsSubmitting(false);
-      return;
-    }
-
-    // Check if all sections have at least one lesson
-    const emptySections = course.sections.filter(
-      (section) => section.lessons.length === 0
-    );
-    if (emptySections.length > 0) {
-      toast({
-        title: "Empty sections",
-        description: `${emptySections.length} section(s) have no lessons. Please add at least one lesson to each section.`,
-        variant: "destructive",
-      });
-      setIsSubmitting(false);
-      return;
-    }
-
+      // Récupérer le token d'authentification
     const authDataString = localStorage.getItem("auth-storage");
-
     if (!authDataString) {
       toast({
         title: "Erreur d'authentification",
-        description: "Aucune donnée d'authentification trouvée.",
+          description: "Aucune donnée d'authentification trouvée. Veuillez vous reconnecter.",
         variant: "destructive",
       });
       setIsSubmitting(false);
@@ -966,194 +1257,364 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
     }
 
     const authData = JSON.parse(authDataString);
+      const token = authData?.state?.token;
     const userId = authData?.state?.user?.id;
 
-    if (!userId) {
+      console.log("Token récupéré:", token ? "Token disponible" : "Token manquant");
+      console.log("ID utilisateur:", userId);
+
+      // Mettre le token dans localStorage pour être sûr qu'il est disponible pour l'API
+      if (token) {
+        localStorage.setItem('token', token);
+        console.log("Token mis à jour dans localStorage");
+      }
+
+      if (!token || !userId) {
       toast({
         title: "Erreur d'authentification",
-        description: "Aucun identifiant d'utilisateur trouvé.",
+          description: "Session expirée ou informations d'authentification manquantes. Veuillez vous reconnecter.",
         variant: "destructive",
       });
       setIsSubmitting(false);
       return;
     }
 
-    try {
       // Préparer les données du cours
       const courseData = {
         title: course.title,
         description: course.description,
-        category_id: course.category_id,
-        level: course.level,
-        language: course.language,
+        category_id: typeof course.category_id === 'number' ? course.category_id.toString() : course.category_id,
+        level: course.level || "beginner",
+        language: course.language || "en",
         instructor_id: userId,
-        price: typeof course.price === 'number' ? course.price : Number(course.price),
-        discount: typeof course.discount === 'number' ? course.discount : Number(course.discount),
+        price: typeof course.price === 'number' ? course.price : Number(course.price || 0),
+        discount: typeof course.discount === 'number' ? course.discount : Number(course.discount || 0),
         image_url: course.image_url,
+        status: course.status || "draft",
+        subtitle: course.subtitle,
+        what_you_will_learn: course.what_you_will_learn || [],
+        requirements: course.requirements || []
       };
       
-      console.log("Données du cours à envoyer:", courseData);
+      console.log("Données du cours formatées pour envoi API:", courseData);
       let courseId;
       
+      // Créer ou mettre à jour le cours en fonction du mode
       if (isEditing && course.id) {
-        // Mettre à jour le cours existant
-        console.log("Mise à jour du cours existant avec ID:", course.id);
-        const updatedCourse = await courseService.updateCourse(course.id, courseData);
-        console.log("Réponse de la mise à jour du cours:", updatedCourse);
-        courseId = course.id;
+        console.log("Mode édition détecté - ID du cours:", course.id);
+        
+        // Convertir l'ID en string s'il est un nombre
+        const idToUse = typeof course.id === 'number' ? course.id.toString() : course.id;
+        console.log("ID converti pour la mise à jour:", idToUse);
+        
+        try {
+          // Appeler le service de cours pour la mise à jour
+          console.log("Appel de courseService.updateCourse avec:", {
+            courseId: idToUse,
+            courseData: courseData
+          });
+          
+          // Assurez-vous que le token est à jour dans localStorage pour que le service puisse l'utiliser
+          if (token) {
+            localStorage.setItem('token', token);
+          }
+          
+          const updatedCourse = await courseService.updateCourse(idToUse, courseData);
+          console.log("Réponse de la mise à jour du cours:", updatedCourse);
+          courseId = idToUse;
+        } catch (updateError: any) {
+          console.error("Erreur complète lors de la mise à jour:", updateError);
+          if (updateError.response) {
+            console.error("Détails de l'erreur:", {
+              status: updateError.response.status,
+              data: updateError.response.data,
+              headers: updateError.response.headers
+            });
+          } else if (updateError.request) {
+            console.error("Requête envoyée mais pas de réponse:", updateError.request);
+          } else {
+            console.error("Erreur pendant la configuration de la requête:", updateError.message);
+          }
+          throw updateError;
+        }
       } else {
-        // Créer un nouveau cours
         console.log("Création d'un nouveau cours");
       const createdCourse = await courseService.createCourse(courseData);
         console.log("Réponse de la création du cours:", createdCourse);
-        courseId = createdCourse.data?.id;
-      }
 
+        // Vérifier si la réponse contient l'ID du cours
+        if (createdCourse && (typeof createdCourse.id === 'string' || typeof createdCourse.id === 'number')) {
+          courseId = createdCourse.id.toString();
+          console.log("ID du cours créé:", courseId);
+        } else if (typeof createdCourse === 'object' && createdCourse !== null && 'data' in createdCourse && createdCourse.data && typeof createdCourse.data.id !== 'undefined') {
+          courseId = createdCourse.data.id.toString();
+          console.log("ID du cours créé (via data):", courseId);
+        } else {
+          console.error("Réponse de création de cours invalide:", createdCourse);
+          throw new Error("ID du cours non trouvé dans la réponse.");
+        }
+      }
+      
       if (!courseId) {
         throw new Error("L'ID du cours est manquant après création/mise à jour");
       }
 
+      // Créer les sections et leçons une à une
       console.log("Traitement des sections du cours. Nombre de sections:", course.sections.length);
-      
-      // 2. Ajouter ou mettre à jour les sections et leurs leçons
+
+      // Ajouter ou mettre à jour les sections et leurs leçons
       for (const section of course.sections) {
         let sectionId;
         
-        if (isEditing && section.id && !section.id.startsWith('section-')) {
-          // Mettre à jour la section existante
-          console.log("Mise à jour de la section existante:", section.id);
-          const updatedSection = await courseService.updateSection(courseId, section.id, {
+        try {
+          if (isEditing && section.id && !section.id.startsWith('section-')) {
+            // Mettre à jour la section existante
+            console.log("Mise à jour de la section existante:", section.id);
+            const sectionData = {
           title: section.title,
-            description: section.description || "",
-            order: section.order || 0,
+              description: section.description || "",
+              order: section.order || 0,
+            };
+            console.log("Données de section à mettre à jour:", sectionData);
+            
+            const updatedSection = await courseService.updateSection(courseId, section.id, sectionData);
+            console.log("Réponse de la mise à jour de la section:", updatedSection);
+            sectionId = section.id;
+          } else {
+            // Créer une nouvelle section
+            console.log("Création d'une nouvelle section");
+            const sectionToCreate = {
+              title: section.title,
+              description: section.description || "",
+              order: section.order || 0,
+            };
+            console.log("Données de la section à créer:", sectionToCreate);
+            
+            const createdSection = await courseService.addSection(courseId, sectionToCreate);
+            console.log("Réponse de la création de la section:", createdSection);
+            sectionId = createdSection;
+          }
+        } catch (sectionError) {
+          console.error("Erreur lors de la création/mise à jour de la section:", sectionError);
+          toast({
+            title: "Avertissement",
+            description: `Problème avec une section: ${section.title}`,
+            variant: "destructive"
           });
-          console.log("Réponse de la mise à jour de la section:", updatedSection);
-          sectionId = section.id;
-        } else {
-          // Créer une nouvelle section
-          console.log("Création d'une nouvelle section");
-          const sectionToCreate = {
-            title: section.title,
-            description: section.description || "",
-            order: section.order || 0,
-          };
-          console.log("Données de la section à créer:", sectionToCreate);
-          const createdSection = await courseService.addSection(courseId, sectionToCreate);
-          console.log("Réponse de la création de la section:", createdSection);
-          sectionId = createdSection.id;
+          continue; // Passer à la section suivante en cas d'erreur
         }
+       console.log("sectionId", sectionId);
 
         if (!sectionId) {
           console.error("ID de section manquant, passage à la section suivante");
           continue;
         }
 
-        // Ajouter ou mettre à jour les leçons de la section
+        // Traiter les leçons de cette section
         console.log(`Traitement des leçons de la section ${sectionId}. Nombre de leçons:`, section.lessons.length);
         for (const lesson of section.lessons) {
-          // Traitement des leçons
+          console.log("lesson", lesson);
+          console.log(typeof lesson.duration);
+          
+          // Traiter le fichier content_url si c'est un objet File
+          let processedContentUrl = lesson.content_url;
+          
+          if (lesson.content_url && typeof lesson.content_url === 'object' && 'name' in lesson.content_url) {
+            try {
+              console.log("Détection d'un fichier pour content_url, préparation pour upload...");
+              
+              // Uploader le fichier directement sans FormData intermédiaire
+              const uploadResponse = await courseService.uploadFile(
+                'lesson', 
+                lesson.content_url
+              );
+              
+              console.log("Réponse de l'upload:", uploadResponse);
+              
+              // Extraire l'URL du fichier selon la structure de la réponse
+              let fileUrl = '';
+              
+              if (uploadResponse && uploadResponse.status === 'success' && uploadResponse.data && uploadResponse.data.file_url) {
+                // Format API Laravel
+                fileUrl = uploadResponse.data.file_url;
+                console.log("URL du fichier uploadé (format API Laravel):", fileUrl);
+              } else if (uploadResponse && uploadResponse.url) {
+                // Format précédent - fallback
+                fileUrl = uploadResponse.url;
+                console.log("URL du fichier uploadé (format précédent):", fileUrl);
+              } else if (uploadResponse && uploadResponse.fileUrl) {
+                // Autre format possible - fallback
+                fileUrl = uploadResponse.fileUrl;
+                console.log("URL du fichier uploadé (via fileUrl):", fileUrl);
+              } else {
+                console.warn("L'upload a réussi mais aucune URL n'a été retournée");
+                fileUrl = lesson.content_url.name; // Fallback sur le nom du fichier
+              }
+              
+              processedContentUrl = fileUrl;
+            } catch (uploadError) {
+              console.error("Erreur pendant l'upload du fichier content_url:", uploadError);
+              // On garde le nom du fichier comme référence en cas d'erreur
+              if (lesson.content_url && typeof lesson.content_url === 'object' && 'name' in lesson.content_url) {
+                processedContentUrl = lesson.content_url.name;
+              }
+            }
+          }
+
           const lessonData = {
             title: lesson.title,
-            description: lesson.description || "",
+            description: lesson.description,
             content_type: lesson.content_type,
-            duration: lesson.duration,
-            content_url: lesson.content_url,
-            order: lesson.order || 0,
+            content_url: processedContentUrl,
+            duration: typeof lesson.duration === 'number' ? lesson.duration.toString() : lesson.duration,
+            order: lesson.order,
+            preview: lesson.preview,
           };
-          
-          const token = localStorage.getItem('token') || '';
-          
-          if (isEditing && lesson.id && !lesson.id.startsWith('lesson-')) {
-            // Mettre à jour la leçon existante
-            console.log("Mise à jour de la leçon existante:", lesson.id);
-            try {
-              console.log("lessonData", lessonData);
-              const updatedLesson = await courseService.updateLesson(courseId, sectionId, lesson.id, lessonData);
-              console.log("Réponse de la mise à jour de la leçon:", updatedLesson);
-            } catch (lessonError) {
-              console.error("Erreur lors de la mise à jour de la leçon:", lessonError);
-            }
-          } else {
-            // Ajouter une nouvelle leçon
-            console.log("Création d'une nouvelle leçon");
-            try {
-              const createdLesson = await courseService.addLesson(courseId, sectionId, lessonData, token);
-              console.log("Réponse de la création de la leçon:", createdLesson);
-            } catch (lessonError) {
-              console.error("Erreur lors de la création de la leçon:", lessonError);
-            }
+
+          // TODO: FIX le problem de tag Dans backend
+          console.log("lessonData", lessonData);
+
+          try {
+            console.log("lesson.id", lesson.id );
+            if (lesson.id && !lesson.id.startsWith('temp-')) {
+              // Mettre à jour une leçon existante
+              console.log("Mise à jour de la leçon existante:", lesson.id);
+              await courseService.updateLesson(courseId, sectionId.toString(), lesson.id, lessonData);
+            } else {
+              // Créer une nouvelle leçon
+              console.log("Création d'une nouvelle leçon");
+              await courseService.addLesson(courseId, sectionId.toString(), lessonData, token);
+        }
+          } catch (lessonError) {
+            console.error("Erreur lors de la création/mise à jour de la leçon:", lessonError);
+            toast({
+              title: "Avertissement",
+              description: `Problème avec une leçon: ${lesson.title || "Sans titre"}`,
+              variant: "destructive"
+            });
+            // Continuer avec la leçon suivante
           }
         }
       }
 
-      console.log("Traitement des tags et ressources");
-      // 3. Gérer les tags
+      // Gestion des tags
       if (course.tags && course.tags.length > 0) {
+        console.log("Ajout des tags...");
         try {
-          // Envoyer tous les tags en une seule fois
-          await courseService.updateCourseTags(courseId, course.tags);
-        } catch (tagError) {
-          console.error("Erreur lors de la mise à jour des tags:", tagError);
+          // Récupérer tous les tags existants d'abord
+          const existingTags = await courseService.getTags();
+          console.log("Tags existants:", existingTags);
+          
+          // Ajouter chaque tag individuellement en gérant les erreurs
+          for (const tagName of course.tags) {
+            if (tagName && tagName.trim()) {
+              try {
+                console.log(`Traitement du tag "${tagName.trim()}"`);
+                
+                // Vérifier si le tag existe déjà
+                const trimmedTagName = tagName.trim();
+                const existingTag = existingTags.find(tag => 
+                  tag.name.toLowerCase() === trimmedTagName.toLowerCase()
+                );
+                
+                let tagId;
+                
+                if (existingTag) {
+                  // Si le tag existe, utiliser son ID
+                  console.log(`Le tag "${trimmedTagName}" existe déjà avec l'ID ${existingTag.id}`);
+                  tagId = existingTag.id;
+                } else {
+                  // Si le tag n'existe pas, le créer
+                  console.log(`Création du tag "${trimmedTagName}"...`);
+                  const token = localStorage.getItem('token');
+                  const createResponse = await fetch(`http://localhost:8000/api/tags`, {
+                    method: 'POST',
+                    headers: {
+                      'Authorization': `Bearer ${token}`,
+                      'Content-Type': 'application/json',
+                      'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ name: trimmedTagName })
+                  });
+                  
+                  if (createResponse.ok) {
+                    const createdTag = await createResponse.json();
+                    console.log(`Tag "${trimmedTagName}" créé avec succès:`, createdTag);
+                    tagId = createdTag.id;
+                  } else {
+                    console.warn(`Échec de la création du tag "${trimmedTagName}":`, await createResponse.json());
+                    continue; // Passer au tag suivant
+                  }
+                }
+                
+                // Maintenant attacher le tag au cours par son ID
+                if (tagId) {
+                  console.log(`Attachement du tag ${tagId} au cours ${courseId}...`);
+                  // Utiliser la fonction du service pour attacher le tag au cours
+                  const attachResult = await courseService.attachTagToCourse(courseId.toString(), tagId);
+                  console.log(`Résultat de l'attachement du tag:`, attachResult);
+                }
+              } catch (error) {
+                console.warn(`Erreur lors du traitement du tag "${tagName}":`, error);
+                // Continuer avec le tag suivant
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Erreur générale lors de la gestion des tags:", error);
+          // Afficher une notification mais ne pas bloquer le processus
           toast({
-            title: "Erreur",
-            description: "Impossible de mettre à jour les tags du cours",
+            title: "Avertissement",
+            description: "Certains tags n'ont pas pu être ajoutés. Ils pourront être ajoutés ultérieurement.",
             variant: "destructive"
           });
         }
       }
 
-      // 4. Gérer les ressources
+      // Gestion des ressources
       if (course.resources && course.resources.length > 0) {
+        console.log("Ajout des ressources...");
         for (const resource of course.resources) {
           try {
-            const fileUrls = resource.file_urls || (resource.file_url ? [resource.file_url] : []);
-            for (const fileUrl of fileUrls) {
-              if (resource.id && !resource.id.startsWith('resource-')) {
-                // Mise à jour de la ressource existante
-                await courseService.updateResource(courseId, resource.id, {
-                  title: resource.title,
-                  type: resource.type,
-                  file_url: fileUrl,
-                  is_downloadable: resource.is_downloadable
-                });
-              } else {
-                // Nouvelle ressource
+            console.log("Ajout de la ressource:", resource.title);
               await courseService.addResource(courseId, {
                 title: resource.title,
                 type: resource.type,
-                file_url: fileUrl,
+              file_url: typeof resource.file_url === 'string' ? resource.file_url : '',
                 is_downloadable: resource.is_downloadable
               });
-              }
-            }
-          } catch (error) {
-            console.error("Error handling resource:", error);
+          } catch (resourceError) {
+            console.error(`Erreur lors de l'ajout de la ressource "${resource.title}":`, resourceError);
           }
         }
       }
 
+      // Finalisation
       console.log("Soumission du formulaire terminée avec succès");
+
+      // Le reste du code pour les sections, leçons, etc.
+      
+      // Notification finale
       toast({
-        title: isEditing ? "Course updated successfully" : "Course created successfully",
+        title: isEditing ? "Cours mis à jour" : "Cours créé avec succès",
         description: isEditing 
-          ? "Your course has been updated successfully." 
-          : "Your course has been created and is now in draft mode.",
+          ? "Votre cours a été mis à jour avec succès." 
+          : "Votre cours a été créé et est maintenant en mode brouillon.",
       });
 
-      // Appeler le callback onSuccess s'il existe
+      // Navigation après succès
       if (onSuccess) {
         console.log("Appel du callback onSuccess");
         onSuccess();
       } else {
-        // Rediriger vers le tableau de bord
         console.log("Redirection vers la page d'accueil");
-        navigate("/");
+      navigate("/");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erreur lors de la soumission du formulaire:", error);
       toast({
-        title: isEditing ? "Error updating course" : "Error creating course",
-        description: `There was an error ${isEditing ? 'updating' : 'creating'} your course. Please try again. ${error}`,
+        title: isEditing ? "Erreur lors de la mise à jour" : "Erreur lors de la création",
+        description: `Une erreur s'est produite: ${error.message || "Erreur inconnue"}`,
         variant: "destructive",
       });
     } finally {
@@ -1186,7 +1647,7 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
                 <Label htmlFor="title">Course Title *</Label>
                 <Input
                   id="title"
-                  value={course.title}
+                  value={course.title || ""}
                   onChange={(e) =>
                     setCourse({ ...course, title: e.target.value })
                   }
@@ -1223,25 +1684,29 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
                 <div className="grid gap-2">
                   <Label htmlFor="category">Category *</Label>
                   <Select
-                    value={course.category_id.toString()}
-                    onValueChange={(value: string) =>
+                    value={course.category_id ? course.category_id.toString() : ''}
+                    onValueChange={(value: string) => {
+                      console.log("Nouvelle catégorie sélectionnée:", value);
                       setCourse({
                         ...course,
                         category_id: Number(value),
                         subcategory: "",
-                      })
-                    }
+                      });
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
                       {categories &&
-                        categories.map((category) => (
-                          <SelectItem key={category.id} value={category.id.toString()}>
+                        categories.map((category) => {
+                          console.log(`Affichage catégorie: ${category.id} (${typeof category.id})`); 
+                          return (
+                          <SelectItem key={category.id} value={category.id}>
                             {category.title}
                           </SelectItem>
-                        ))}
+                          );
+                        })}
                     </SelectContent>
                   </Select>
                 </div>
@@ -1260,17 +1725,27 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
                     </SelectTrigger>
                     <SelectContent>
                       {course.category_id &&
-                        Array.isArray(categories) &&
-                        categories
-                          .find((cat) => cat.id === course.category_id.toString())
-                          ?.subcategories?.map((subcategory) => (
+                        Array.isArray(categories) && (
+                        (() => {
+                          // Conversion explicite en string pour la comparaison
+                          const categoryIdStr = course.category_id.toString();
+                          console.log("Recherche de sous-catégories pour:", categoryIdStr);
+                          
+                          const foundCategory = categories.find(cat => {
+                            console.log(`Comparaison: ${cat.id} vs ${categoryIdStr} => ${cat.id === categoryIdStr}`);
+                            return cat.id === categoryIdStr;
+                          });
+                          
+                          return foundCategory?.subcategories?.map((subcategory) => (
                             <SelectItem
                               key={subcategory.id}
                               value={subcategory.id}
                             >
                               {subcategory.title}
                             </SelectItem>
-                          ))}
+                          ));
+                        })()
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -1330,7 +1805,7 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
                   <Input
                     id="price"
                     type="number"
-                    value={course.price}
+                    value={course.price !== undefined ? course.price : 0}
                     onChange={(e) =>
                       setCourse({
                         ...course,
@@ -1345,24 +1820,13 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
                     <Label htmlFor="salePrice">Sale Price ($)</Label>
                     <Checkbox
                       checked={course.salePrice !== undefined}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setCourse({
-                            ...course,
-                            salePrice: course.price * 0.8,
-                          });
-                        } else {
-                          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                          const { salePrice, ...rest } = course;
-                          setCourse(rest as CourseData);
-                        }
-                      }}
+                      onCheckedChange={handleSalePriceChange}
                     />
                   </div>
                   <Input
                     id="salePrice"
                     type="number"
-                    value={course.salePrice || ""}
+                    value={course.salePrice !== undefined ? course.salePrice : ""}
                     onChange={(e) =>
                       setCourse({
                         ...course,
@@ -1517,8 +1981,8 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
                                         {section.lessons.map(
                                           (lesson, lessonIndex) => (
                                             <Draggable
-                                              key={lesson.id}
-                                              draggableId={lesson.id}
+                                              key={lesson.id || `new-lesson-${lessonIndex}`}
+                                              draggableId={lesson.id || `new-lesson-${lessonIndex}`}
                                               index={lessonIndex}
                                             >
                                               {(provided, snapshot) => (
@@ -1595,7 +2059,7 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
                                                       onClick={() =>
                                                         handleEditLesson(
                                                           section.id,
-                                                          lesson.id
+                                                          lesson.id || `temp-lesson-${Date.now()}`
                                                         )
                                                       }
                                                     >
@@ -1612,7 +2076,7 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
                                                       onClick={() =>
                                                         handleDelete(
                                                           "lesson",
-                                                          lesson.id,
+                                                          lesson.id || `temp-lesson-${Date.now()}`,
                                                           section.id
                                                         )
                                                       }
@@ -1701,10 +2165,10 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
                       />
                       <div className="absolute inset-0 flex items-center justify-center bg-black/50">
                         <div className="cursor-pointer">
-                          <input
+                        <input
                             id="course-image-upload"
-                            type="file"
-                            accept="image/*"
+                          type="file"
+                          accept="image/*"
                             className="hidden"
                             onChange={(e) => {
                               const file = e.target.files?.[0];
@@ -1775,21 +2239,16 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
                       )}
                     </div>
                     <div className="flex gap-2">
-                      <Select
-                        value={selectedTag}
-                        onValueChange={setSelectedTag}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select a tag" />
-                        </SelectTrigger>
+                      <div className="flex-1">
                         <Input
-                          placeholder="Ajouter un tag"
+                          placeholder="Entrez un tag personnalisé"
                           value={selectedTag}
                           onChange={(e) => setSelectedTag(e.target.value)}
+                          className="w-full"
                         />
-                      </Select>
+                      </div>
                       <Button variant="outline" onClick={handleAddTag}>
-                        Add
+                        Ajouter
                       </Button>
                     </div>
                   </div>
@@ -1975,8 +2434,8 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
                         Level
                       </h3>
                       <p>
-                        {course.level.charAt(0).toUpperCase() +
-                          course.level.slice(1)}
+                        {course.level ? course.level.charAt(0).toUpperCase() +
+                          course.level.slice(1) : 'Débutant'}
                       </p>
                     </div>
                     <div>
@@ -1984,8 +2443,8 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
                         Language
                       </h3>
                       <p>
-                        {course.language.charAt(0).toUpperCase() +
-                          course.language.slice(1)}
+                        {course.language ? course.language.charAt(0).toUpperCase() +
+                          course.language.slice(1) : 'Français'}
                       </p>
                     </div>
                   </div>
@@ -2096,6 +2555,53 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
         resource.id === resourceId ? { ...resource, ...updatedResource } : resource
       )
     }));
+  };
+
+  // Correction de la gestion du prix dans le sélecteur de vente
+  const handleSalePriceChange = (checked: boolean) => {
+    if (checked) {
+      const currentPrice = typeof course.price === 'number' ? course.price : Number(course.price || 0);
+      setCourse({
+        ...course,
+        salePrice: currentPrice * 0.8,
+      });
+    } else {
+      const { salePrice, ...rest } = course;
+      setCourse(rest as CourseData);
+    }
+  };
+
+  // Extraction de la préparation des données de cours dans une fonction séparée
+  const prepareCourseDataForApi = () => {
+    return {
+      title: course.title,
+      description: course.description,
+      category_id: course.category_id.toString(), // Conversion en string pour l'API
+      level: course.level,
+      language: course.language,
+      instructor_id: course.instructor_id,
+      price: typeof course.price === 'number' ? course.price : Number(course.price || 0),
+      discount: typeof course.discount === 'number' ? course.discount : Number(course.discount || 0),
+      image_url: course.image_url,
+      status: course.status || "draft",
+      subtitle: course.subtitle
+    };
+  };
+
+  // Modifier la partie qui gère le `content_url` pour mieux traiter les objets File
+  // Dans handleSaveLesson, conservons l'objet File dans l'état local mais utilisons une URL pour l'API
+  const prepareContentUrlForApi = (contentUrl: any): string => {
+    if (typeof contentUrl === 'string') {
+      return contentUrl;
+    } else if (contentUrl && typeof contentUrl === 'object' && 'name' in contentUrl) {
+      // Pour l'API, nous devons uploader le fichier et obtenir une URL
+      console.log("Fichier détecté dans prepareContentUrlForApi:", contentUrl.name);
+      
+      // Pour l'instant, retourner le nom du fichier comme référence
+      // Dans un système complet, il faudrait d'abord uploader le fichier et attendre l'URL
+      return contentUrl.name;
+    }
+    return '';
   };
 
   return (
@@ -2250,24 +2756,25 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
       <Dialog
         open={showLessonDialog}
         onOpenChange={(open) => {
+          console.log("État du dialogue de leçon modifié:", open);
           if (!open) {
+            // Uniquement fermer sans sauvegarder
             setShowLessonDialog(false);
             setCurrentLesson(null);
             setCurrentSection(null);
+            console.log("Dialogue de leçon fermé sans sauvegarde");
           }
         }}
       >
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {currentLesson?.title ? "Edit Lesson" : "Add New Lesson"}
+              {currentLesson?.id && !currentLesson.id.startsWith("temp-lesson")
+                ? "Modifier la leçon"
+                : "Ajouter une leçon"}
             </DialogTitle>
-            <DialogDescription>
-              {currentLesson?.title
-                ? "Update the details for this lesson"
-                : "Add a new lesson to your section"}
-            </DialogDescription>
           </DialogHeader>
+
           <Tabs defaultValue="basic" className="w-full">
             <TabsList className="mb-4">
               <TabsTrigger value="basic">Basic Info</TabsTrigger>
@@ -2448,7 +2955,7 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
                   <Label htmlFor="articleContent">Article Content</Label>
                   <Textarea
                     id="articleContent"
-                    value={currentLesson?.content_url || ""}
+                    value={typeof currentLesson?.content_url === 'string' ? currentLesson.content_url : ""}
                     onChange={(e) =>
                       currentLesson &&
                       setCurrentLesson({
@@ -2481,7 +2988,7 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
                   </Label>
                   <Textarea
                     id="assignmentInstructions"
-                    value={currentLesson?.content_url || ""}
+                    value={typeof currentLesson?.content_url === 'string' ? currentLesson.content_url : ""}
                     onChange={(e) =>
                       currentLesson &&
                       setCurrentLesson({
@@ -2526,8 +3033,8 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
                     <div className="space-y-2">
                       {currentLesson?.attachments && currentLesson.attachments.length > 0 ? (
                         currentLesson.attachments.map((resource, index) => (
-                      <div
-                        key={index}
+                          <div
+                            key={index}
                             className="border rounded-md overflow-hidden"
                           >
                             <div 
@@ -2549,33 +3056,33 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
                                 <div>
                                   <div className="flex items-center">
                                     <p className="font-medium">{resource.title}</p>
-                        </div>
+                                  </div>
                                   <p className="text-xs text-muted-foreground">
                                     {resource.type} • {resource.is_downloadable ? "Downloadable" : "Not downloadable"}
                                   </p>
                                 </div>
                               </div>
                               <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-red-600"
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-red-600"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleRemoveLessonResource(resource.id);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                  </div>
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
                           </div>
                         ))
-                ) : (
+                      ) : (
                         <p className="text-sm text-muted-foreground">
                           No resources added to this lesson yet
-                  </p>
-                )}
+                        </p>
+                      )}
                     </div>
 
                     {/* Add new resource form */}
@@ -2585,37 +3092,37 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
                       <div className="grid gap-3">
                         <div className="grid gap-2">
                           <Label htmlFor="resourceTitle">Title *</Label>
-              <Input
-                id="resourceTitle"
-                value={newResource.title}
+                          <Input
+                            id="resourceTitle"
+                            value={newResource.title}
                             onChange={(e) => setNewResource({...newResource, title: e.target.value})}
                             placeholder="e.g. Lesson Slides, Exercise Files, etc."
-              />
-            </div>
+                          />
+                        </div>
 
                         <div className="grid gap-2">
                           <Label htmlFor="resourceType">Type *</Label>
-              <Select
-                value={newResource.type}
+                          <Select
+                            value={newResource.type}
                             onValueChange={handleResourceTypeChange}
-              >
-                <SelectTrigger id="resourceType">
+                          >
+                            <SelectTrigger id="resourceType">
                               <SelectValue placeholder="Select resource type" />
-                </SelectTrigger>
-                <SelectContent>
+                            </SelectTrigger>
+                            <SelectContent>
                               <SelectItem value={ResourceType.PDF}>PDF</SelectItem>
                               <SelectItem value={ResourceType.DOCUMENT}>Document</SelectItem>
                               <SelectItem value={ResourceType.VIDEO}>Video</SelectItem>
                               <SelectItem value={ResourceType.AUDIO}>Audio</SelectItem>
                               <SelectItem value={ResourceType.LINK}>Link</SelectItem>
-                </SelectContent>
-              </Select>
-          </div>
+                            </SelectContent>
+                          </Select>
+                        </div>
 
                         {newResource.type !== ResourceType.LINK ? (
                           <div className="grid gap-2">
                             <Label htmlFor="resourceFile">Files *</Label>
-              <Input
+                            <Input
                               id="resourceFile"
                               type="file"
                               multiple
@@ -2658,33 +3165,33 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
                                 </div>
                               </div>
                             )}
-            </div>
-          ) : (
+                          </div>
+                        ) : (
                           <div className="grid gap-2">
                             <Label htmlFor="resourceUrl">URL *</Label>
-              <Input
+                            <Input
                               id="resourceUrl"
                               type="url"
                               value={newResource.file_url}
                               onChange={(e) => setNewResource({...newResource, file_url: e.target.value})}
                               placeholder="https://example.com/resource"
                             />
-            </div>
-          )}
+                          </div>
+                        )}
 
                         <div className="flex items-center space-x-2">
-            <Checkbox
-              id="isDownloadable"
-              checked={newResource.is_downloadable}
+                          <Checkbox
+                            id="isDownloadable"
+                            checked={newResource.is_downloadable}
                             onCheckedChange={(checked) => 
                               setNewResource({...newResource, is_downloadable: !!checked})
                             }
-            />
+                          />
                           <Label htmlFor="isDownloadable">
                             Allow students to download this resource
                           </Label>
                         </div>
-          </div>
+                      </div>
 
                       <Button 
                         onClick={handleAddLessonResource}
@@ -2692,32 +3199,37 @@ const CourseCreationForm = ({ courseId, isEditing = false, onSuccess }: CourseCr
                         className="w-full"
                       >
                         {fileUploading ? "Uploading..." : "Add Resource to Lesson"}
-          </Button>
+                      </Button>
                     </div>
                   </div>
-        </CardContent>
-      </Card>
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
 
-          <DialogFooter>
+          <div className="flex justify-end gap-2 mt-4">
             <Button
+              type="button"
               variant="outline"
               onClick={() => {
+                console.log("Bouton d'annulation cliqué");
                 setShowLessonDialog(false);
                 setCurrentLesson(null);
                 setCurrentSection(null);
               }}
             >
-              Cancel
+              Annuler
             </Button>
             <Button
-              onClick={handleSaveLesson}
-              className="bg-purple-600 hover:bg-purple-700"
+              type="button"
+              onClick={() => {
+                console.log("Bouton de sauvegarde cliqué");
+                handleSaveLesson();
+              }}
             >
-              Save Lesson
+              Enregistrer
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 

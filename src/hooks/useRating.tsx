@@ -1,7 +1,7 @@
 // src/components/course/RatingForm.tsx
 import React, { useState, useEffect } from 'react';
 import { Star } from 'lucide-react';
-import axios from '@/api/axios';
+import axios from 'axios';
 import { Rating } from '@/types/rating';
 
 interface RatingFormProps {

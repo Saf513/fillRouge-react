@@ -1,5 +1,7 @@
+import { Course } from './course';
+
 export interface CartItem {
-  course: any;
+  course: Course;
   id: number;
   title: string;
   price: number;

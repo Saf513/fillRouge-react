@@ -1,4 +1,4 @@
-import  { useState, useEffect } from "react";
+import  { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   User,
@@ -87,6 +87,11 @@ export default function TeacherDashboard() {
   const [courseFilter, setCourseFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredCourses, setFilteredCourses] = useState<DashboardCourse[]>([]);
+console.log("filteredCourses", filteredCourses);
+  const resetFilters = useCallback(() => {
+    setSearchTerm("");
+    setCourseFilter("all");
+  }, []);
 
   useEffect(() => {
     if (dashboardData?.courses) {
@@ -188,6 +193,12 @@ export default function TeacherDashboard() {
     setShowEditCourseModal(true);
   };
 
+  const handleCloseModal = () => {
+    setShowEditCourseModal(false);
+    setShowNewCourseModal(false);
+    resetFilters();
+  };
+
   const handleDeleteCourse = async (courseId: number) => {
     if (window.confirm("Êtes-vous sûr de vouloir supprimer ce cours ? Cette action est irréversible.")) {
       try {
@@ -199,18 +210,17 @@ export default function TeacherDashboard() {
         // Mettre à jour la liste des cours après suppression
         setCourses(prevCourses => prevCourses.filter(course => course.id !== courseId));
         
-        // Afficher un message de succès
         toast({
-          title: "Cours supprimé",
+          title: "Succès",
           description: "Le cours a été supprimé avec succès",
-          variant: "success"
         });
+
+        resetFilters();
       } catch (error) {
-        console.error("Erreur lors de la suppression du cours:", error);
         toast({
           title: "Erreur",
           description: "Une erreur est survenue lors de la suppression du cours",
-          variant: "destructive"
+          variant: "destructive",
         });
       } finally {
         setIsDeleting(false);
@@ -978,7 +988,7 @@ export default function TeacherDashboard() {
                     >
                       <div className="relative h-48 w-full overflow-hidden">
                         <img
-                          src={course.thumbnail_url || "/placeholder-course.jpg"}
+                          src={`http://localhost:8000/storage/${course.image_url}` }
                           alt={course.title}
                           className="h-full w-full object-cover"
                         />
@@ -1078,14 +1088,15 @@ export default function TeacherDashboard() {
       {/* New Course Modal */}
       <Modal
         isOpen={showNewCourseModal}
-        onClose={() => setShowNewCourseModal(false)}
+        onClose={handleCloseModal}
         title="Créer un nouveau cours"
         size="lg"
-        className="max-h-[90vh] overflow-y-auto"
+        className="max-w-4xl max-h-[90vh] overflow-y-auto"
       >
         <CourseCreationForm
           onSuccess={() => {
             setShowNewCourseModal(false);
+            resetFilters();
             toast({
               title: "Cours créé",
               description: "Votre cours a été créé avec succès",
@@ -1098,10 +1109,10 @@ export default function TeacherDashboard() {
       {/* Edit Course Modal */}
       <Modal
         isOpen={showEditCourseModal}
-        onClose={() => setShowEditCourseModal(false)}
+        onClose={handleCloseModal}
         title="Modifier le cours"
         size="lg"
-        className="max-h-[90vh] overflow-y-auto"
+        className="max-w-4xl max-h-[90vh] overflow-y-auto"
       >
         {courseToEdit && (
           <CourseCreationForm
@@ -1109,6 +1120,7 @@ export default function TeacherDashboard() {
             isEditing={true}
             onSuccess={() => {
               setShowEditCourseModal(false);
+              resetFilters();
               toast({
                 title: "Cours mis à jour",
                 description: "Votre cours a été mis à jour avec succès",

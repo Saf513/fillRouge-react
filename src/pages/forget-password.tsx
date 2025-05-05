@@ -1,12 +1,12 @@
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import  axiosClient from "@/api/axios";
+import axiosClient from "@/api/axios";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Mail, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import Swal from 'sweetalert2';
 
 // Schéma de validation Zod
 const ForgetPasswordSchema = z.object({
@@ -15,9 +15,20 @@ const ForgetPasswordSchema = z.object({
 
 type ForgetPasswordForm = z.infer<typeof ForgetPasswordSchema>;
 
+interface ResetPasswordError {
+  response?: {
+    data?: {
+      message?: string;
+      errors?: Record<string, string[]>;
+    };
+    status?: number;
+  };
+  message?: string;
+  code?: string;
+}
+
 export default function ForgetPassword() {
   const navigate = useNavigate();
-  const [isSuccess, setIsSuccess] = useState(false);
 
   const {
     register,
@@ -38,14 +49,54 @@ export default function ForgetPassword() {
       });
 
       if (response.status === 200) {
-        setIsSuccess(true);
-        // Rediriger après 2 secondes (2000ms au lieu de 200000ms)
-        setTimeout(() => {
-          navigate('/forgot-password/confirmation');
-        }, 2000);
+        // Afficher un message de succès
+        await Swal.fire({
+          title: 'Email envoyé !',
+          text: 'Les instructions de réinitialisation du mot de passe ont été envoyées à votre adresse email.',
+          icon: 'success',
+          confirmButtonText: 'OK',
+          confirmButtonColor: '#ff9500',
+        });
+        
+        navigate('/login');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Password reset request failed:', error);
+      
+      const resetError = error as ResetPasswordError;
+      
+      if (resetError.code === 'ERR_NETWORK') {
+        Swal.fire({
+          title: 'Erreur de connexion',
+          text: 'Impossible de se connecter au serveur. Veuillez vérifier votre connexion réseau.',
+          icon: 'error',
+          confirmButtonColor: '#ff9500',
+        });
+      } else if (resetError.response?.data?.errors?.email) {
+        // Erreur de validation email
+        Swal.fire({
+          title: 'Email invalide',
+          text: resetError.response.data.errors.email.join(', '),
+          icon: 'error',
+          confirmButtonColor: '#ff9500',
+        });
+      } else if (resetError.response?.data?.message) {
+        // Message d'erreur spécifique du serveur
+        Swal.fire({
+          title: 'Erreur',
+          text: resetError.response.data.message,
+          icon: 'error',
+          confirmButtonColor: '#ff9500',
+        });
+      } else {
+        // Erreur générique
+        Swal.fire({
+          title: 'Erreur',
+          text: 'Une erreur est survenue lors de la demande de réinitialisation du mot de passe.',
+          icon: 'error',
+          confirmButtonColor: '#ff9500',
+        });
+      }
     }
   };
 
@@ -98,7 +149,10 @@ export default function ForgetPassword() {
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Sending...
+                  </>
                 ) : (
                   "Reset password"
                 )}

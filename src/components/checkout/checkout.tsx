@@ -327,12 +327,13 @@ export default function Checkout() {
         phone: formData.personalInfo.phone
       };
       
-      // Appeler l'API de checkout via le store
+      // Appeler l'API de checkout via le store avec la méthode de paiement
       const checkoutUrl = await checkout(
         successUrl,
         cancelUrl,
         billingAddress,
-        customerInfo
+        customerInfo,
+        formData.paymentMethod // Ajout de la méthode de paiement
       );
       
       if (checkoutUrl) {
@@ -342,9 +343,10 @@ export default function Checkout() {
         setError("Une erreur est survenue lors de la création de la session de paiement");
         setIsLoading(false);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Erreur de paiement:", err);
-      setError(err?.message || "Une erreur est survenue lors du traitement de votre paiement");
+      const errorMessage = err instanceof Error ? err.message : "Une erreur est survenue lors du traitement de votre paiement";
+      setError(errorMessage);
       setIsLoading(false);
     }
   }
@@ -908,17 +910,17 @@ export default function Checkout() {
                             <Label htmlFor="cardNumber">Numéro de carte *</Label>
                             <div className="relative mt-1">
                               <div className="relative">
-                              <Input
-                                id="cardNumber"
+                                <Input
+                                  id="cardNumber"
                                   className="pl-10"
-                                value={formData.creditCard?.cardNumber || ""}
-                                onChange={(e) => {
-                                  const formatted = formatCardNumber(e.target.value)
-                                  handleInputChange("creditCard", "cardNumber", formatted)
-                                }}
+                                  value={formData.creditCard?.cardNumber || ""}
+                                  onChange={(e) => {
+                                    const formatted = formatCardNumber(e.target.value)
+                                    handleInputChange("creditCard", "cardNumber", formatted)
+                                  }}
                                   placeholder="0000 0000 0000 0000"
-                                required
-                              />
+                                  required
+                                />
                                 <CreditCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                               </div>
                             </div>
@@ -1303,7 +1305,7 @@ export default function Checkout() {
                                       {item.course.average_rating}
                                     </span>
                                   )}
-                              </div>
+                                </div>
                               </div>
                               <div className="text-right">
                                 <p className="font-medium">{parseFloat(item.price).toFixed(2)} €</p>
@@ -1708,6 +1710,71 @@ export default function Checkout() {
     
     checkAdBlocker();
   }, []);
+
+  // Render success page
+  const renderSuccessPage = () => {
+    return (
+      <div className="container mx-auto px-4 py-16 max-w-3xl text-center">
+        <div className="mb-8">
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle2 className="w-8 h-8 text-green-500" />
+          </div>
+          <h1 className="text-3xl font-bold mb-2">Merci pour votre achat !</h1>
+          <p className="text-gray-600">
+            Votre commande a été traitée avec succès. Vous recevrez bientôt un email de confirmation.
+          </p>
+        </div>
+
+        <Card className="mb-8">
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              <div className="text-left">
+                <p className="text-sm text-gray-600">Numéro de commande</p>
+                <p className="font-medium">{orderNumber}</p>
+              </div>
+              <div className="text-left">
+                <p className="text-sm text-gray-600">Date</p>
+                <p className="font-medium">{orderDate}</p>
+              </div>
+              <div className="text-left">
+                <p className="text-sm text-gray-600">Total payé</p>
+                <p className="font-medium">{total.toFixed(2)} €</p>
+              </div>
+              <Separator />
+              <div className="text-left">
+                <p className="text-sm text-gray-600 mb-2">Cours achetés</p>
+                {cartItems.map((item) => (
+                  <div key={item.id} className="flex justify-between items-center py-2">
+                    <div>
+                      <p className="font-medium">{item.course?.title}</p>
+                      <p className="text-sm text-gray-600">Par {item.course?.instructor_id || "Instructeur"}</p>
+                    </div>
+                    <p className="font-medium">{parseFloat(item.price).toFixed(2)} €</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="space-y-4">
+          <Button
+            onClick={() => window.location.href = "/student/courses"}
+            className="w-full bg-orange-500 hover:bg-orange-600"
+          >
+            Accéder à mes cours
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => window.location.href = "/"}
+            className="w-full"
+          >
+            Retour à l'accueil
+          </Button>
+        </div>
+      </div>
+    );
+  };
 
   // Render the appropriate view based on current step
   return currentStep === STEPS.SUCCESS ? renderSuccessPage() : renderCheckoutProcess()

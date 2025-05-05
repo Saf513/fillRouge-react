@@ -18,6 +18,9 @@ import AboutUs from "@/pages/about.tsx";
 import ContactPage from "@/pages/contact.tsx";
 import PricingPage from "@/pages/pricing.tsx";
 import TeacherProfilePage from "@/pages/profile/profileTeacher.tsx";
+import PaymentSuccess from "@/pages/payment/success";
+import PaymentCancel from "@/pages/payment/cancel";
+import ResetPassword from "../pages/reset-password";
 
 export const router = createBrowserRouter([
   {
@@ -40,6 +43,10 @@ export const router = createBrowserRouter([
         element: <ForgetPassword />,
       },
       {
+        path: "/reset-password",
+        element: <ResetPassword />,
+      },
+      {
         path: "/course-explore",
         element: <CoursesExplorer />,
       },
@@ -58,6 +65,14 @@ export const router = createBrowserRouter([
       {
         path: "/pricing",
         element: <PricingPage />,
+      },
+      {
+        path: "/payment/success",
+        element: <PaymentSuccess />,
+      },
+      {
+        path: "/payment/cancel",
+        element: <PaymentCancel />,
       },
     ],
   },

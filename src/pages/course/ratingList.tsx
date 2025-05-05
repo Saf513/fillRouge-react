@@ -66,7 +66,10 @@ export function RatingList({ courseId, refresh = 0 }: RatingListProps) {
       Aucun avis pour le moment. Soyez le premier à donner votre avis !
     </div>
   );
-
+console.log("ratings",ratings)
+ratings.forEach(rating => {
+  console.log("rating",rating.user.firstName)
+})
   return (
     <div className="space-y-6">
       {ratings.map((rating) => (
@@ -77,20 +80,21 @@ export function RatingList({ courseId, refresh = 0 }: RatingListProps) {
                 <Star
                   key={star}
                   className={`h-5 w-5 ${
-                    star <= rating.rating
+                    star <= rating.stars
                       ? 'fill-[#ff9500] text-[#ff9500]'
                       : 'text-gray-300'
                   }`}
+                  fill={star <= rating.rating ? '#ff9500' : 'none'}
                 />
               ))}
             </div>
             <span className="ml-2 text-sm text-gray-500">
-              par {rating.userName}
+              par {rating.user.firstName} {rating.user.lastName}
             </span>
           </div>
           <p className="text-gray-700 mb-2">{rating.comment}</p>
           <p className="text-sm text-gray-500">
-            {new Date(rating.createdAt).toLocaleDateString('fr-FR', {
+            {new Date(rating.created_at).toLocaleDateString('fr-FR', {
               day: 'numeric',
               month: 'long',
               year: 'numeric'

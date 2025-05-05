@@ -13,6 +13,8 @@ export interface User {
   updated_at : string ;
   status: string;
   is_approved : boolean ;
+  is_banned: boolean;
+  ban_reason: string | null;
 }
 
 export const useUsers = () => {
@@ -20,6 +22,7 @@ export const useUsers = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  
   useEffect(() => {
     const fetchUsers = async () => {
       try {

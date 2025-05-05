@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { useWishlistStore } from "@/hooks/useWishlistStore";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import useStudentDashboardData from "@/hooks/useDashboardStudentData";
+import axiosClient from "@/api/axios";
+import { useAuthStore } from "@/hooks/useAuthStore";
 
 interface WishlistToggleProps {
   courseId: string;
@@ -30,19 +33,40 @@ const WishlistToggle: React.FC<WishlistToggleProps> = ({
   className,
 }) => {
   const { isWishlisted, toggleWishlist, isLoading } = useWishlistStore();
+  const { data: dashboardData } = useStudentDashboardData();
   
-  const isInWishlist = isWishlisted(courseId);
+  // Vérifier si le cours est dans la wishlist du dashboard
+  const isInDashboardWishlist = dashboardData?.wishlists?.some(
+    (wishlist) => wishlist.course_id.toString() === courseId
+  );
   
-  // Determine icon size based on the size prop
+  const isInWishlist = isInDashboardWishlist || isWishlisted(courseId);
+  const user_id = JSON.parse(localStorage.getItem('auth-storage') || '{}').state?.user?.id;
+  //on size based on the size prop
   const iconSize = size === "sm" ? 16 : size === "lg" ? 24 : 20;
-  
-  // Determine button size based on the size prop
-  const buttonSize = size === "sm" ? "sm" : size === "lg" ? "lg" : "default";
   
   const handleToggle = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    await toggleWishlist(courseId);
+    
+    try {
+      // Appeler l'endpoint toggle de l'API
+      const response = await axiosClient.post("/api/wishlist/toggle", {
+        course_id: courseId,
+        user_id : user_id,
+        
+      });
+      
+      // Mettre à jour l'état local
+      toggleWishlist(courseId);
+      
+      // Rafraîchir les données du dashboard si nécessaire
+      if (dashboardData) {
+        // Vous pouvez ajouter ici une logique pour rafraîchir les données du dashboard
+      }
+    } catch (error) {
+      console.error("Erreur lors de la modification de la wishlist:", error);
+    }
   };
   
   const button = (

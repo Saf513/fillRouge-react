@@ -1,55 +1,48 @@
-import UserProfile from "../../../components/shared/user-profile"
-import { useProfile } from "../../../hooks/useProfile"
+import UserProfile from "@/components/shared/user-profile"
+import { useProfile } from "@/hooks/useProfile"
 import { useEffect, useState } from "react"
+import { ProfileResponse } from "@/types/profile"
 
 export default function StudentProfile({ dashboardDataProfile }) {
   const { profile, loading, error, fetchProfile, updateProfile } = useProfile()
-  const [studentData, setStudentData] = useState(null)
+  const [studentData, setStudentData] = useState<ProfileResponse | null>(null)
   const user = JSON.parse(localStorage.getItem('auth-storage') || '{}').state?.user;
 
   useEffect(() => {
-    // Fetch profile data when component mounts
-    fetchProfile()
-  }, [])
-
-  useEffect(() => {
-    // Update studentData when profile data is loaded
+    // Récupérer les données du profil de l'utilisateur
+    const getProfile = async () => {
+      await fetchProfile();
+    };
+    
+    if (!profile) {
+      getProfile();
+    }
+    
     if (profile) {
       setStudentData({
         id: profile.id,
-        name: user.firstName,
-        email: user.email,
-        avatar: profile.settings?.avatar || "/placeholder.svg?height=200&width=200",
-        phone: profile.settings?.phone || "",
-        location: profile.settings?.location || "",
-        website: profile.settings?.website || "",
-        bio: profile.settings?.bio || "",
-        joinDate: profile.user?.created_at ? new Date(profile.user.created_at).toLocaleDateString('fr-FR', { year: 'numeric', month: 'long' }) : "",
-        title: profile.settings?.title || "Étudiant",
-        skills: profile.settings?.skills || [],
-        certificates: profile.settings?.certificates || [],
-        courses: profile.settings?.courses || [],
-        experience: profile.settings?.experience || [],
-        education: profile.settings?.education || [],
-        socialLinks: profile.settings?.social_links || [],
-        stats: profile.settings?.stats || {
-          coursesEnrolled: {
-            value: 0,
-            label: "Cours inscrits",
-            icon: "BookOpen",
-          },
-          certificatesEarned: {
-            value: "0",
-            label: "Certificats obtenus",
-            icon: "Award",
-          },
-          averageProgress: {
-            value: "0%",
-            label: "Progression moyenne",
-            icon: "TrendingUp",
-          },
-        },
-      })
+        user_id: profile.user_id,
+        firstName: user?.firstName || '',
+        lastName: user?.lastName || '',
+        name: `${user?.firstName || ''} ${user?.lastName || ''}`,
+        email: user?.email || '',
+        profilPicture: profile.settings?.avatar || "/placeholder.svg?height=200&width=200",
+        profilePicture: profile.settings?.avatar || "/placeholder.svg?height=200&width=200",
+        biography: profile.biography || '',
+        linkdebLink: profile.linkdebLink || '',
+        instagramLink: profile.instagramLink || '',
+        discordLink: profile.discordLink || '',
+        phone: profile.phone || '',
+        website: profile.website || '',
+        location: profile.location || '',
+        job: null,
+        skills: profile.skills || null,
+        certifications: null,
+        experiences: null,
+        education: null,
+        created_at: profile.created_at || '',
+        updated_at: profile.updated_at || ''
+      });
     } else if (dashboardDataProfile) {
       // Use dashboard data as fallback
       setStudentData(dashboardDataProfile)
@@ -58,23 +51,40 @@ export default function StudentProfile({ dashboardDataProfile }) {
 
   const handleSave = async (data) => {
     try {
-      await updateProfile(data)
-      console.log("Profil mis à jour avec succès")
+      // Récupération des informations utilisateur
+      const user = JSON.parse(localStorage.getItem('auth-storage') || '{}').state?.user;
+      
+      // Construction des données complètes
+      const updatedData = {
+        ...data,
+        firstName: user?.firstName || '',
+        lastName: user?.lastName || '',
+        email: user?.email || '',
+        // S'assurer que la biographie et autres champs ne sont pas perdus
+        biography: data.biography || studentData?.biography || '',
+        phone: data.phone || studentData?.phone || '',
+        website: data.website || studentData?.website || '',
+        location: data.location || studentData?.location || '',
+        linkdenLink: data.linkdenLink || studentData?.linkdebLink || '',
+        instagramLink: data.instagramLink || studentData?.instagramLink || '',
+        discordLink: data.discordLink || studentData?.discordLink || ''
+      };
+      
+      console.log("Données envoyées pour mise à jour:", updatedData);
+      
+      await updateProfile(updatedData);
+      console.log("Profil mis à jour avec succès");
+      
+      // Rafraîchir les données
+      await fetchProfile();
+      
     } catch (error) {
-      console.error("Erreur lors de la mise à jour du profil:", error)
+      console.error("Erreur lors de la mise à jour du profil:", error);
     }
   }
 
-  if (loading && !studentData) {
-    return <div>Chargement du profil...</div>
-  }
-
-  if (error && !studentData) {
-    return <div>Erreur: {error}</div>
-  }
-
-  if (!studentData) {
-    return <div>Aucune donnée de profil disponible</div>
+  if (loading || !studentData) {
+    return <div className="p-4">Chargement du profil...</div>;
   }
 
   return (
@@ -87,3 +97,4 @@ export default function StudentProfile({ dashboardDataProfile }) {
     />
   )
 } 
+

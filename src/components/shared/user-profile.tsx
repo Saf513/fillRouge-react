@@ -1,6 +1,6 @@
-import React, {useState, useEffect} from "react"
-import { Link } from "react-router-dom"
-import { useProfile } from "@/hooks/useProfile"
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { useProfile } from "@/hooks/useProfile";
 import {
   Mail,
   Phone,
@@ -16,7 +16,6 @@ import {
   Users,
   GraduationCap,
   MessageSquare,
-  Camera,
   LinkIcon,
   Facebook,
   Twitter,
@@ -24,11 +23,12 @@ import {
   Github,
   Instagram,
   Youtube,
-} from "lucide-react"
-import { Profile as DashboardProfile } from "@/types/dashboard"
+  Plus,
+} from "lucide-react";
+import { Profile as DashboardProfile } from "@/types/dashboard";
+import { ProfileResponse, UserSettings } from "@/types/profile";
 
-
-type UserRole = "student" | "teacher" | "admin"
+type UserRole = "student" | "teacher" | "admin";
 interface UserProfileProps {
   userRole: UserRole;
   userData: DashboardProfile;
@@ -38,77 +38,97 @@ interface UserProfileProps {
   readOnly?: boolean;
 }
 interface Skill {
-  name: string
-  level: number
+  name: string;
+  level: number;
 }
 
 interface Certificate {
-  id: number
-  title: string
-  issuer: string
-  date: string
-  url?: string
+  id: number;
+  title: string;
+  issuer: string;
+  date: string;
+  url?: string;
 }
 
 interface Course {
-  id: number
-  title: string
-  progress: number
-  image: string
-  category: string
-  instructor?: string
-  enrolled?: string
-  rating?: number
-  reviews?: number
+  id: number;
+  title: string;
+  progress: number;
+  image: string;
+  category: string;
+  instructor?: string;
+  enrolled?: string;
+  rating?: number;
+  reviews?: number;
 }
 
 interface Experience {
-  id: number
-  title: string
-  company: string
-  location: string
-  startDate: string
-  endDate: string | null
-  description: string
-  current: boolean
+  id: number;
+  title: string;
+  company: string;
+  location: string;
+  startDate: string;
+  endDate: string | null;
+  description: string;
+  current: boolean;
 }
 
 interface Education {
-  id: number
-  degree: string
-  institution: string
-  location: string
-  startDate: string
-  endDate: string | null
-  description: string
-  current: boolean
+  id: number;
+  degree: string;
+  institution: string;
+  location: string;
+  startDate: string;
+  endDate: string | null;
+  description: string;
+  current: boolean;
 }
 
 interface SocialLink {
-  platform: string
-  url: string
-  icon: React.ComponentType<{ className?: string }>
+  platform: string;
+  url: string;
+  icon: React.ComponentType<{ className?: string }>;
 }
-const user = JSON.parse(localStorage.getItem('auth-storage') || '{}').state?.user;
+const user = JSON.parse(localStorage.getItem("auth-storage") || "{}").state
+  ?.user;
 interface UserProfileProps {
-  userRole: UserRole
+  userRole: UserRole;
   userData: {
-    id: number
-    user_id:number
-    instagramLink:string
-    discordLink:string
-    linkdenLink:string
-    profilePicture: string
-    biography?: string
+    id: number;
+    user_id: number;
+    instagramLink: string;
+    discordLink: string;
+    linkdenLink: string;
+    profilePicture: string;
+    biography?: string;
 
-    skills?: Skill[]
-
-  }
-  backLink?: string
-  backLabel?: string
-  onSave?: (data: Record<string, unknown>) => void
-  readOnly?: boolean
+    skills?: Skill[];
+  };
+  backLink?: string;
+  backLabel?: string;
+  onSave?: (data: Record<string, unknown>) => void;
+  readOnly?: boolean;
 }
+
+// Helper function to get the proper social media icon
+const getSocialIcon = (platform: string) => {
+  switch (platform.toLowerCase()) {
+    case "facebook":
+      return Facebook;
+    case "twitter":
+      return Twitter;
+    case "linkedin":
+      return Linkedin;
+    case "github":
+      return Github;
+    case "instagram":
+      return Instagram;
+    case "youtube":
+      return Youtube;
+    default:
+      return LinkIcon;
+  }
+};
 
 export default function UserProfile({
   userRole,
@@ -120,12 +140,12 @@ export default function UserProfile({
 }: UserProfileProps) {
   // Use the useProfile hook with the userData prop
   // const { profile: profileData, loading } = useProfile(userData);
-const [profile , setProfile] = useState([]);
-console.log(userData);
-const[loading , setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("about")
-  const [isEditing, setIsEditing] = useState(false)
-  const [formData, setFormData] = useState({
+  const [profile, setProfile] = useState<ProfileResponse | null>(null);
+  console.log(userData);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("about");
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState<UserSettings>({
     biography: userData?.biography || "",
     profilePicture: userData?.profilePicture || "",
     // Handle potentially missing properties
@@ -133,8 +153,13 @@ const[loading , setLoading] = useState(true);
     instagramLink: (userData as any)?.instagramLink || "",
     discordLink: (userData as any)?.discordLink || "",
     avatar: null as File | null,
-  })
-
+    firstName: profile?.firstName || "",
+    lastName: profile?.lastName || "",
+    phone: userData?.phone || "",
+    website: userData?.website || "",
+    location: userData?.location || "",
+    email: userData?.email || "",
+  });
 
   // Handle file change for profile picture
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -144,7 +169,7 @@ const[loading , setLoading] = useState(true);
         ...prev,
         avatar: file,
         // Create a temporary URL for preview
-        profilePicture: URL.createObjectURL(file),
+        profilePicture: file,
       }));
     }
   };
@@ -159,66 +184,55 @@ const[loading , setLoading] = useState(true);
         instagramLink: (formData as any)?.instagramLink || "",
         discordLink: (formData as any)?.discordLink || "",
         avatar: null,
+        firstName: user?.firstName || "",
+        lastName: user?.lastName || "",
+        phone: userData?.phone || "",
+        website: userData?.website || "",
+        location: userData?.location || "",
+        email: userData?.email || "",
       });
     }
-  }, [profile])
+  }, [profile]);
 
-  const user = JSON.parse(localStorage.getItem('auth-storage') || '{}').state?.user;
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
+  const user = JSON.parse(localStorage.getItem("auth-storage") || "{}").state
+    ?.user;
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: value,
-    }))
-  }
+    }));
+  };
 
   const handleSave = () => {
-    
     if (onSave) {
-console.log("save",formData)
-      onSave(formData)
+      // Copier toutes les données importantes depuis userData si elles ne sont pas dans le formData
+      const dataToSave = {
+        ...formData,
+        firstName: user?.firstName || "",
+        lastName: user?.lastName || "",
+        email: userData?.email || formData.email || "",
+        phone: formData.phone || userData?.phone || "",
+        website: formData.website || userData?.website || "",
+        location: formData.location || userData?.location || "",
+        biography: formData.biography || userData?.biography || "",
+      };
+      
+      console.log("Données à sauvegarder:", dataToSave);
+      onSave(dataToSave);
     }
-    setIsEditing(false)
-  }
-
-  const getSocialIcon = (platform: string) => {
-    switch (platform.toLowerCase()) {
-      case "facebook":
-        return Facebook
-      case "twitter":
-        return Twitter
-      case "linkedin":
-        return Linkedin
-      case "github":
-        return Github
-      case "instagram":
-        return Instagram
-      case "youtube":
-        return Youtube
-      default:
-        return LinkIcon
-    }
-  }
+    setIsEditing(false);
+  };
 
   // Determine which sections to show based on user role
-  const showCourses = userRole === "student" || userRole === "teacher"
-  const showTeaching = userRole === "teacher"
-  const showExperience = userRole === "teacher" || userRole === "admin"
-  const showEducation = userRole === "teacher" || userRole === "student"
-  const showCertificates = userRole === "student" || userRole === "teacher"
-  const showStats = true // All roles have stats, but different ones
-
-  // Show loading state while data is loading
-  // if (loading) {
-  //   return (
-  //     <div className="min-h-screen bg-[#f7f7f8] font-sans text-[#262626] flex items-center justify-center">
-  //       <div className="text-center">
-  //         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#ff9500] mx-auto"></div>
-  //         <p className="mt-4 text-[#4c4c4d]">Loading profile data...</p>
-  //       </div>
-  //     </div>
-  //   );
-  // }
+  const showCourses = userRole === "student" || userRole === "teacher";
+  const showTeaching = userRole === "teacher";
+  const showExperience = userRole === "teacher" || userRole === "admin";
+  const showEducation = userRole === "teacher" || userRole === "student";
+  const showCertificates = userRole === "student" || userRole === "teacher";
+  const showStats = true; // All roles have stats, but different ones
 
   return (
     <div className="min-h-screen bg-[#f7f7f8] font-sans text-[#262626]">
@@ -227,7 +241,10 @@ console.log("save",formData)
         <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <Link to={backLink} className="mr-4 flex items-center text-[#4c4c4d] hover:text-[#262626]">
+              <Link
+                to={backLink}
+                className="mr-4 flex items-center text-[#4c4c4d] hover:text-[#262626]"
+              >
                 <ArrowLeft className="h-5 w-5" />
                 <span className="ml-2">{backLabel}</span>
               </Link>
@@ -262,17 +279,17 @@ console.log("save",formData)
             <div className="flex flex-col items-center md:flex-row md:items-start">
               <div className="relative mb-6 md:mb-0 md:mr-8">
                 <img
-                  src={formData.profilePicture || userData.profilePicture || "../../../public/img/dounia.jpg"}
-                  alt={userData.name}
+                  src={formData.profilePicture || userData.profilePicture}
+                  alt={userData.name || `${userData.firstName} ${userData.lastName}`}
                   className="h-40 w-40 rounded-full object-cover"
                 />
                 {isEditing && (
-                  <input 
-                    type="file" 
+                  <input
+                    type="file"
                     name="profilePicture"
-                    accept="image/*" 
+                    accept="image/*"
                     onChange={handleFileChange}
-                    className="absolute bottom-2 right-2 rounded-full bg-[#ff9500] p-2 text-white hover:bg-[#ff9500]/90" 
+                    className="absolute bottom-2 right-2 rounded-full bg-[#ff9500] p-2 text-white hover:bg-[#ff9500]/90"
                   />
                 )}
               </div>
@@ -286,7 +303,9 @@ console.log("save",formData)
                     className="mb-1 w-full rounded-md border border-[#f1f1f3] bg-white px-3 py-2 text-2xl font-bold focus:border-[#ff9500] focus:outline-none focus:ring-1 focus:ring-[#ff9500] md:text-3xl"
                   />
                 ) : (
-                  <h2 className="text-2xl font-bold md:text-3xl">{userData.name}</h2>
+                  <h2 className="text-2xl font-bold md:text-3xl">
+                    {userData.name}
+                  </h2>
                 )}
 
                 {isEditing ? (
@@ -303,7 +322,9 @@ console.log("save",formData)
                     className="mb-2 w-full rounded-md border border-[#f1f1f3] bg-white px-3 py-2 text-lg text-[#4c4c4d] focus:border-[#ff9500] focus:outline-none focus:ring-1 focus:ring-[#ff9500]"
                   />
                 ) : (
-                  userData.title && <p className="text-lg text-[#4c4c4d]">{userData.title}</p>
+                  userData.title && (
+                    <p className="text-lg text-[#4c4c4d]">{userData.title}</p>
+                  )
                 )}
 
                 <div className="mt-2 flex flex-wrap items-center justify-center gap-4 md:justify-start">
@@ -384,7 +405,10 @@ console.log("save",formData)
                 {userData.skills && userData.skills.length > 0 && (
                   <div className="mt-4 flex flex-wrap justify-center md:justify-start gap-2">
                     {userData.skills.map((skill, index) => (
-                      <span key={index} className="rounded-full bg-[#fff4e5] px-3 py-1 text-sm text-[#ff9500]">
+                      <span
+                        key={index}
+                        className="rounded-full bg-[#fff4e5] px-3 py-1 text-sm text-[#ff9500]"
+                      >
                         {skill.name}
                       </span>
                     ))}
@@ -403,9 +427,15 @@ console.log("save",formData)
                         key={key}
                         className="flex flex-col items-center rounded-lg bg-[#f7f7f8] px-4 py-2 md:items-start"
                       >
-                        <span className="text-sm text-[#4c4c4d]">{stat.label}</span>
+                        <span className="text-sm text-[#4c4c4d]">
+                          {stat.label}
+                        </span>
                         <span className="text-xl font-bold">{stat.value}</span>
-                        {stat.change && <span className="text-xs text-green-500">{stat.change}</span>}
+                        {stat.change && (
+                          <span className="text-xs text-green-500">
+                            {stat.change}
+                          </span>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -520,7 +550,9 @@ console.log("save",formData)
                   {userData.biography ? (
                     <p>{userData.biography}</p>
                   ) : (
-                    <p className="text-[#4c4c4d] italic">No bio information available.</p>
+                    <p className="text-[#4c4c4d] italic">
+                      No bio information available.
+                    </p>
                   )}
                 </div>
               )}
@@ -531,7 +563,7 @@ console.log("save",formData)
                 <h2 className="mb-4 text-xl font-bold">Social Profiles</h2>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {userData.socialLinks.map((link, index) => {
-                    const IconComponent = getSocialIcon(link.platform)
+                    const IconComponent = getSocialIcon(link.platform);
                     return (
                       <a
                         key={index}
@@ -543,7 +575,7 @@ console.log("save",formData)
                         <IconComponent className="mr-3 h-5 w-5 text-[#ff9500]" />
                         <span className="font-medium">{link.platform}</span>
                       </a>
-                    )
+                    );
                   })}
                   {isEditing && (
                     <button className="flex items-center justify-center rounded-lg border border-dashed border-[#f1f1f3] p-3 text-[#4c4c4d] hover:bg-[#f7f7f8]">
@@ -565,7 +597,10 @@ console.log("save",formData)
                         <span>{skill.level}%</span>
                       </div>
                       <div className="mt-1 h-2 w-full rounded-full bg-[#f1f1f3]">
-                        <div className="h-2 rounded-full bg-[#ff9500]" style={{ width: `${skill.level}%` }}></div>
+                        <div
+                          className="h-2 rounded-full bg-[#ff9500]"
+                          style={{ width: `${skill.level}%` }}
+                        ></div>
                       </div>
                     </div>
                   ))}
@@ -579,7 +614,9 @@ console.log("save",formData)
         {activeTab === "courses" && userData.courses && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold">{userRole === "teacher" ? "My Courses" : "Enrolled Courses"}</h2>
+              <h2 className="text-xl font-bold">
+                {userRole === "teacher" ? "My Courses" : "Enrolled Courses"}
+              </h2>
               {userRole === "teacher" && (
                 <button className="rounded-md bg-[#ff9500] px-4 py-2 text-sm font-medium text-white hover:bg-[#ff9500]/90">
                   Create New Course
@@ -616,7 +653,9 @@ console.log("save",formData)
                               ))}
                             </div>
                             {course.rating && (
-                              <span className="text-xs font-medium text-white">{course.rating.toFixed(1)}</span>
+                              <span className="text-xs font-medium text-white">
+                                {course.rating.toFixed(1)}
+                              </span>
                             )}
                           </div>
                         </div>
@@ -636,7 +675,9 @@ console.log("save",formData)
                     </div>
                     <h3 className="mb-2 text-lg font-bold">{course.title}</h3>
                     {userRole === "student" && course.instructor && (
-                      <p className="mb-3 text-sm text-[#4c4c4d]">Instructor: {course.instructor}</p>
+                      <p className="mb-3 text-sm text-[#4c4c4d]">
+                        Instructor: {course.instructor}
+                      </p>
                     )}
                     {userRole === "teacher" && (
                       <div className="mb-3 flex items-center text-sm text-[#4c4c4d]">
@@ -644,20 +685,28 @@ console.log("save",formData)
                         <span>{course.enrolled || "0"} students</span>
                       </div>
                     )}
-                    {userRole === "student" && typeof course.progress === "number" && (
-                      <div className="mb-3">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-[#4c4c4d]">Progress</span>
-                          <span className="font-medium">{course.progress}% complete</span>
+                    {userRole === "student" &&
+                      typeof course.progress === "number" && (
+                        <div className="mb-3">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-[#4c4c4d]">Progress</span>
+                            <span className="font-medium">
+                              {course.progress}% complete
+                            </span>
+                          </div>
+                          <div className="mt-1 h-2 w-full rounded-full bg-[#f1f1f3]">
+                            <div
+                              className="h-2 rounded-full bg-[#ff9500]"
+                              style={{ width: `${course.progress}%` }}
+                            ></div>
+                          </div>
                         </div>
-                        <div className="mt-1 h-2 w-full rounded-full bg-[#f1f1f3]">
-                          <div className="h-2 rounded-full bg-[#ff9500]" style={{ width: `${course.progress}%` }}></div>
-                        </div>
-                      </div>
-                    )}
+                      )}
                     <div className="flex justify-between">
                       <button className="rounded-md border border-[#f1f1f3] bg-white px-3 py-1.5 text-sm font-medium text-[#4c4c4d] hover:bg-[#f1f1f3]">
-                        {userRole === "teacher" ? "Edit Course" : "Continue Learning"}
+                        {userRole === "teacher"
+                          ? "Edit Course"
+                          : "Continue Learning"}
                       </button>
                       <button className="rounded-md border border-[#f1f1f3] bg-white px-3 py-1.5 text-sm font-medium text-[#4c4c4d] hover:bg-[#f1f1f3]">
                         {userRole === "teacher" ? "View Stats" : "View Details"}
@@ -677,29 +726,33 @@ console.log("save",formData)
               <h2 className="mb-6 text-xl font-bold">Teaching Philosophy</h2>
               <div className="space-y-4 text-[#4c4c4d]">
                 <p>
-                  My teaching philosophy is centered around three core principles: practical application, continuous
-                  learning, and supportive community.
+                  My teaching philosophy is centered around three core
+                  principles: practical application, continuous learning, and
+                  supportive community.
                 </p>
                 <div className="mt-4 grid gap-6 md:grid-cols-3">
                   <div className="rounded-lg bg-[#f7f7f8] p-4">
                     <h3 className="mb-2 font-medium">Practical Application</h3>
                     <p className="text-sm">
-                      I believe in learning by doing. My courses include real-world projects that help you apply what
-                      you've learned and build a portfolio of work.
+                      I believe in learning by doing. My courses include
+                      real-world projects that help you apply what you've
+                      learned and build a portfolio of work.
                     </p>
                   </div>
                   <div className="rounded-lg bg-[#f7f7f8] p-4">
                     <h3 className="mb-2 font-medium">Continuous Learning</h3>
                     <p className="text-sm">
-                      Technology evolves rapidly, and I'm committed to keeping my courses up-to-date with the latest
-                      trends and best practices.
+                      Technology evolves rapidly, and I'm committed to keeping
+                      my courses up-to-date with the latest trends and best
+                      practices.
                     </p>
                   </div>
                   <div className="rounded-lg bg-[#f7f7f8] p-4">
                     <h3 className="mb-2 font-medium">Supportive Community</h3>
                     <p className="text-sm">
-                      Learning is better together. I foster a supportive community where students can ask questions,
-                      share ideas, and collaborate on projects.
+                      Learning is better together. I foster a supportive
+                      community where students can ask questions, share ideas,
+                      and collaborate on projects.
                     </p>
                   </div>
                 </div>
@@ -749,16 +802,22 @@ console.log("save",formData)
               <h2 className="mb-6 text-xl font-bold">Work Experience</h2>
               <div className="space-y-8">
                 {userData.experience.map((exp) => (
-                  <div key={exp.id} className="relative border-l-2 border-[#f1f1f3] pl-6">
+                  <div
+                    key={exp.id}
+                    className="relative border-l-2 border-[#f1f1f3] pl-6"
+                  >
                     <div className="absolute -left-2 top-0 h-4 w-4 rounded-full bg-[#ff9500]"></div>
                     <div className="mb-2 flex flex-col justify-between sm:flex-row sm:items-center">
                       <h3 className="font-bold">{exp.title}</h3>
                       <span className="mt-1 inline-block rounded-full bg-[#fff4e5] px-3 py-1 text-sm text-[#ff9500] sm:mt-0">
-                        {exp.startDate} - {exp.current ? "Present" : exp.endDate}
+                        {exp.startDate} -{" "}
+                        {exp.current ? "Present" : exp.endDate}
                       </span>
                     </div>
                     <p className="mb-1 text-[#4c4c4d]">{exp.company}</p>
-                    <p className="mb-1 text-sm text-[#4c4c4d]">{exp.location}</p>
+                    <p className="mb-1 text-sm text-[#4c4c4d]">
+                      {exp.location}
+                    </p>
                     <p className="text-[#4c4c4d]">{exp.description}</p>
                   </div>
                 ))}
@@ -780,17 +839,25 @@ console.log("save",formData)
               <h2 className="mb-6 text-xl font-bold">Education</h2>
               <div className="space-y-8">
                 {userData.education.map((edu) => (
-                  <div key={edu.id} className="relative border-l-2 border-[#f1f1f3] pl-6">
+                  <div
+                    key={edu.id}
+                    className="relative border-l-2 border-[#f1f1f3] pl-6"
+                  >
                     <div className="absolute -left-2 top-0 h-4 w-4 rounded-full bg-[#ff9500]"></div>
                     <div className="mb-2 flex flex-col justify-between sm:flex-row sm:items-center">
                       <h3 className="font-bold">{edu.degree}</h3>
                       <span className="mt-1 inline-block rounded-full bg-[#fff4e5] px-3 py-1 text-sm text-[#ff9500] sm:mt-0">
-                        {edu.startDate} - {edu.current ? "Present" : edu.endDate}
+                        {edu.startDate} -{" "}
+                        {edu.current ? "Present" : edu.endDate}
                       </span>
                     </div>
                     <p className="mb-1 text-[#4c4c4d]">{edu.institution}</p>
-                    <p className="mb-1 text-sm text-[#4c4c4d]">{edu.location}</p>
-                    {edu.description && <p className="text-[#4c4c4d]">{edu.description}</p>}
+                    <p className="mb-1 text-sm text-[#4c4c4d]">
+                      {edu.location}
+                    </p>
+                    {edu.description && (
+                      <p className="text-[#4c4c4d]">{edu.description}</p>
+                    )}
                   </div>
                 ))}
                 {isEditing && (
@@ -808,16 +875,23 @@ console.log("save",formData)
         {activeTab === "certificates" && userData.certificates && (
           <div className="space-y-8">
             <div className="rounded-lg border border-[#f1f1f3] bg-white p-6 shadow-sm">
-              <h2 className="mb-6 text-xl font-bold">Certificates & Credentials</h2>
+              <h2 className="mb-6 text-xl font-bold">
+                Certificates & Credentials
+              </h2>
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {userData.certificates.map((cert) => (
-                  <div key={cert.id} className="rounded-lg border border-[#f1f1f3] p-4">
+                  <div
+                    key={cert.id}
+                    className="rounded-lg border border-[#f1f1f3] p-4"
+                  >
                     <div className="mb-2 flex items-center">
                       <Award className="mr-2 h-5 w-5 text-[#ff9500]" />
                       <h3 className="font-medium">{cert.title}</h3>
                     </div>
                     <p className="text-sm text-[#4c4c4d]">{cert.issuer}</p>
-                    <p className="mt-1 text-xs text-[#4c4c4d]">Issued: {cert.date}</p>
+                    <p className="mt-1 text-xs text-[#4c4c4d]">
+                      Issued: {cert.date}
+                    </p>
                     {cert.url && (
                       <a
                         href={cert.url}
@@ -842,5 +916,5 @@ console.log("save",formData)
         )}
       </div>
     </div>
-  )
+  );
 }

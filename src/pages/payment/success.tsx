@@ -4,12 +4,14 @@ import { CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import axios from "@/api/axios";
+import { useWishlistStore } from "@/hooks/useWishlistStore";
 
 export default function PaymentSuccess() {
   const [orderDetails, setOrderDetails] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
+  const { removeFromWishlist } = useWishlistStore();
   
   useEffect(() => {
     const fetchOrderDetails = async () => {
@@ -22,6 +24,17 @@ export default function PaymentSuccess() {
           // Récupérer les détails de la commande à partir de l'API
           const response = await axios.get(`/api/payment/verify?session_id=${sessionId}`);
           setOrderDetails(response.data);
+          
+          // Si la commande contient des cours, les supprimer de la wishlist
+          if (response.data.courses && Array.isArray(response.data.courses)) {
+            response.data.courses.forEach(async (course: any) => {
+              try {
+                await removeFromWishlist(course.id.toString());
+              } catch (error) {
+                console.error("Erreur lors de la suppression du cours de la wishlist:", error);
+              }
+            });
+          }
         }
       } catch (error) {
         console.error("Erreur lors de la récupération des détails de la commande:", error);
@@ -31,26 +44,22 @@ export default function PaymentSuccess() {
     };
     
     fetchOrderDetails();
-  }, [location]);
+  }, [location, removeFromWishlist]);
   
   return (
-    <div className="container mx-auto px-4 py-10 max-w-3xl">
-      <Card className="border-0 shadow-lg">
-        <CardHeader className="bg-green-50 text-center pb-8">
+    <div className="container mx-auto px-4 py-8 max-w-2xl">
+      <Card>
+        <CardHeader className="text-center">
           <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-            <CheckCircle className="w-10 h-10 text-green-600" />
+            <CheckCircle className="h-8 w-8 text-green-500" />
           </div>
-          <CardTitle className="text-2xl font-bold text-green-800">Paiement réussi !</CardTitle>
-          <p className="text-green-700 mt-2">
-            Votre commande a été traitée avec succès
-          </p>
+          <CardTitle className="text-2xl font-bold text-green-500">
+            Paiement réussi !
+          </CardTitle>
         </CardHeader>
-        
-        <CardContent className="pt-6">
+        <CardContent>
           {loading ? (
-            <div className="flex justify-center py-10">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-500"></div>
-            </div>
+            <div className="text-center py-4">Chargement des détails de la commande...</div>
           ) : (
             <div className="space-y-6">
               <div className="text-center">
@@ -83,7 +92,7 @@ export default function PaymentSuccess() {
                   Retour à l'accueil
                 </Button>
                 <Button 
-                  onClick={() => navigate("/courses")}
+                  onClick={() => navigate("/course-explore")}
                   className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600"
                 >
                   Accéder à mes cours

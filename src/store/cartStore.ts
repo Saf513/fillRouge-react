@@ -67,7 +67,8 @@ export const useCartStore = create<CartState>((set, get) => ({
     successUrl: string, 
     cancelUrl: string, 
     billingAddress: BillingAddress,
-    customerInfo: CustomerInfo
+    customerInfo: CustomerInfo,
+    paymentMethod: string = 'card'
   ) => {
     set({ loading: true, error: null });
     try {
@@ -75,7 +76,8 @@ export const useCartStore = create<CartState>((set, get) => ({
         successUrl, 
         cancelUrl, 
         billingAddress,
-        customerInfo
+        customerInfo,
+        paymentMethod
       );
       set({ checkoutUrl: url, sessionId: session_id, loading: false });
       return url;

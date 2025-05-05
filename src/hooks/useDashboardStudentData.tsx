@@ -104,11 +104,11 @@ export default function useStudentDashboardData() {
         console.log("Début de la requête API...");
         const token =JSON.parse(localStorage.getItem('auth-storage') || '{}').state?.token;
 
-        console.log("Token utilisé:", token ? "Token présent" : "Token absent");
+        console.log("Token utilisé:", token );
 
 
         // Utiliser l'URL relative pour bénéficier du proxy Vite
-        const response = await axiosClient.get('/api/dashboard-student', {
+        const response = await axiosClient.get('http://localhost:8000/api/dashboard-student', {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -119,7 +119,7 @@ export default function useStudentDashboardData() {
 
         // Vérifier si la structure de la réponse est correcte
         if (response.data && response.data.data) {
-          console.log("Données du tableau de bord:", response.data.data);
+          console.log("Données du tableau de bord:", response.data);
           console.log("Cours:", response.data.data.courses);
           console.log("Certificats:", response.data.data.certificates);
           console.log("Profil:", response.data.data.profile);
@@ -173,6 +173,6 @@ export default function useStudentDashboardData() {
     fetchData();
   }, []);
 
-  console.log("État actuel:", { data, loading, error });
+  // console.log("État actuel:", { data, loading, error });
   return { data, loading, error };
 }

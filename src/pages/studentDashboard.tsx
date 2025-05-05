@@ -1,68 +1,90 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
-  BookOpen,
+  Star,
+  MoreVertical,
   ChevronDown,
   ChevronRight,
-  Clock,
-  Filter,
-  Heart,
-  HelpCircle,
-  LogOut,
-  Menu,
-  MessageSquare,
-  MoreVertical,
-  Play,
   Search,
-  Settings,
-  Star,
-  TrendingUp,
+  BookOpen,
+  Heart,
   User,
-  X,
-  Bell,
-  CheckCircle,
   Award,
-  Bookmark,
+  Settings,
+  Bell,
+  Menu,
+  X,
+  List,
+  Grid,
+  Clock,
+  CheckCircle,
   Download,
   ExternalLink,
   Share2,
+  Play,
+  CreditCard,
+  ShoppingCart,
+  Filter,
+  HelpCircle,
+  LogOut,
+  MessageSquare,
+  TrendingUp,
+  Bookmark,
   DollarSign,
   Lightbulb,
   Layers,
   Smartphone,
-  CreditCard,
 } from "lucide-react";
+import {
+  calculateTimeLeft,
+  getRandomDate,
+  getRandomNumber,
+  getRandomProgressColor,
+} from "@/utils/helpers";
+
+// Avatars
+import avatar1 from "@/assets/avatar-1.png";
+import avatar2 from "@/assets/avatar-2.png";
+import avatar3 from "@/assets/avatar-3.png";
+import avatar4 from "@/assets/avatar-4.png";
+import avatar5 from "@/assets/avatar-5.png";
 
 import StudentProfile from "./student/profile/studentProfile";
 import StudentSettings from "./student/settings/studentSettings";
 import NotificationsComponent from "../components/notification/notification";
-import { Course, Certificate, Notification, Wishlist as WishlistType } from "../types/dashboard";
+import { Certificate, Course } from "../types/dashboard";
 import useStudentDashboardData from "../hooks/useDashboardStudentData";
 import Wishlist from "../components/wishList/wishList";
 
 export default function StudentDashboard() {
-  const [activeTab, setActiveTab] = useState("my-learning");
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [selectedView, setSelectedView] = useState("all");
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [activeTab, setActiveTab] = useState("my-learning");
+  const [selectedView, setSelectedView] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [progressFilter, setProgressFilter] = useState("all");
+  const [sortOption, setSortOption] = useState("recent");
+  const [showArchived, setShowArchived] = useState(false);
+  const [expandedCourseIndex, setExpandedCourseIndex] = useState<number | null>(
+    null
+  );
+  const [error, setError] = useState<string | null>(null);
+  const sidebarRef = useRef<HTMLDivElement>(null);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
   const [windowWidth, setWindowWidth] = useState(
     typeof window !== "undefined" ? window.innerWidth : 0
   );
-  const [searchTerm, setSearchTerm] = useState("");
-  const [showFilters, setShowFilters] = useState(false);
   const [showCourseDetails, setShowCourseDetails] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<number | null>(null);
-  const [sortOption, setSortOption] = useState("recent");
-  const [categoryFilter, setCategoryFilter] = useState("all");
-  const [progressFilter, setProgressFilter] = useState("all");
-  const [showArchived, setShowArchived] = useState(false);
-  const profileMenuRef = useRef<HTMLDivElement>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+
   const [courses, setCourses] = useState<Course[]>([]);
+  const [coursesPaids, setCoursesPaids] = useState<Course[]>([]);
   const [certificates, setCertificates] = useState<Certificate[]>([]);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [progress, setProgress] = useState<number>(0);
   const [userProfile, setUserProfile] = useState<{
     name: string;
@@ -73,8 +95,8 @@ export default function StudentDashboard() {
     email: "",
     avatar: "",
   });
-  const [wishlists, setWishlists] = useState<WishlistType[]>([]);
-  const { data: dashboardData, loading: apiLoading } =
+  const [wishlists, setWishlists] = useState<any[]>([]);
+  const { data: dashboardData, loading } =
     useStudentDashboardData();
 
   // Handle window resize
@@ -170,12 +192,13 @@ export default function StudentDashboard() {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        setLoading(true);
-        console.log("fetchDashboardData");
         // Utiliser les données réelles de l'API si disponibles
         if (dashboardData) {
-          // Mettre à jour les états favoris avec les données de l'API
+          // Mettre à jour les états avec les données de l'API
           setCourses(dashboardData.courses || []);
+          // Utiliser les mêmes cours pour coursesPaids (temporairement)
+          // Dans une vraie API, vous auriez dashboardData.courses_payes
+          setCoursesPaids(dashboardData.courses || []); 
           setCertificates(dashboardData.certificates || []);
           setNotifications(dashboardData.notifications || []);
           setUserProfile(dashboardData.userProfile || {});
@@ -194,73 +217,10 @@ export default function StudentDashboard() {
           }
 
           setProgress(dashboardData.progress)
-          setLoading(false);
-          //     } else {
-          //       // Fallback sur les données de démonstration si l'API n'a pas encore répondu
-          //       setTimeout(() => {
-          //         // Données de démonstration
-          //         setCourses([
-          // {
-          //   id: 1,
-          //             title: "Introduction to React",
-          //             instructor: "John Doe",
-          //             progress: 75,
-          //             image: "/placeholder.svg",
-          //             lastViewed: "2023-05-15",
-          //             rating: 4.5,
-          //             reviews: 120,
-          //             totalLessons: 24,
-          //             completedLessons: 18,
-          //   category: "Web Development",
-          //   level: "Beginner",
-          //             description: "Learn the basics of React",
-          //   bookmarked: true,
-          //   isArchived: false,
-          //             estimatedTimeLeft: "2 weeks",
-          //             lastSection: "State Management",
-          //             lastLesson: "useState Hook"
-          //           },
-          //           // Ajoutez d'autres cours si nécessaire
-          //         ])
-
-          //         setCertificates([
-          //           {
-          //             id: 1,
-          //             title: "React Fundamentals",
-          //             issuer: "OpenCode Academy",
-          //             date: "2023-04-10",
-          //             image: "/placeholder.svg",
-          //             course: "Introduction to React",
-          //             skills: ["React", "JavaScript", "HTML", "CSS"]
-          //           },
-          //           // Ajoutez d'autres certificats si nécessaire
-          //         ])
-
-          //         setNotifications([
-          // {
-          //   id: 1,
-          //             title: "New course available",
-          //             course: "Advanced React Patterns",
-          //             time: "2 hours ago",
-          //             icon: "BookOpen",
-          //             read: false
-          //           },
-          //           // Ajoutez d'autres notifications si nécessaire
-          //         ])
-
-          //         setUserProfile({
-          //           name: "John Doe",
-          //           email: "john.doe@example.com",
-          //           avatar: "/placeholder.svg"
-          //         })
-
-          //         setLoading(false)
-          //       }, 1000)
         }
       } catch (error) {
         console.error("Erreur lors du chargement des données:", error);
         setError("Failed to load dashboard data");
-        setLoading(false);
       }
     };
 
@@ -268,7 +228,66 @@ export default function StudentDashboard() {
   }, [dashboardData]);
 
   if (loading) {
-    return <div>Chargement...</div>;
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-r from-[#ff9500]/5 to-[#ff7100]/5 p-8">
+        <div className="text-center mb-8">
+          <h2 className="text-2xl font-bold text-[#ff9500] mb-2">Préparation de votre tableau de bord</h2>
+          <p className="text-gray-600">Veuillez patienter pendant que nous chargeons vos données personnalisées</p>
+        </div>
+        
+        {/* Stats Cards Loaders */}
+        <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          {[1, 2, 3, 4].map((item) => (
+            <div key={item} className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm animate-pulse">
+              <div className="flex items-center justify-between mb-4">
+                <div className="h-4 bg-orange-100 rounded w-24"></div>
+                <div className="rounded-full bg-orange-50 p-2 w-9 h-9"></div>
+              </div>
+              <div className="h-8 bg-orange-100 rounded w-16 mb-2"></div>
+              <div className="h-4 bg-orange-50 rounded w-36"></div>
+              <div className="mt-3 h-2.5 w-full rounded-full bg-gray-100">
+                <div className="h-2.5 rounded-full bg-orange-100" style={{ width: `${Math.random() * 100}%` }}></div>
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        {/* Course Cards Loaders */}
+        <div className="w-full max-w-6xl space-y-6">
+          <div className="flex justify-between items-center">
+            <div className="h-8 bg-orange-100 rounded w-40"></div>
+            <div className="flex space-x-2">
+              {[1, 2, 3, 4].map((item) => (
+                <div key={item} className="h-8 bg-orange-50 rounded w-24"></div>
+              ))}
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map((item) => (
+              <div key={item} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm animate-pulse">
+                <div className="h-40 bg-gradient-to-r from-orange-100 to-orange-200"></div>
+                <div className="p-4 space-y-3">
+                  <div className="h-6 bg-orange-100 rounded w-3/4"></div>
+                  <div className="h-4 bg-orange-50 rounded w-1/2"></div>
+                  <div className="h-4 bg-gray-100 rounded w-full"></div>
+                  <div className="flex justify-between mt-4">
+                    <div className="w-24 h-4 bg-orange-100 rounded"></div>
+                    <div className="w-16 h-8 bg-[#ff9500]/30 rounded-lg"></div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        <div className="mt-8 flex items-center justify-center">
+          <div className="w-3 h-3 bg-[#ff9500] rounded-full animate-bounce"></div>
+          <div className="w-3 h-3 bg-[#ff9500] rounded-full animate-bounce mx-2" style={{ animationDelay: '0.2s' }}></div>
+          <div className="w-3 h-3 bg-[#ff9500] rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+        </div>
+      </div>
+    );
   }
 
   if (error) {
@@ -357,7 +376,7 @@ export default function StudentDashboard() {
       }
       return 0;
     });
-
+console.log(coursesPaids)
   return (
     <div className="flex min-h-screen bg-[#f7f9fa] font-sans text-[#1c1d1f]">
       {/* Mobile Menu Overlay */}
@@ -384,7 +403,7 @@ export default function StudentDashboard() {
               <BookOpen className="h-5 w-5 text-white" />
             </div>
             {sidebarOpen && (
-              <span className="ml-3 text-lg font-bold">Udemy</span>
+              <span className="ml-3 text-lg font-bold"><a href="/">openCode</a></span>
             )}
           </div>
           <button
@@ -443,15 +462,15 @@ export default function StudentDashboard() {
               </li>
               <li>
                 <button
-                  onClick={() => handleTabChange("archived")}
+                  onClick={() => handleTabChange("my-purchases")}
                   className={`flex w-full items-center rounded-md px-3 py-2 ${
-                    activeTab === "archived"
+                    activeTab === "my-purchases"
                       ? "bg-[#f7f9fa] text-[#FF9500]"
                       : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
-                  <Bookmark className="h-5 w-5" />
-                  {sidebarOpen && <span className="ml-3">Archived</span>}
+                  <CreditCard className="h-5 w-5" />
+                  {sidebarOpen && <span className="ml-3">Mes Achats</span>}
                 </button>
               </li>
             </ul>
@@ -980,19 +999,7 @@ export default function StudentDashboard() {
                     </div>
                     <div>
                       <h4 className="mb-2 text-sm font-medium">Other</h4>
-                      <div className="space-y-2">
-                        <label className="flex items-center">
-                          <input
-                            type="checkbox"
-                            checked={showArchived}
-                            onChange={toggleArchivedCourses}
-                            className="h-4 w-4 rounded border-gray-300 text-[#FF9500]"
-                          />
-                          <span className="ml-2 text-sm">
-                            Show archived courses
-                          </span>
-                        </label>
-                      </div>
+                    
                     </div>
                   </div>
                   <div className="mt-4 flex justify-end">
@@ -1211,18 +1218,99 @@ export default function StudentDashboard() {
             </div>
           )}
 
-          {/* Wishlist Tab */}
-          {activeTab === "wishlist" && (
+          {/* My Purchases Tab */}
+          {activeTab === "my-purchases" && (
             <div className="space-y-6">
+              <div className="flex flex-col justify-between md:flex-row md:items-center">
               <div>
                 <h1 className="text-2xl font-bold md:text-3xl">
-                  Ma Liste de Souhaits
+                    Mes Cours Achetés
                 </h1>
                 <p className="text-gray-600">
-                  Gérez les cours que vous souhaitez suivre plus tard
+                    Accédez à tous les cours que vous avez achetés
                 </p>
               </div>
-              <Wishlist dashboardWishlists={wishlists} />
+              </div>
+
+              {/* Course List */}
+              <div className="space-y-4">
+                {coursesPaids && coursesPaids.length > 0 ? (
+                  coursesPaids.map((course) => (
+                    <div
+                      key={course.id}
+                      className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md"
+                    >
+                      <div className="flex flex-col md:flex-row">
+                        <div
+                          className="relative h-48 w-full cursor-pointer md:h-auto md:w-64 md:flex-shrink-0"
+                          onClick={() => navigate(`/coursePlayer/${course.id}`)}
+                        >
+                          <img
+                            src={course.image_url || "/placeholder.svg"}
+                            alt={course.title}
+                            className="h-full w-full object-cover"
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity hover:opacity-100">
+                            <button className="flex h-12 w-12 items-center justify-center rounded-full bg-white/80 text-[#FF9500] backdrop-blur-sm transition-all hover:bg-white">
+                              <Play className="h-5 w-5" />
+                            </button>
+                          </div>
+                        </div>
+                        <div className="flex flex-1 flex-col p-4">
+                          <div className="mb-2 flex items-start justify-between">
+                            <div>
+                              <h3
+                                className="text-lg font-bold line-clamp-1 cursor-pointer hover:text-[#FF9500]"
+                                onClick={() => navigate(`/coursePlayer/${course.id}`)}
+                              >
+                                {course.title}
+                              </h3>
+                              <p className="text-sm text-gray-500">
+                                {course.instructor?.firstName} {course.instructor?.lastName}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="mt-auto">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <div className="flex items-center text-sm text-gray-500">
+                                <span className="flex items-center">
+                                  <Star className="mr-1 h-4 w-4 text-yellow-400 fill-yellow-400" />
+                                  <span className="text-yellow-500 font-medium">{Number(course.average_rating || 0).toFixed(1)}</span>
+                                </span>
+                                <span className="mx-2">•</span>
+                                <span>{course.total_students || 0} étudiants</span>
+                              </div>
+                              <button
+                                className="rounded-md bg-[#FF9500] px-4 py-2 text-sm font-medium text-white hover:bg-[#e78500]"
+                                onClick={() => navigate(`/coursePlayer/${course.id}`)}
+                              >
+                                Continuer l'apprentissage
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 bg-white p-8 text-center">
+                    <ShoppingCart className="h-12 w-12 text-gray-400" />
+                    <h3 className="mt-4 text-lg font-medium">
+                      Aucun cours acheté
+                    </h3>
+                    <p className="mt-2 text-sm text-gray-500">
+                      Explorez notre catalogue de cours et commencez votre parcours d'apprentissage.
+                    </p>
+                    <button 
+                      onClick={() => navigate('/courseExplore')}
+                      className="mt-4 rounded-md bg-[#FF9500] px-4 py-2 text-sm font-medium text-white hover:bg-[#e78500]"
+                    >
+                      Découvrir des cours
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -1716,7 +1804,7 @@ export default function StudentDashboard() {
         {/* Footer */}
         <footer className="border-t border-gray-200 bg-white p-4 text-center text-sm text-gray-500">
           <div className="flex flex-col md:flex-row justify-between items-center gap-2">
-            <div>© 2023 Udemy, Inc. All rights reserved.</div>
+            <div>© 2023 openCode, Inc. All rights reserved.</div>
             <div className="flex gap-4">
               <a href="#" className="hover:text-[#FF9500]">
                 Terms

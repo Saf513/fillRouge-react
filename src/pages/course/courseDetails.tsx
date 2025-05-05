@@ -11,7 +11,6 @@ import {
   Star,
   BookOpen,
   ShoppingCart,
-  Heart,
   CheckCircle,
   Tag
 } from "lucide-react"
@@ -19,6 +18,7 @@ import { Button } from "@/components/ui/button"
 import { RatingForm } from '@/pages/course/ratingForm'
 import { RatingList } from '@/pages/course/ratingList'
 import { useToast } from "@/hooks/use-toast"
+import  WishlistToggle  from "@/components/wishList/wishlistToggle"
 
 export default function CourseDetails() {
   const { id } = useParams()
@@ -27,13 +27,15 @@ export default function CourseDetails() {
   const { 
     wishlistedCourses, 
     toggleWishlist: toggleWishlistStore,
-    fetchWishlistedCourses
+    fetchWishlistedCourses,
+    isLoading: wishlistLoading
   } = useWishlistStore()
   const { addToCart, items } = useCartStore()
   const { toast } = useToast()
   const [course, setCourse] = useState<Course | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
   const [isAddingToCart, setIsAddingToCart] = useState(false)
+  const [isTogglingWishlist, setIsTogglingWishlist] = useState(false)
 
   // Check if course is in wishlist
   const isInWishlist = id ? wishlistedCourses.includes(id) : false
@@ -69,9 +71,27 @@ export default function CourseDetails() {
   }
   
   // Function to toggle wishlist status
-  const toggleWishlist = () => {
-    if (id) {
-      toggleWishlistStore(id)
+  const toggleWishlist = async () => {
+    if (id && !isTogglingWishlist) {
+      try {
+        setIsTogglingWishlist(true)
+        await toggleWishlistStore(id)
+        toast({
+          title: isInWishlist ? "Cours retiré de la liste de souhaits" : "Cours ajouté à la liste de souhaits",
+          description: isInWishlist 
+            ? "Le cours a été retiré de votre liste de souhaits." 
+            : "Le cours a été ajouté à votre liste de souhaits."
+        })
+      } catch (error) {
+        toast({
+          title: "Erreur",
+          description: "Une erreur est survenue lors de la modification de votre liste de souhaits.",
+          variant: "destructive"
+        })
+        console.error("Erreur de modification de la liste de souhaits:", error)
+      } finally {
+        setIsTogglingWishlist(false)
+      }
     }
   }
 
@@ -114,7 +134,7 @@ export default function CourseDetails() {
       </div>
     )
   }
-
+console.log("course",course)
   if (!course) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -135,9 +155,7 @@ export default function CourseDetails() {
               <div className="flex justify-between mb-4">
                 <h1 className="text-3xl font-bold">{course.title}</h1>
                 <div className="flex items-center">
-                  <Button onClick={toggleWishlist} variant="ghost" className="mr-2">
-                    <Heart className={`h-5 w-5 ${isInWishlist ? 'fill-red-500 text-red-500' : ''}`} />
-                  </Button>
+                  {id && <WishlistToggle courseId={id} size="lg" />}
                   <Button 
                     onClick={handleAddToCart} 
                     className="bg-[#ff9500] hover:bg-[#e78500]"
@@ -163,8 +181,8 @@ export default function CourseDetails() {
                   <span>{course.total_students || 0} étudiants</span>
                 </div>
                 <div className="flex items-center">
-                  <Star className="h-5 w-5 text-yellow-500 mr-2" />
-                  <span>{course.average_rating || 0} ({course.total_reviews || 0} avis)</span>
+                  <Star className="h-5 w-5 text-yellow-500 mr-2" fill="#facc15" />
+                  <span><span className="text-yellow-500">{course.average_rating || 0}</span> ({course.total_reviews || 0} avis)</span>
                 </div>
                 <div className="flex items-center">
                   <BookOpen className="h-5 w-5 text-gray-500 mr-2" />

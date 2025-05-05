@@ -1,4 +1,4 @@
-import { Eye, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Checkbox } from "../components/ui/checkbox";
@@ -8,74 +8,111 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import axiosClient from "../api/axios";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import Swal from 'sweetalert2';
+import { useState } from "react";
 
 export const LoginSchema = z.object({
   email: z.string().email({ message: "Invalid email address" }),
   password: z.string().min(8, { message: "Password must be at least 8 characters" }).max(20, { message: "Password must be at most 20 characters" }),
 });
 
+interface LoginError {
+  code?: string;
+  response?: {
+    status?: number;
+    data?: {
+      message?: string;
+      errors?: Record<string, string[]>;
+    };
+  };
+}
+
 const Login = () => {
+  const [showPassword, setShowPassword] = useState(false);
+
   const {
     register,
-    isSubmitting,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<z.infer<typeof LoginSchema>>({
     resolver: zodResolver(LoginSchema),
     defaultValues: {
-      email: "safiakhoulaid11@gmail.com",
-      password: "new-password",
+      email: "",
+      password: "",
     },
   });
 
   const navigate = useNavigate();
   const onsubmit = async (values: z.infer<typeof LoginSchema>) => {
     try {
-      // 1. Obtenez d'abord le cookie CSRF
-      console.log("Fetching CSRF cookie...");
       await axiosClient.get('/sanctum/csrf-cookie');
-      
-      // 2. Effectuez la requête de connexion
-      console.log("Attempting login with:", values);
       const response = await axiosClient.post('/api/login', values);
-      
-      // 3. Traitez la réponse
-      console.log("Login response:", response);
-      
+ 
       if (response.status === 200) {
         const { user, token } = response.data;
-        console.log("Login successful, user:", user);
-        
-        // 4. Mettez à jour l'état d'authentification
         useAuth.getState().login(user, token);
         
-        // 5. Naviguez vers la page d'accueil
-        navigate('/');
+       
+        await Swal.fire({
+          title: 'Connexion réussie!',
+          text: 'Bienvenue sur notre plateforme!',
+          icon: 'success',
+          confirmButtonText: 'Continuer',
+          confirmButtonColor: '#FF9500',
+        });
+        
+        if (user.role === "teacher") {
+          navigate('/teacher-dashboard');
+        } else if (user.role === "admin") {
+          navigate('/admin-dashboard');
+        } else {
+          navigate('/');
+        }
       }
-    } catch (error: any) {
-      console.error("Login error:", error);
-      console.error("Error response:", error.response?.data);
+    } catch (error: unknown) {
+    
+      const loginError = error as LoginError;
+
       
-      if (error.code === 'ERR_NETWORK') {
-        alert("Unable to connect to the server. Please check your network connection or try again later.");
-      } else if (error.response?.status === 403 && 
-                 error.response?.data?.message.includes('pending approval')) {
+      if (loginError.code === 'ERR_NETWORK') {
+        Swal.fire({
+          title: 'Erreur de connexion',
+          text: 'Impossible de se connecter au serveur. Veuillez vérifier votre connexion réseau ou réessayer plus tard.',
+          icon: 'error',
+          confirmButtonColor: '#FF9500',
+        });
+      } else if (loginError.response?.status === 403 && 
+                 loginError.response?.data?.message?.includes('pending approval')) {
         // Message spécifique pour compte en attente d'approbation
-        alert("Votre compte est en attente d'approbation par un administrateur. " +
-              "Veuillez patienter ou contacter l'administrateur.");
-      } else if (error.response?.data?.message) {
+        Swal.fire({
+          title: 'Compte en attente',
+          text: 'Votre compte est en attente d\'approbation par un administrateur. Veuillez patienter ou contacter l\'administrateur.',
+          icon: 'warning',
+          confirmButtonColor: '#FF9500',
+        });
+      } else if (loginError.response?.data?.message) {
         // Autres erreurs avec message
-        alert(`Erreur de connexion: ${error.response.data.message}`);
+        Swal.fire({
+          title: 'Échec de connexion',
+          text: loginError.response.data.message,
+          icon: 'error',
+          confirmButtonColor: '#FF9500',
+        });
       } else {
         // Erreur générique
-        alert("La connexion a échoué. Veuillez réessayer plus tard.");
+        Swal.fire({
+          title: 'Échec de connexion',
+          text: 'La connexion a échoué. Veuillez réessayer plus tard.',
+          icon: 'error',
+          confirmButtonColor: '#FF9500',
+        });
       }
     }
   };
 
   return (
     <>
-      {/* Contenu principal */}
+    
       <div className="min-h-screen flex flex-col bg-white">
         <main className="container mx-auto px-4 py-8 md:py-16 overflow-visible flex-1">
           <div className="grid md:grid-cols-2 gap-8 items-center">
@@ -84,12 +121,10 @@ const Login = () => {
               <h2 className="text-3xl font-bold text-[#333333]">
                 Students Testimonials
               </h2>
-              <p className="text-[#656567]">
-                Lorem ipsum dolor sit amet consectetur...
-              </p>
+              <img src="./../../public/img/login.jfif" alt="testimonials" />
             </div>
 
-            {/* Section Formulaire */}
+           
             <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-100">
               <form onSubmit={handleSubmit(onsubmit)} className="space-y-6">
                 <h2 className="text-2xl font-bold text-center mb-2">Login</h2>
@@ -130,16 +165,21 @@ const Login = () => {
                     <Input
                       id="password"
                       {...register("password")}
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       placeholder="Enter your Password"
                       className={`border-gray-200 pr-10 ${errors.password ? "border-red-500" : ""}`}
                       aria-invalid={errors.password ? "true" : "false"}
                     />
                     <button
                       type="button"
+                      onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
                     >
-                      <Eye className="h-5 w-5" />
+                      {showPassword ? (
+                        <EyeOff className="h-5 w-5" />
+                      ) : (
+                        <Eye className="h-5 w-5" />
+                      )}
                     </button>
                   </div>
                   {errors.password && (
@@ -164,12 +204,20 @@ const Login = () => {
                   </Button>
                 </div>
 
-                {/* Bouton Login */}
+               
                 <Button
                   type="submit"
                   className="w-full bg-[#FF9500] hover:bg-[#e68600] text-white"
+                  disabled={isSubmitting}
                 >
-                  Login
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Connexion en cours...
+                    </>
+                  ) : (
+                    'Se connecter'
+                  )}
                 </Button>
 
                 <div className="relative flex items-center justify-center">
@@ -184,7 +232,7 @@ const Login = () => {
                   className="w-full border-gray-200 flex items-center gap-2"
                 >
                   <img
-                    src="/google-logo.png"
+                    src="./../../public/img/OIP (3).jfif"
                     alt="Google logo"
                     width={20}
                     height={20}
@@ -201,7 +249,6 @@ const Login = () => {
                     onClick={() => navigate('/signup')}
                   >
                    Sign Up
-                   {isSubmitting && <Loader2/>}
                   </Button>
                 </p>
               </form>

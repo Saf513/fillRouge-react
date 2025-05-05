@@ -74,7 +74,8 @@ export const cartService = {
       lastName: string;
       email: string;
       phone: string;
-    }
+    },
+    paymentMethod: string = 'card'
   ): Promise<CheckoutResponse> {
     try {
       const formattedBillingAddress = `${billingAddress.address}, ${billingAddress.zipCode} ${billingAddress.city}, ${billingAddress.state}, ${billingAddress.country}`;
@@ -110,7 +111,8 @@ export const cartService = {
           email: customerInfo.email,
           phone: customerInfo.phone
         },
-        cart_items: filteredCart // Remettre cart_items qui est nécessaire pour l'API
+        cart_items: filteredCart,
+        payment_method: paymentMethod
       });
       return response.data;
     } catch (error) {

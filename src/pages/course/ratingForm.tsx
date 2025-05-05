@@ -1,8 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Star } from 'lucide-react';
 import axios from '@/api/axios';
+import { AxiosError } from 'axios';
 import { RatingFormData } from '@/types/rating';
 import { useNavigate } from 'react-router-dom';
+import Swal from 'sweetalert2';
+
+interface ApiErrorResponse {
+  message?: string;
+  errors?: Record<string, string[]>;
+}
 
 interface RatingFormProps {
   courseId: number;
@@ -40,11 +47,23 @@ export function RatingForm({ courseId, onRatingAdded }: RatingFormProps) {
     
     if (hasRated) {
       setError('Vous avez déjà donné un avis pour ce cours');
+      Swal.fire({
+        title: 'Avis déjà soumis',
+        text: "Vous avez déjà donné un avis pour ce cours. Vous ne pouvez donner qu'un seul avis par cours.",
+        icon: 'warning',
+        confirmButtonColor: '#ff9500',
+      });
       return;
     }
     
     if (rating === 0) {
       setError('Veuillez donner une note');
+      Swal.fire({
+        title: 'Note requise',
+        text: 'Veuillez attribuer une note au cours avant de soumettre votre avis.',
+        icon: 'warning',
+        confirmButtonColor: '#ff9500',
+      });
       return;
     }
 
@@ -62,14 +81,38 @@ export function RatingForm({ courseId, onRatingAdded }: RatingFormProps) {
       setComment('');
       setError('');
       onRatingAdded();
-      // Utiliser navigate au lieu de redirect
-      navigate(`/course/${courseId}`);
-    } catch (err: any) {
-      if (err.response && err.response.status === 409) {
+      
+      Swal.fire({
+        title: 'Avis soumis avec succès',
+        text: 'Merci pour votre avis sur ce cours!',
+        icon: 'success',
+        confirmButtonColor: '#ff9500',
+      }).then(() => {
+        // Rediriger après que l'utilisateur ait cliqué sur OK
+        navigate(`/course/${courseId}`);
+      });
+      
+    } catch (err: AxiosError | unknown) {
+      const error = err as AxiosError;
+      if (error.response && error.response.status === 409) {
         setError('Vous avez déjà donné un avis pour ce cours');
         setHasRated(true);
+        
+        Swal.fire({
+          title: 'Avis déjà soumis',
+          text: "Vous avez déjà donné un avis pour ce cours. Vous ne pouvez donner qu'un seul avis par cours.",
+          icon: 'warning',
+          confirmButtonColor: '#ff9500',
+        });
       } else {
         setError('Erreur lors de l\'envoi de votre avis');
+        
+        Swal.fire({
+          title: 'Erreur',
+          text: error.response?.data?.message as string || "Une erreur est survenue lors de l'envoi de votre avis. Veuillez réessayer plus tard.",
+          icon: 'error',
+          confirmButtonColor: '#ff9500',
+        });
       }
       console.error('Erreur:', err);
     } finally {

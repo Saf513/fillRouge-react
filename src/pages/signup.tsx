@@ -1,15 +1,26 @@
 import { useState, FormEvent } from "react";
-import { ArrowLeft, ArrowRight, Eye, ChevronDown } from "lucide-react";
+import { Eye, ChevronDown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate } from "react-router-dom";
 import axiosClient from "@/api/axios";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { Toaster } from "@/components/ui/toaster";
+import Swal from 'sweetalert2';
+
+interface ApiErrorResponse {
+  data?: {
+    errors?: Record<string, string[]>;
+    message?: string;
+  };
+}
 
 const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [userType, setUserType] = useState("student");
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -18,6 +29,7 @@ const Signup = () => {
     agreeToTerms: false,
   });
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value, type, checked } = e.target;
@@ -30,140 +42,138 @@ const Signup = () => {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // Validation basique
     if (
       !formData.firstName ||
       !formData.lastName ||
       !formData.email ||
       !formData.password
     ) {
-      alert("Please fill all required fields");
+      toast({
+        variant: "destructive",
+        title: "Erreur de validation",
+        description: "Veuillez remplir tous les champs requis"
+      });
       return;
     }
 
     if (!formData.agreeToTerms) {
-      alert("Please agree to the terms and conditions");
+      toast({
+        variant: "destructive",
+        title: "Conditions d'utilisation",
+        description: "Veuillez accepter les conditions d'utilisation"
+      });
       return;
     }
 
-    // Validation du mot de passe
     if (formData.password.length < 8) {
-      alert("Password must be at least 8 characters long");
+      toast({
+        variant: "destructive",
+        title: "Mot de passe invalide",
+        description: "Le mot de passe doit contenir au moins 8 caractères"
+      });
       return;
     }
 
     try {
-      // Obtenez d'abord le cookie CSRF
-      console.log("Fetching CSRF cookie...");
+      setIsLoading(true);
       await axiosClient.get("/sanctum/csrf-cookie");
-
-      // Préparation des données pour l'API
       const userData = {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
         password: formData.password,
-        password_confirmation: formData.password, // Laravel demande généralement une confirmation
-        role: userType, // student ou teacher
+        password_confirmation: formData.password,
+        role: formData.role,
       };
+       console.log(userData)
 
-      console.log("Sending registration data:", userData);
-
-      // Appel API pour l'inscription
       const response = await axiosClient.post("/api/register", userData);
 
-      console.log("Registration response:", response);
-
       if (response.status === 201 || response.status === 200) {
-        // Si l'API renvoie le token et les informations utilisateur directement
-        if (response.data.token && response.data.user) {
+        if (response.data?.token && response.data?.user) {
           const { user, token } = response.data;
-          console.log("Auto-login after registration");
-
-          // Connectez l'utilisateur immédiatement
           useAuth.getState().login(user, token);
-
-          // Redirection vers la page d'accueil ou tableau de bord
+          
+          // Afficher SweetAlert pour le succès
+          await Swal.fire({
+            title: 'Inscription réussie!',
+            text: 'Bienvenue sur notre plateforme!',
+            icon: 'success',
+            confirmButtonText: 'Continuer',
+            confirmButtonColor: '#FF9500',
+          });
+          
           navigate("/");
         } else {
-          // Sinon, redirigez vers la page de connexion
-          alert("Registration successful! Please login.");
+          // Afficher SweetAlert pour le succès
+          await Swal.fire({
+            title: 'Inscription réussie!',
+            text: 'Veuillez vous connecter avec vos identifiants',
+            icon: 'success',
+            confirmButtonText: 'Se connecter',
+            confirmButtonColor: '#FF9500',
+          });
+          
           navigate("/login");
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Registration failed:", error);
 
-      // Affichage des erreurs de validation renvoyées par le backend
-      if (error.response?.data?.errors) {
-        const errorMessages = Object.values(error.response.data.errors)
+      const apiError = error as ApiErrorResponse;
+      
+      if (apiError?.data?.errors) {
+        const errorMessages = Object.values(apiError.data.errors)
           .flat()
           .join("\n");
-        alert(`Registration error: ${errorMessages}`);
-      } else if (error.response?.data?.message) {
-        alert(`Error: ${error.response.data.message}`);
+        toast({
+          variant: "destructive",
+          title: "Erreur d'inscription",
+          description: errorMessages
+        });
+      } else if (apiError?.data?.message) {
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: apiError.data.message
+        });
       } else {
-        alert("Registration failed. Please try again later.");
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "L'inscription a échoué. Veuillez réessayer plus tard."
+        });
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <>
+      <Toaster />
       {/* Contenu principal */}
       <div className="min-h-screen flex flex-col bg-white">
         <main className="container mx-auto px-4 py-8 md:py-16 overflow-visible flex-1">
           <div className="grid md:grid-cols-2 gap-8 items-center">
             {/* Section Témoignages */}
-            <div className="space-y-6">
-              <h2 className="text-3xl font-bold text-[#333333]">
-                Students Testimonials
+            <div className="space-y-6 flex flex-col items-center">
+            <h2 className="text-3xl font-bold text-[#333333] text-center">
+                Créez votre compte et commencez
               </h2>
-              <p className="text-[#656567]">
-                Lorem ipsum dolor sit amet consectetur...
+              
+              <p className="text-[#656567] text-center max-w-md">
+                Rejoignez notre plateforme d'apprentissage et accédez à des cours de qualité pour développer vos compétences.
               </p>
-
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 mt-8">
-                <p className="text-[#333333] mb-6">
-                  The web design course provided a solid foundation for me...
-                </p>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-[#F1F1F3] w-10 h-10 rounded-full overflow-hidden">
-                      <img
-                        src="/avatar-placeholder.png"
-                        alt="Student avatar"
-                        width={40}
-                        height={40}
-                      />
-                    </div>
-                    <span className="font-medium text-[#333333]">Sarah L.</span>
-                  </div>
-                  <Button
-                    variant="link"
-                    className="text-[#FF9500] hover:text-[#e68600]"
-                  >
-                    Read More
-                  </Button>
-                </div>
+              <div className="w-full max-w-md">
+                <img 
+                  src="./../../public/img/online-education-application-learning-worldwide-on-phone-mobile-website-background-social-distance-concept-the-classroom-training-course-library-illustration-flat-design-vector.jpg" 
+                  alt="Créer un compte" 
+                  className="w-full h-auto rounded-lg mb-6"
+                />
               </div>
-
-              <div className="flex justify-center gap-4 mt-4">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="rounded-full h-10 w-10 border-gray-200"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="rounded-full h-10 w-10 border-gray-200"
-                >
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              </div>
+              
+             
             </div>
 
             {/* Section Formulaire */}
@@ -243,8 +253,8 @@ const Signup = () => {
                       onChange={(e) => setUserType(e.target.value)}
                       className="w-full rounded-md border border-gray-200 px-3 py-2 appearance-none pr-10 h-10 text-gray-800"
                     >
-                      <option value="student">Student</option>
-                      <option value="teacher">Teacher</option>
+                      <option value="1">Student</option>
+                      <option value="2">Teacher</option>
                     </select>
                     <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 pointer-events-none" />
                   </div>
@@ -310,8 +320,16 @@ const Signup = () => {
                 <Button
                   type="submit"
                   className="w-full bg-[#FF9500] hover:bg-[#e68600] text-white"
+                  disabled={isLoading}
                 >
-                  Sign Up as {userType === "student" ? "Student" : "Teacher"}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Inscription en cours...
+                    </>
+                  ) : (
+                    `S'inscrire en tant que ${userType === "student" ? "Étudiant" : "Enseignant"}`
+                  )}
                 </Button>
 
                 <div className="relative flex items-center justify-center">
@@ -328,7 +346,7 @@ const Signup = () => {
                   className="w-full border-gray-200 flex items-center gap-2"
                 >
                   <img
-                    src="/google-logo.png"
+                    src="./../../public/img/OIP (3).jfif"
                     alt="Google logo"
                     width={20}
                     height={20}

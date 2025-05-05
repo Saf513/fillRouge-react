@@ -12,6 +12,7 @@ export interface CartState extends Cart {
   error: string | null;
   checkoutUrl: string | null;
   sessionId: string | null;
+  count: number;
   fetchCart: () => Promise<void>;
   addToCart: (courseId: number) => Promise<void>;
   removeFromCart: (courseId: number) => Promise<void>;
@@ -21,6 +22,7 @@ export interface CartState extends Cart {
     successUrl: string, 
     cancelUrl: string, 
     billingAddress: BillingAddress,
-    customerInfo: CustomerInfo
+    customerInfo: CustomerInfo,
+    paymentMethod?: string
   ) => Promise<string | null>;
 } 

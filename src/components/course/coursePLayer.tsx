@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useParams } from "react-router-dom"
-import Image from "next/image"
 import {
   ChevronDown,
   ChevronRight,
@@ -28,7 +27,8 @@ import {
   MoreHorizontal,
   Printer,
   Linkedin,
-  File as FileIcon
+  File as FileIcon,
+  ExternalLink
 } from "lucide-react"
 import { courseService } from "@/services/courseService"
 import { toast } from "@/hooks/use-toast"
@@ -44,8 +44,8 @@ type Lesson = {
   preview: boolean
   content?: string
   videoUrl?: string
-  content_url?: string
-  content_type?: string
+  content_url: string
+  content_type: string
 }
 
 type Section = {
@@ -269,8 +269,20 @@ const CoursePlayer = () => {
   // Marquer une leçon comme terminée
   const markLessonAsCompleted = async (lessonId: string) => {
     try {
-      // Ici, vous pouvez ajouter l'appel API pour marquer la leçon comme terminée
-      // Exemple: await courseService.markLessonAsCompleted(course.id, lessonId);
+      // Vérifier si currentSection est null
+      if (!currentSection || !currentLesson) {
+        console.error("La section ou la leçon actuelle est null");
+        toast({
+          title: "Erreur",
+          description: "Impossible de marquer cette leçon comme terminée pour le moment.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Version statique sans API - commenté l'appel API
+      // await courseService.markLessonAsCompleted(course.id, currentLesson.id, currentSection.id);
+      console.log("Marquer la leçon comme terminée (mode statique):", lessonId);
       
       const updatedSections = course.sections.map((section) => {
         const updatedLessons = section.lessons.map((lesson) => {
@@ -290,22 +302,25 @@ const CoursePlayer = () => {
         })
       })
 
+      // Calculer le nouveau pourcentage de progression
+      const newProgress = Math.round((completedCount / course.totalLessons) * 100);
+
       // Mettre à jour le cours avec les nouvelles données
       setCourse({
         ...course,
         sections: updatedSections,
         completedLessons: completedCount,
-        progress: Math.round((completedCount / course.totalLessons) * 100),
+        progress: newProgress,
       })
 
-      // Si le cours est terminé à plus de 95%, afficher le certificat
-      if (Math.round((completedCount / course.totalLessons) * 100) > 95) {
-        setShowCertificate(true)
+      // Si le cours est terminé à plus de 95%, marquer le cours comme complété
+      if (newProgress > 95) {
+        completeCourse();
       }
       
       toast({
         title: "Leçon terminée",
-        description: "Votre progression a été enregistrée avec succès.",
+        description: "Votre progression a été enregistrée localement.",
       })
     } catch (error) {
       console.error("Erreur lors du marquage de la leçon comme terminée:", error)
@@ -316,6 +331,179 @@ const CoursePlayer = () => {
       })
     }
   }
+
+  // Fonction pour marquer le cours entier comme terminé
+  const completeCourse = async () => {
+    try {
+      // Version statique sans API - commenté l'appel API
+      // await courseService.completeCourse(course.id);
+      console.log("Cours marqué comme terminé (mode statique)");
+      
+      setShowCertificate(true);
+      
+      toast({
+        title: "Cours terminé",
+        description: "Félicitations! Vous avez complété ce cours.",
+      });
+    } catch (error) {
+      console.error("Erreur lors du marquage du cours comme terminé:", error);
+    }
+  };
+
+  // Télécharger le certificat en PDF
+  const downloadCertificateAsPDF = async () => {
+    try {
+      toast({
+        title: "Téléchargement en cours",
+        description: "Votre certificat sera téléchargé dans quelques instants.",
+      });
+      
+      // Version statique - générer un certificat côté client au lieu de l'API
+      console.log("Génération du certificat (mode statique)");
+      
+      // Récupérer les informations de l'utilisateur
+      const authData = JSON.parse(localStorage.getItem('auth-storage') || '{}').state;
+      const userName = `${authData?.user?.firstName || ''} ${authData?.user?.lastName || ''}` || 'Étudiant';
+      
+      // Créer un élément canvas pour générer le PDF côté client
+      const certificateDiv = document.createElement('div');
+      certificateDiv.innerHTML = `
+        <div style="font-family: Arial, sans-serif; padding: 40px; border: 2px solid #ccc; max-width: 800px; margin: 0 auto; text-align: center;">
+          <h1 style="color: #f97316;">Certificat d'Achèvement</h1>
+          <p>Ce certificat est décerné à</p>
+          <h2>${userName}</h2>
+          <p>pour avoir complété avec succès le cours</p>
+          <h3>${course.title}</h3>
+          <p>Délivré le ${new Date().toLocaleDateString()}</p>
+          <div style="margin: 30px 0; border-bottom: 1px solid #ccc;"></div>
+          <p>Instructeur: ${course.instructor.first_name} ${course.instructor.last_name}</p>
+          <p style="font-size: 12px; margin-top: 50px;">ID du certificat: CERT-${course.id}-${Date.now().toString().slice(-8)}</p>
+        </div>
+      `;
+      
+      document.body.appendChild(certificateDiv);
+      
+      // Utiliser html2canvas et jsPDF pour générer le PDF
+      // Note: Dans une implémentation réelle, vous devriez inclure ces bibliothèques
+      // et utiliser un code comme:
+      // html2canvas(certificateDiv).then(canvas => {
+      //   const imgData = canvas.toDataURL('image/png');
+      //   const pdf = new jsPDF('l', 'mm', 'a4');
+      //   pdf.addImage(imgData, 'PNG', 0, 0, 297, 210);
+      //   pdf.save(`certificat-${course.title.replace(/\s+/g, '-')}.pdf`);
+      //   document.body.removeChild(certificateDiv);
+      // });
+      
+      // Version simplifiée pour la démonstration
+      setTimeout(() => {
+        document.body.removeChild(certificateDiv);
+        alert("Fonctionnalité de téléchargement PDF en mode statique. Dans un environnement de production, le PDF serait généré et téléchargé.");
+      }, 1000);
+      
+    } catch (error) {
+      console.error("Erreur lors du téléchargement du certificat:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de télécharger le certificat pour le moment.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Imprimer le certificat
+  const printCertificate = () => {
+    try {
+      console.log("Impression du certificat (mode statique)");
+      
+      // Créer une fenêtre d'impression
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        throw new Error("Impossible d'ouvrir la fenêtre d'impression");
+      }
+
+      // Récupérer les informations de l'utilisateur
+      const authData = JSON.parse(localStorage.getItem('auth-storage') || '{}').state;
+      const userName = `${authData?.user?.firstName || ''} ${authData?.user?.lastName || ''}` || 'Étudiant';
+
+      // Préparer le HTML pour l'impression
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Certificat - ${course.title}</title>
+            <style>
+              body { font-family: Arial, sans-serif; padding: 20px; }
+              .certificate { text-align: center; padding: 30px; border: 2px solid #ccc; max-width: 800px; margin: 0 auto; }
+              h1 { color: #f97316; }
+            </style>
+          </head>
+          <body>
+            <div class="certificate">
+              <h1>Certificat d'Achèvement</h1>
+              <p>Ce certificat est décerné à</p>
+              <h2>${userName}</h2>
+              <p>pour avoir complété avec succès le cours</p>
+              <h3>${course.title}</h3>
+              <p>Délivré le ${new Date().toLocaleDateString()}</p>
+              <div style="margin: 30px 0; border-bottom: 1px solid #ccc;"></div>
+              <p>Instructeur: ${course.instructor.first_name} ${course.instructor.last_name}</p>
+              <p style="font-size: 12px; margin-top: 50px;">ID du certificat: CERT-${course.id}-${Date.now().toString().slice(-8)}</p>
+              <p style="margin-top: 20px; color: #888; font-size: 10px;">Ce certificat est généré en mode statique, sans validation par le serveur.</p>
+            </div>
+          </body>
+        </html>
+      `);
+      
+      printWindow.document.close();
+      printWindow.focus();
+      
+      // Imprimer et fermer la fenêtre après l'impression
+      setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+      }, 500);
+    } catch (error) {
+      console.error("Erreur lors de l'impression du certificat:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'imprimer le certificat pour le moment.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Partager le certificat sur LinkedIn
+  const shareCertificateOnLinkedIn = () => {
+    try {
+      console.log("Partage du certificat sur LinkedIn (mode statique)");
+      
+      // Paramètres pour le partage LinkedIn
+      const url = window.location.href;
+      const title = `J'ai obtenu un certificat pour le cours "${course.title}"`;
+      const summary = `Je viens de terminer le cours "${course.title}" et j'ai obtenu mon certificat!`;
+      
+      // Construire l'URL de partage LinkedIn
+      const linkedinShareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}&summary=${encodeURIComponent(summary)}`;
+      
+      // Afficher message statique au lieu d'ouvrir LinkedIn
+      toast({
+        title: "Mode statique",
+        description: "La fonction de partage LinkedIn est en mode statique. Dans un environnement de production, LinkedIn s'ouvrirait."
+      });
+      
+      // Dans un environnement de production, décommentez cette ligne:
+      // window.open(linkedinShareUrl, '_blank', 'width=600,height=600');
+      
+      // Pour démonstration
+      console.log("URL de partage LinkedIn:", linkedinShareUrl);
+    } catch (error) {
+      console.error("Erreur lors du partage sur LinkedIn:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de partager sur LinkedIn pour le moment.",
+        variant: "destructive"
+      });
+    }
+  };
 
   // Basculer l'expansion d'une section
   const toggleSection = (sectionId: string) => {
@@ -403,21 +591,32 @@ const CoursePlayer = () => {
             >
               {showSidebar ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
-            <div>
+            <div className="flex items-center mr-4">
+              <div className="bg-orange-500 p-2 rounded-full mr-2">
+                <BookOpen className="h-6 w-6 text-white" />
+              </div>
               <h1 className="text-lg font-bold truncate max-w-[200px] sm:max-w-md">{course.title}</h1>
-              <div className="flex items-center text-sm text-gray-500">
-                <span className="hidden sm:inline">Par {course.instructor.first_name} {course.instructor.last_name}</span>
-                <span className="mx-2 hidden sm:inline">•</span>
-                <div className="flex items-center">
-                  <div className="w-20 h-1.5 bg-gray-200 rounded-full mr-2">
-                    <div className="h-full bg-orange-500 rounded-full" style={{ width: `${course.progress}%` }}></div>
-                  </div>
-                  <span>{course.progress}% terminé</span>
+            </div>
+            <div className="flex items-center text-sm text-gray-500">
+              <span className="hidden sm:inline">Par {course.instructor.first_name} {course.instructor.last_name}</span>
+              <span className="mx-2 hidden sm:inline">•</span>
+              <div className="flex items-center">
+                <div className="w-20 h-1.5 bg-gray-200 rounded-full mr-2">
+                  <div className="h-full bg-orange-500 rounded-full" style={{ width: `${course.progress}%` }}></div>
                 </div>
+                <span>{course.progress}% terminé</span>
               </div>
             </div>
           </div>
           <div className="flex items-center space-x-2">
+            <button 
+              className="flex items-center py-1 px-3 bg-green-600 text-white text-sm rounded-full hover:bg-green-700"
+              onClick={() => setShowCertificate(true)}
+              title="Obtenir le certificat"
+            >
+              <Award className="h-4 w-4 mr-1" />
+              <span className="hidden sm:inline">Certificat</span>
+            </button>
             <button className="p-2 rounded-full hover:bg-gray-100">
               <Heart className="h-5 w-5" />
             </button>
@@ -440,7 +639,12 @@ const CoursePlayer = () => {
           <aside className="w-full md:w-80 lg:w-96 bg-white border-r border-gray-200 flex flex-col h-[calc(100vh-64px)] fixed md:relative z-20 md:z-0">
             <div className="p-4 border-b border-gray-200">
               <div className="flex items-center justify-between mb-2">
-                <h2 className="font-bold">Contenu du cours</h2>
+                <div className="flex items-center">
+                  <div className="bg-orange-100 p-2 rounded-full mr-2">
+                    <BookOpen className="h-5 w-5 text-orange-500" />
+                  </div>
+                  <h2 className="font-bold">Contenu du cours</h2>
+                </div>
                 <span className="text-sm text-gray-500">
                   {course.completedLessons}/{course.totalLessons} leçons
                 </span>
@@ -529,15 +733,24 @@ const CoursePlayer = () => {
         <main className="flex-1 overflow-y-auto h-[calc(100vh-64px)]">
           {showCertificate ? (
             <div className="p-6 max-w-4xl mx-auto">
-              <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-8 text-center">
-                <div className="mb-6">
-                  <Award className="h-16 w-16 text-orange-500 mx-auto" />
+              <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-8 text-center relative">
+                {/* Badge de certification */}
+                <div className="absolute top-0 right-0 -mt-6 -mr-6 bg-green-600 text-white rounded-full p-3 shadow-lg">
+                  <Award className="h-8 w-8" />
                 </div>
-                <h2 className="text-3xl font-bold mb-2">Certificat d'Achèvement</h2>
+                
+                {/* Logo de la plateforme */}
+                <div className="mb-6 flex justify-center items-center">
+                  <div className="bg-orange-500 p-4 rounded-full">
+                    <BookOpen className="h-12 w-12 text-white" />
+                  </div>
+                </div>
+                
+                <h2 className="text-3xl font-bold mb-2 text-green-600">Certificat d'Achèvement</h2>
                 <p className="text-gray-500 mb-6">Ce certificat est décerné à</p>
-                <h3 className="text-2xl font-bold mb-6">Jean Dupont</h3>
-                <p className="text-lg mb-2">pour avoir complété avec succès le cours</p>
-                <h4 className="text-xl font-bold mb-6">{course.title}</h4>
+                <h3 className="text-2xl font-bold mb-6 text-gray-800">Jean Dupont</h3>
+                <p className="text-lg mb-2 text-gray-700">pour avoir complété avec succès le cours</p>
+                <h4 className="text-xl font-bold mb-6 text-gray-800">{course.title}</h4>
                 <p className="text-gray-500 mb-8">Délivré le {new Date().toLocaleDateString()}</p>
 
                 <div className="flex justify-center mb-8">
@@ -546,7 +759,7 @@ const CoursePlayer = () => {
 
                 <div className="flex justify-between items-center mb-8">
                   <div className="text-center">
-                    <Image
+                    <img
                       src="/placeholder.svg?height=100&width=200"
                       alt="Signature de l'instructeur"
                       width={150}
@@ -557,7 +770,7 @@ const CoursePlayer = () => {
                     <p className="text-sm text-gray-500">Instructeur</p>
                   </div>
                   <div className="text-center">
-                    <Image
+                    <img
                       src="/placeholder.svg?height=100&width=200"
                       alt="Logo de la plateforme"
                       width={150}
@@ -570,15 +783,24 @@ const CoursePlayer = () => {
                 </div>
 
                 <div className="flex flex-wrap justify-center gap-3 mb-6">
-                  <button className="flex items-center py-2 px-4 bg-orange-500 text-white rounded-md hover:bg-orange-600">
+                  <button 
+                    className="flex items-center py-2 px-4 bg-orange-500 text-white rounded-md hover:bg-orange-600"
+                    onClick={downloadCertificateAsPDF}
+                  >
                     <Download className="h-4 w-4 mr-2" />
                     Télécharger PDF
                   </button>
-                  <button className="flex items-center py-2 px-4 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                  <button 
+                    className="flex items-center py-2 px-4 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                    onClick={printCertificate}
+                  >
                     <Printer className="h-4 w-4 mr-2" />
                     Imprimer
                   </button>
-                  <button className="flex items-center py-2 px-4 bg-[#0077B5] text-white rounded-md hover:bg-[#006699]">
+                  <button 
+                    className="flex items-center py-2 px-4 bg-[#0077B5] text-white rounded-md hover:bg-[#006699]"
+                    onClick={shareCertificateOnLinkedIn}
+                  >
                     <Linkedin className="h-4 w-4 mr-2" />
                     Partager sur LinkedIn
                   </button>
@@ -587,6 +809,10 @@ const CoursePlayer = () => {
                 <div className="text-sm text-gray-500">
                   ID du certificat: CERT-{course.id}-{Date.now().toString().slice(-8)}
                 </div>
+                
+                <p className="text-xs text-gray-400 mt-3">
+                  [Mode statique] Ce certificat est généré localement et n'est pas validé par le serveur.
+                </p>
               </div>
 
               <div className="mt-6 text-center">
@@ -602,20 +828,183 @@ const CoursePlayer = () => {
             <div className="h-full flex flex-col">
               {/* Contenu de la leçon */}
               <div className="flex-1 overflow-y-auto">
-                {currentLesson?.type === "video" && (
+                {currentLesson?.content_type === "video" && (
                   <div className="bg-black aspect-video">
                     <div className="relative w-full h-full flex items-center justify-center">
-                      <Image
-                        src={currentLesson?.content_url || "/placeholder.svg?height=600&width=1200"}
-                        alt={currentLesson?.title || "Vidéo du cours"}
-                        layout="fill"
-                        objectFit="contain"
-                      />
-                      <button className="absolute inset-0 flex items-center justify-center">
-                        <div className="h-16 w-16 rounded-full bg-white/80 flex items-center justify-center">
-                          <Play className="h-8 w-8 text-orange-500 ml-1" />
+                      {currentLesson?.content_url ? (
+                        <div className="w-full h-full">
+                          {currentLesson.content_url.toString().includes('dropbox.com') ? (
+                            // Pour les liens Dropbox qui ne peuvent pas être intégrés directement
+                            <div className="flex flex-col items-center justify-center h-full text-white">
+                              <FileText className="h-16 w-16 mb-4 text-orange-500" />
+                              <p className="text-xl font-bold mb-2">Contenu Dropbox détecté</p>
+                              <p className="text-sm mb-4 text-center px-8">
+                                Dropbox n'autorise pas la lecture directe des vidéos. Veuillez ouvrir le lien dans un nouvel onglet ou télécharger le fichier.
+                              </p>
+                              <div className="flex gap-3">
+                                <a 
+                                  href={currentLesson.content_url.toString().replace('www.dropbox.com', 'dl.dropboxusercontent.com')}
+                                  className="py-2 px-4 bg-orange-500 text-white rounded-md hover:bg-orange-600 flex items-center"
+                                  download
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                >
+                                  <Download className="h-4 w-4 mr-2" />
+                                  Télécharger
+                                </a>
+                                <a 
+                                  href={currentLesson.content_url}
+                                  className="py-2 px-4 bg-white text-gray-800 border border-gray-300 rounded-md hover:bg-gray-100 flex items-center"
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                >
+                                  <ExternalLink className="h-4 w-4 mr-2" />
+                                  Ouvrir dans Dropbox
+                                </a>
+                              </div>
+                            </div>
+                          ) : currentLesson.content_url.toString().startsWith('http') ? (
+                            // Pour les autres URLs externes (YouTube, Vimeo, etc.)
+                            <iframe
+                              src={currentLesson.content_url}
+                              className="w-full h-full"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                              title={currentLesson.title || "Vidéo du cours"}
+                              onError={(e) => {
+                                console.error("Erreur de chargement vidéo:", e);
+                                const target = e.target as HTMLIFrameElement;
+                                target.style.display = 'none';
+                                const errorDiv = document.createElement('div');
+                                errorDiv.className = 'flex flex-col items-center justify-center w-full h-full text-white';
+                                errorDiv.innerHTML = `
+                                  <div class="text-xl font-bold mb-2">Erreur de chargement</div>
+                                  <div class="text-sm">La vidéo ne peut pas être chargée.</div>
+                                  <a href="${currentLesson.content_url}" 
+                                     class="mt-4 px-4 py-2 bg-orange-500 hover:bg-orange-600 rounded text-white flex items-center" 
+                                     target="_blank" rel="noopener noreferrer">
+                                    <span style="margin-right: 8px;">
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                        <polyline points="15 3 21 3 21 9"></polyline>
+                                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                                      </svg>
+                                    </span>
+                                    Ouvrir la vidéo dans un nouvel onglet
+                                  </a>
+                                `;
+                                target.parentNode?.appendChild(errorDiv);
+                              }}
+                            />
+                          ) : (
+                            // Pour les vidéos téléchargées
+                            <video
+                              ref={videoRef}
+                              src={currentLesson.content_url}
+                              className="w-full h-full"
+                              controls
+                              poster={course.image_url}
+                              onError={(e) => {
+                                console.error("Erreur de chargement vidéo:", e);
+                                // Si la vidéo ne peut pas être chargée, afficher un message d'erreur
+                                const target = e.target as HTMLVideoElement;
+                                target.style.display = 'none';
+                                // Ajouter un message d'erreur
+                                const errorDiv = document.createElement('div');
+                                errorDiv.className = 'flex flex-col items-center justify-center w-full h-full text-white';
+                                errorDiv.innerHTML = `
+                                  <div class="text-xl font-bold mb-2">Erreur de chargement</div>
+                                  <div class="text-sm">La vidéo ne peut pas être chargée.</div>
+                                  <div class="text-sm mt-2">
+                                    Pour les vidéos Dropbox, veuillez télécharger la vidéo plutôt que de la visionner en ligne.
+                                  </div>
+                                  <a href="${currentLesson.content_url}" 
+                                     class="mt-4 px-4 py-2 bg-orange-500 hover:bg-orange-600 rounded text-white flex items-center" 
+                                     target="_blank" rel="noopener noreferrer">
+                                    <Download className="h-4 w-4 mr-2" />
+                                    Télécharger la vidéo
+                                  </a>
+                                `;
+                                target.parentNode?.appendChild(errorDiv);
+                              }}
+                            />
+                          )}
                         </div>
-                      </button>
+                      ) : (
+                        <>
+                          <img
+                            src="/placeholder.svg?height=600&width=1200"
+                            alt={currentLesson?.title || "Vidéo du cours"}
+                            className="w-full h-full object-contain"
+                            style={{ position: 'absolute' }}
+                          />
+                          <button className="absolute inset-0 flex items-center justify-center">
+                            <div className="h-16 w-16 rounded-full bg-white/80 flex items-center justify-center">
+                              <Play className="h-8 w-8 text-orange-500 ml-1" />
+                            </div>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {currentLesson?.content_type === "pdf" && (
+                  <div className="bg-gray-100 aspect-video">
+                    <div className="w-full h-full flex items-center justify-center p-4">
+                      {currentLesson?.content_url ? (
+                        <div className="w-full h-full">
+                          {currentLesson.content_url.toString().startsWith('file:///') ? (
+                            // Pour les URLs de type file:///, offrir un lien de téléchargement
+                            <div className="flex flex-col items-center justify-center h-full">
+                              <FileText className="h-12 w-12 mb-4 text-orange-500" />
+                              <p className="text-lg font-medium mb-2">Fichier PDF local détecté</p>
+                              <p className="text-sm text-gray-500 mb-4 text-center px-4">
+                                Les fichiers PDF locaux ne peuvent pas être affichés directement dans le navigateur. 
+                                Veuillez télécharger le fichier pour le consulter.
+                              </p>
+                              <a 
+                                href={currentLesson.content_url}
+                                download
+                                className="py-2 px-4 bg-orange-500 text-white rounded-md hover:bg-orange-600 flex items-center"
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                              >
+                                <Download className="h-4 w-4 mr-2" />
+                                Télécharger le PDF
+                              </a>
+                            </div>
+                          ) : (
+                            // Pour les URLs web normales
+                            <iframe
+                              src={currentLesson.content_url}
+                              className="w-full h-full border-0"
+                              title={currentLesson.title || "Document PDF"}
+                              allow="fullscreen"
+                              onError={(e) => {
+                                console.error("Erreur de chargement PDF:", e);
+                                // Si le PDF ne peut pas être chargé, afficher un message d'erreur
+                                const target = e.target as HTMLIFrameElement;
+                                target.style.display = 'none';
+                                // Ajouter un message d'erreur
+                                const errorDiv = document.createElement('div');
+                                errorDiv.className = 'flex flex-col items-center justify-center w-full h-full';
+                                errorDiv.innerHTML = `
+                                  <div class="text-xl font-bold mb-2">Erreur de chargement</div>
+                                  <div class="text-sm">Le document PDF ne peut pas être chargé. Vérifiez l'URL ou essayez un autre format.</div>
+                                  <div class="text-xs mt-2">URL: ${currentLesson.content_url}</div>
+                                `;
+                                target.parentNode?.appendChild(errorDiv);
+                              }}
+                            />
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-gray-500">
+                          <FileText className="h-12 w-12 mb-2" />
+                          <p>Le PDF n'est pas disponible</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -759,44 +1148,7 @@ const CoursePlayer = () => {
                   </div>
 
                   {/* Commentaires et questions */}
-                  <div className="bg-white border border-gray-200 rounded-lg p-6">
-                    <h3 className="font-medium mb-4">Questions et commentaires</h3>
-                    <div className="mb-4">
-                      <textarea
-                        className="w-full border border-gray-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                        rows={3}
-                        placeholder="Posez une question ou laissez un commentaire..."
-                      ></textarea>
-                      <div className="mt-2 flex justify-end">
-                        <button className="py-2 px-4 bg-orange-500 text-white rounded-md hover:bg-orange-600">
-                          Publier
-                        </button>
-                      </div>
-                    </div>
-                    <div className="space-y-4">
-                      <div className="flex items-start">
-                        <div className="h-10 w-10 rounded-full bg-gray-200 mr-3 flex-shrink-0">
-                          <User className="h-10 w-10 text-gray-500" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center mb-1">
-                            <h4 className="font-medium">Sophie Martin</h4>
-                            <span className="text-xs text-gray-500 ml-2">il y a 2 jours</span>
-                          </div>
-                          <p className="text-sm mb-2">
-                            Est-ce que quelqu'un peut m'expliquer la différence entre Flexbox et Grid? Dans quels cas
-                            utiliser l'un plutôt que l'autre?
-                          </p>
-                          <div className="flex items-center text-sm">
-                            <button className="text-gray-500 hover:text-orange-500 mr-4">
-                              <MessageSquare className="h-4 w-4 inline mr-1" /> Répondre
-                            </button>
-                            <span className="text-gray-500">2 réponses</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  
                 </div>
               </div>
 
@@ -816,6 +1168,41 @@ const CoursePlayer = () => {
                 </button>
 
                 <div className="flex items-center">
+                  {/* Bouton de complétion rapide */}
+                  <button
+                    className="py-2 px-4 bg-green-600 text-white rounded-md hover:bg-green-700 mr-2"
+                    onClick={() => {
+                      // Marquer toutes les leçons comme terminées
+                      const allCompletedSections = course.sections.map(section => ({
+                        ...section,
+                        lessons: section.lessons.map(lesson => ({
+                          ...lesson,
+                          completed: true
+                        }))
+                      }));
+                      
+                      // Mettre à jour le cours avec 100% de progression
+                      setCourse({
+                        ...course,
+                        sections: allCompletedSections,
+                        completedLessons: course.totalLessons,
+                        progress: 100
+                      });
+                      
+                      // Afficher un message de succès
+                      toast({
+                        title: "Cours terminé!",
+                        description: "Toutes les leçons ont été marquées comme terminées. Vous pouvez maintenant obtenir votre certificat.",
+                      });
+                      
+                      // Afficher le certificat
+                      setShowCertificate(true);
+                    }}
+                  >
+                    <Award className="h-5 w-5 sm:mr-2 inline" />
+                    <span className="hidden sm:inline">Terminer le cours maintenant</span>
+                  </button>
+                
                   {currentLesson && !currentLesson.completed && (
                     <button
                       className="py-2 px-4 bg-orange-500 text-white rounded-md hover:bg-orange-600 mr-2"
@@ -847,7 +1234,9 @@ const CoursePlayer = () => {
           ) : (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
-                <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <div className="bg-orange-100 p-6 rounded-full mx-auto mb-4">
+                  <BookOpen className="h-12 w-12 text-orange-500" />
+                </div>
                 <h2 className="text-xl font-bold mb-2">Aucune leçon sélectionnée</h2>
                 <p className="text-gray-500">Sélectionnez une leçon dans le menu pour commencer à apprendre</p>
               </div>

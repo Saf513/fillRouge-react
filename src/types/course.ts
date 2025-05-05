@@ -32,7 +32,7 @@ export interface Lesson {
   title: string;
   description?: string;
   content_type: "video" | "article" | "quiz" | "assignment" | "pdf";
-  content_url?: File;
+  content_url?: string | File;
   duration: string;
   order: number;
   videoUrl?: string;
